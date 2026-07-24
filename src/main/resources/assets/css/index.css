@@ -1,0 +1,8 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@enonic/ui/preset.css';
+
+/* Tell Tailwind where to scan for utility class names (node_modules is not
+   scanned by default). Paths are relative to this file. */
+@source '../../../../../node_modules/@enonic/ui/';
+@source '../js/';

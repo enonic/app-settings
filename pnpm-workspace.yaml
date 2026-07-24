@@ -1,0 +1,18 @@
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.5
+  vite-plus: 0.2.5
+overrides:
+  vite: 'catalog:'
+# react/react-dom are aliased to preact/compat, so never install the real
+# packages when a lib (e.g. @tanstack/react-router) declares them as peers.
+autoInstallPeers: false
+peerDependencyRules:
+  # react/react-dom are aliased to preact/compat in vite.config.ts + tsconfig,
+  # so the actual packages aren't installed; ignore libs' react peer demands.
+  allowAny:
+    - vite
+    - react
+    - react-dom
+  allowedVersions:
+    vite: '*'
+minimumReleaseAge: 4320 # 3 days
