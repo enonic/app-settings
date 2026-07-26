@@ -47,6 +47,7 @@ export default defineConfig(({ mode }) => {
       'src/main/resources/**/*.ts',
       '!src/main/resources/assets/**',
       '!src/main/resources/**/*.d.ts', // declarations type-check only, no emit
+      '!src/main/resources/**/*.test.ts', // colocated tests must not reach the jar
     ],
     root: 'src/main/resources', // rootDir — drives the mirrored output layout
     outDir: 'build/resources/main',
@@ -63,8 +64,25 @@ export default defineConfig(({ mode }) => {
     report: false,
   };
 
+  // Vitest inherits the Vite config, so `root` has to be pointed back at the repo:
+  // the build root is assets/, which would hide every server-side test.
+  const test = {
+    root: import.meta.dirname,
+    environment: 'node' as const,
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    passWithNoTests: true,
+    // XP supplies these at runtime; under vitest they resolve to local doubles.
+    alias: {
+      '/lib/mustache': join(import.meta.dirname, 'src/test/mocks/lib-mustache.ts'),
+      '/lib/xp/portal': join(import.meta.dirname, 'src/test/mocks/lib-xp-portal.ts'),
+    },
+  };
+
   return {
     root: ASSETS,
+    // Default would be <root>/node_modules/.vite — inside the resources tree, which
+    // processResources then copies into the jar.
+    cacheDir: join(import.meta.dirname, 'node_modules/.vite'),
     base: './', // relative asset URLs — served under XP's asset path, not domain root
     plugins: [...css.plugins, dropCssFacade],
     resolve: { alias: js.alias, dedupe: ['preact', 'preact/compat'] },
@@ -89,6 +107,7 @@ export default defineConfig(({ mode }) => {
     lint,
     fmt,
     pack,
+    test,
   };
 });
 

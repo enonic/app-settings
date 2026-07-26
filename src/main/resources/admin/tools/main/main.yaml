@@ -1,5 +1,5 @@
 kind: "AdminTool"
-title: "App settings"
+title: "Settings"
 description: "App settings description"
 allow:
-  - "role:system.authenticated"
+  - "role:system.admin"

@@ -1,97 +1,3 @@
----
-lockfileVersion: '9.0'
-
-importers:
-
-  .:
-    configDependencies: {}
-    packageManagerDependencies:
-      '@pnpm/exe':
-        specifier: 10.33.4
-        version: 10.33.4
-      pnpm:
-        specifier: 10.33.4
-        version: 10.33.4
-
-packages:
-
-  '@pnpm/exe@10.33.4':
-    resolution: {integrity: sha512-/kXXlHAXWHt7INYwQIWg2eQ85GaUqgfj0ltUB7T9emhA1smOgamJ8cQEhNBzc32vmKaV1bI5IxFShe1rfXMTDw==}
-    hasBin: true
-
-  '@pnpm/linux-arm64@10.33.4':
-    resolution: {integrity: sha512-VGX2CIOL/1RwOfAsQM8i4XYJXer/LUM/T2gB8eIG/g8PIxpYqJ1Fv5xjCz7x2s2Kek4mujim+3mQ0aOGnqj99Q==}
-    cpu: [arm64]
-    os: [linux]
-    hasBin: true
-
-  '@pnpm/linux-x64@10.33.4':
-    resolution: {integrity: sha512-hTlGChXiJ9/NGm43d/Ai/7SQ6X7S1WQkq5+7TfNNyloB06BaKfSjlPhI9qJIEnlBKr/bkgoql1EC8zBvF2Ebxg==}
-    cpu: [x64]
-    os: [linux]
-    hasBin: true
-
-  '@pnpm/macos-arm64@10.33.4':
-    resolution: {integrity: sha512-8hfg2/6zHmptukEO8DwKCGp7OWCjDSelkBvtbcbbE1UBXwRTH5N6yCklIYK3SLfdlWfYEgHRt1SBq2AHkm90Xw==}
-    cpu: [arm64]
-    os: [darwin]
-    hasBin: true
-
-  '@pnpm/macos-x64@10.33.4':
-    resolution: {integrity: sha512-FuQJvHhcgJ0OMVqrbf35LUn3TAD1c8fekJL1i7gSY5ls0QtoYt49XtoDaD6beFcvrJ1GyubERlDsFe3957iXUQ==}
-    cpu: [x64]
-    os: [darwin]
-    hasBin: true
-
-  '@pnpm/win-arm64@10.33.4':
-    resolution: {integrity: sha512-13O9kR6A0AvhhGMGocxt7ujvyIzJkAir3fCVTvKFCJYHLjSANeNMrCutczxDdg3VkedZiftMWsLfCRQ64GXpQA==}
-    cpu: [arm64]
-    os: [win32]
-    hasBin: true
-
-  '@pnpm/win-x64@10.33.4':
-    resolution: {integrity: sha512-O0XumKXWdF+newAVzemkGyW/FBvGQ3t9bXG0iAYvxDxLAcTaNxUueKLNQjTCSlpgm+4s6HKw/kq6Z6i6Y+Bqeg==}
-    cpu: [x64]
-    os: [win32]
-    hasBin: true
-
-  pnpm@10.33.4:
-    resolution: {integrity: sha512-HGezs1my1AgRm6HtKJ80uPw8aHNBK+xv0mT73IJInlEPy+y5zp0i2ufzt2Jp2EQQRgFL3KU7mXnNelYa1jG4AA==}
-    engines: {node: '>=18.12'}
-    hasBin: true
-
-snapshots:
-
-  '@pnpm/exe@10.33.4':
-    optionalDependencies:
-      '@pnpm/linux-arm64': 10.33.4
-      '@pnpm/linux-x64': 10.33.4
-      '@pnpm/macos-arm64': 10.33.4
-      '@pnpm/macos-x64': 10.33.4
-      '@pnpm/win-arm64': 10.33.4
-      '@pnpm/win-x64': 10.33.4
-
-  '@pnpm/linux-arm64@10.33.4':
-    optional: true
-
-  '@pnpm/linux-x64@10.33.4':
-    optional: true
-
-  '@pnpm/macos-arm64@10.33.4':
-    optional: true
-
-  '@pnpm/macos-x64@10.33.4':
-    optional: true
-
-  '@pnpm/win-arm64@10.33.4':
-    optional: true
-
-  '@pnpm/win-x64@10.33.4':
-    optional: true
-
-  pnpm@10.33.4: {}
-
----
 lockfileVersion: '9.0'
 
 settings:
@@ -106,6 +12,7 @@ catalogs:
 
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@0.2.5
+  vitest: 4.1.10
 
 importers:
 
@@ -114,6 +21,9 @@ importers:
       '@enonic/ui':
         specifier: ^1.0.5
         version: 1.0.5(@radix-ui/react-slot@1.3.1(@types/react@19.2.17))(focus-trap-react@11.0.6(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17))(lucide-react@1.26.0)(preact@10.29.7)(tw-animate-css@1.4.0)
+      '@nanostores/preact':
+        specifier: ^1.1.0
+        version: 1.1.0(nanostores@1.4.1)(preact@10.29.7)
       '@radix-ui/react-slot':
         specifier: ^1.3.1
         version: 1.3.1(@types/react@19.2.17)
@@ -126,6 +36,12 @@ importers:
       lucide-react:
         specifier: ^1.26.0
         version: 1.26.0
+      nanostores:
+        specifier: ^1.4.1
+        version: 1.4.1
+      neverthrow:
+        specifier: ^8.2.0
+        version: 8.2.0
       preact:
         specifier: ^10.29.7
         version: 10.29.7
@@ -166,6 +82,9 @@ importers:
       vite-plus:
         specifier: 'catalog:'
         version: 0.2.5(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.5(@types/node@26.1.1)(jiti@2.7.0)(typescript@7.0.2))(jiti@2.7.0)(typescript@7.0.2)
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@26.1.1)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.5(@types/node@26.1.1)(jiti@2.7.0)(typescript@7.0.2))
 
 packages:
 
@@ -232,6 +151,13 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@nanostores/preact@1.1.0':
+    resolution: {integrity: sha512-oiu9z85AiZlBTKJ8YsfAs8TALpDij70LmmKuRkeF22rS9zUBhVtYDWXEvV1qUUStNNwSFdhTMkwzOYL/IsA+UA==}
+    engines: {node: ^20.0.0 || >=22.0.0}
+    peerDependencies:
+      nanostores: ^1.2.0
+      preact: '>=10.0.0'
 
   '@oxc-project/runtime@0.139.0':
     resolution: {integrity: sha512-WnuGdceWtRdqD7f3alOIDXN6bnGuGtFjtQf/dHjzgn2im7eKaYRJTEl2T1kFEWPhBWCDk+UDYgsTLUE5L6jc0w==}
@@ -541,6 +467,12 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  '@rollup/rollup-linux-x64-gnu@4.62.2':
+    resolution: {integrity: sha512-5BqxR/pshjey51iliyzTD5Xi3EN0aLmQ2lZ3lvefVV9c82BvrLo2/6OT55iifpWBufs6kdwWbuOKS841DrmK9A==}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
@@ -1357,6 +1289,14 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  nanostores@1.4.1:
+    resolution: {integrity: sha512-PGd3uPojJB9Z07d5NX3Db/SOSBbyy3wLMUGq0GpnEEJfVzY9mq7daPMAZ3jObV5D3Jn+YKND636eI5ULg7F80Q==}
+    engines: {node: ^20.0.0 || >=22.0.0}
+
+  neverthrow@8.2.0:
+    resolution: {integrity: sha512-kOCT/1MCPAxY5iUV3wytNFUMUolzuwd/VF/1KCx7kf6CutrOsTie+84zTGTpgQycjvfLdBBdvBvFLqFD2c0wkQ==}
+    engines: {node: '>=18'}
+
   obug@2.1.4:
     resolution: {integrity: sha512-4a+OsYv9UktOJKE+l1A4OufDgdRF9PifWj+tJnHURo/P+WOxpG4GzUFL9qCalmWauao6ogiG+QvnCovwPoyAWA==}
     engines: {node: '>=12.20.0'}
@@ -1635,6 +1575,11 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  '@nanostores/preact@1.1.0(nanostores@1.4.1)(preact@10.29.7)':
+    dependencies:
+      nanostores: 1.4.1
+      preact: 10.29.7
+
   '@oxc-project/runtime@0.139.0': {}
 
   '@oxc-project/types@0.139.0': {}
@@ -1787,6 +1732,9 @@ snapshots:
       '@radix-ui/react-compose-refs': 1.1.4(@types/react@19.2.17)
     optionalDependencies:
       '@types/react': 19.2.17
+
+  '@rollup/rollup-linux-x64-gnu@4.62.2':
+    optional: true
 
   '@standard-schema/spec@1.1.0': {}
 
@@ -2333,6 +2281,12 @@ snapshots:
   mrmime@2.0.1: {}
 
   nanoid@3.3.16: {}
+
+  nanostores@1.4.1: {}
+
+  neverthrow@8.2.0:
+    optionalDependencies:
+      '@rollup/rollup-linux-x64-gnu': 4.62.2
 
   obug@2.1.4: {}
 

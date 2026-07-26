@@ -1,0 +1,62 @@
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    # Keep in sync with minimumReleaseAge/minimumReleaseAgeExclude in
+    # pnpm-workspace.yaml: Dependabot must not propose versions pnpm would reject,
+    # and must not hold back the first-party packages pnpm lets through.
+    cooldown:
+      default-days: 4
+      exclude:
+        - '@enonic-types/*'
+        - '@enonic/ui'
+    groups:
+      enonic:
+        patterns:
+          - '@enonic/*'
+          - '@enonic-types/*'
+      ui-runtime:
+        patterns:
+          - '@radix-ui/*'
+          - 'focus-trap-react'
+          - 'lucide-react'
+          - 'preact'
+      nanostores:
+        patterns:
+          - 'nanostores'
+          - '@nanostores/*'
+      vite:
+        patterns:
+          - 'vite'
+          - 'vite-plus'
+          - 'vitest'
+          - '@vitest/*'
+      tailwindcss:
+        patterns:
+          - 'tailwindcss'
+          - '@tailwindcss/*'
+          - 'tw-animate-css'
+      types:
+        patterns:
+          - '@types/*'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 10
+    assignees:
+      - 'ashklianko'
+
+  - package-ecosystem: 'gradle'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 10
+    assignees:
+      - 'ashklianko'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    open-pull-requests-limit: 10
+    assignees:
+      - 'ashklianko'

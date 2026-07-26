@@ -10,6 +10,7 @@ plugins {
 // so `vp pack` can target es2023 (see vite.config.ts).
 app {
     scriptEngine = 'GraalJS'
+    systemApp = true
 }
 
 dependencies {
@@ -32,7 +33,7 @@ dependencies {
 repositories {
     mavenLocal()
     mavenCentral()
-    xp.enonicRepo()
+    xp.enonicRepo('dev')
 }
 
 // Download + pin Node + pnpm so the build is self-contained (clean checkout / CI).
@@ -61,22 +62,21 @@ tasks.named('processResources') {
     exclude '**/*.tsx'
     exclude '**/tsconfig.json' // type-check config, not an app resource
     exclude '**/.gitkeep'
+    exclude '**/node_modules/**' // git-ignored, so a stray one here ships unnoticed
     includeEmptyDirs = false
 }
 
 // pnpm build tasks wired into Gradle, so `enonic dev` / jar builds regenerate resources
 // without a manual `pnpm run ...`.
 
-// Format + lint + type-check (oxfmt/oxlint + tsc) before building.
+// Format + lint + type-check (oxfmt/oxlint + tsc) + tests before building.
+// CI must fail on violations; locally they get fixed in place.
 tasks.register('pnpmCheck', PnpmTask) {
     dependsOn tasks.named('pnpmInstall')
-    description = 'Check UI + server resources (fmt, lint, types) with vp check + tsc.'
+    description = 'Check UI + server resources (fmt, lint, types, tests) with vp check + tsc.'
     group = 'verification'
-    args = ['run', 'check:fix']
-    inputs.dir 'src/main'
-    inputs.file 'vite.config.ts'
-    inputs.file 'tsconfig.json'
-    inputs.file 'package.json'
+    args = ['run', System.getenv('CI') != null ? 'check' : 'check:fix']
+    // No inputs/outputs on purpose: a verification task should always run.
 }
 
 tasks.register('pnpmBuild', PnpmTask) {

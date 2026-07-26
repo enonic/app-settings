@@ -19,5 +19,5 @@
       "react-dom/client": ["./node_modules/preact/compat"]
     }
   },
-  "include": ["src/main/resources/assets/js", "vite.config.ts"]
+  "include": ["src/main/resources/assets/js", "src/test", "vite.config.ts"]
 }
