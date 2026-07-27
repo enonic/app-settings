@@ -6,14 +6,34 @@ on:
 
 concurrency:
   group: build-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/heads/8.') }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 permissions:
   contents: read
 
 jobs:
+  publish_vars:
+    runs-on: ubuntu-latest
+
+    outputs:
+      publish: ${{ steps.publish_vars.outputs.release != 'true' && github.ref == 'refs/heads/master' }}
+      repo: ${{ steps.publish_vars.outputs.repo }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Get publishing variables
+        id: publish_vars
+        uses: enonic/release-tools/publish-vars@90679fb3c44479371a423b4c4a63021d682e4403 # master @ 2026-07-01
+        env:
+          PROPERTIES_PATH: './gradle.properties'
+
   build:
     runs-on: ubuntu-latest
+
+    needs: publish_vars
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -28,8 +48,18 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
 
+      - name: Prepare Gradle arguments
+        run: |
+          ARGS='build'
+          if [ "${{ needs.publish_vars.outputs.publish }}" = 'true' ]; then
+            ARGS="$ARGS publish -Pcom.enonic.xp.app.production=true -PrepoKey=${{ needs.publish_vars.outputs.repo }} -PrepoUser=ci"
+          fi
+          echo "GRADLE_ARGS=$ARGS" >> "$GITHUB_ENV"
+
       - name: Build
-        run: ./gradlew build
+        run: ./gradlew $GRADLE_ARGS
+        env:
+          ORG_GRADLE_PROJECT_repoPassword: ${{ secrets.ARTIFACTORY_PASSWORD }}
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

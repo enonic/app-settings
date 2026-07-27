@@ -3,7 +3,9 @@ import com.github.gradle.node.pnpm.task.PnpmTask
 
 plugins {
     id 'com.enonic.xp.app'
+    id 'com.enonic.defaults' version '2.1.7'
     id 'com.github.node-gradle.node' version '7.1.0'
+    id 'maven-publish'
 }
 
 // Pin the script engine (not the XP instance default). GraalJS supports modern ES,
