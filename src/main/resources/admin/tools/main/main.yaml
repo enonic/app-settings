@@ -1,0 +1,5 @@
+kind: "AdminTool"
+title: "Settings"
+description: "App settings description"
+allow:
+  - "role:system.admin"

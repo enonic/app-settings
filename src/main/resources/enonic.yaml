@@ -1,0 +1,5 @@
+kind: 'Application'
+title: 'App Settings'
+description: 'Management app for Enonic XP'
+vendorName: 'Enonic AS'
+vendorUrl: 'https://enonic.com'
