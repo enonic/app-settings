@@ -19,13 +19,15 @@ dependencies {
     implementation xplibs.api.core
     implementation xplibs.api.portal
     include xplibs.portal
+    include xplibs.auth
+    include xplibs.i18n
     include 'com.enonic.lib:lib-mustache:3.0.0'
 
     // Optional XP libs — uncomment as features need them.
-    //include xplibs.auth
     //include xplibs.context
+    //include xplibs.event
+    //include xplibs.sse
     //include xplibs.project
-    //include xplibs.i18n
     //include xplibs.io
     //include xplibs.mail
     //include xplibs.repo
@@ -111,6 +113,14 @@ tasks.register('pnpmPack', PnpmTask) {
     inputs.file 'package.json'
     outputs.dir layout.buildDirectory.dir('resources/main')
     outputs.cacheIf { false } // output dir overlaps processResources — caching unreliable
+
+    // Required: vp pack runs clean:false, so without this a deleted .ts keeps shipping its .js.
+    doFirst {
+        delete fileTree(layout.buildDirectory.dir('resources/main')) {
+            include '**/*.js'
+            exclude 'assets/**'
+        }
+    }
 }
 
 tasks.named('jar') {

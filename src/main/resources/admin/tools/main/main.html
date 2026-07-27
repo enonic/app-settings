@@ -1,14 +1,29 @@
 <!DOCTYPE html>
-<html>
+<html class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
     <meta name="viewport" content="width=device-width, user-scalable=no">
+    <meta name="color-scheme" content="light dark">
     <title>App Settings</title>
+
+    <link rel="icon" href="{{assetsUrl}}/icons/favicon.ico" sizes="32x32">
+    <link rel="icon" type="image/svg+xml" href="{{assetsUrl}}/icons/favicon.svg">
+
+    <style>
+        @font-face {
+            font-family: 'Open Sans';
+            font-style: normal;
+            font-weight: 300 800;
+            font-display: swap;
+            src: url("{{{fontUrl}}}") format("woff2");
+        }
+    </style>
     <link rel="stylesheet" type="text/css" href="{{mainCssUrl}}">
 </head>
-<body>
-    <div id="app"></div>
-    <script type="module" src="{{mainJsUrl}}"></script>
+<body class="h-full">
+    <div id="app" class="h-full"></div>
+    <script type="application/json" id="{{configScriptId}}">{{{configAsJson}}}</script>
+    <script type="module" src="{{mainJsUrl}}" data-config-script-id="{{configScriptId}}"></script>
 </body>
 </html>

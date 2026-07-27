@@ -3,52 +3,63 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  Link,
-  Outlet,
   redirect,
 } from '@tanstack/react-router';
+import type { JSX } from 'preact';
 
+import { ApplicationsItemPage } from '../pages/applications/ApplicationsItemPage';
 import { ApplicationsPage } from '../pages/applications/ApplicationsPage';
+import { GroupsItemPage } from '../pages/groups/GroupsItemPage';
+import { GroupsPage } from '../pages/groups/GroupsPage';
+import { IdProvidersItemPage } from '../pages/id-providers/IdProvidersItemPage';
+import { IdProvidersPage } from '../pages/id-providers/IdProvidersPage';
+import { RolesItemPage } from '../pages/roles/RolesItemPage';
+import { RolesPage } from '../pages/roles/RolesPage';
+import { UsersItemPage } from '../pages/users/UsersItemPage';
 import { UsersPage } from '../pages/users/UsersPage';
+import { AppShell } from './AppShell';
+import { DEFAULT_SECTION } from './navigation';
 
 const rootRoute = createRootRoute({
-  component: RootLayout,
+  component: AppShell,
 });
-
-function RootLayout() {
-  return (
-    <div>
-      <nav className="mb-10 flex gap-10 border-b-2">
-        <Link to="/applications">Applications</Link>
-        <Link to="/users">Users</Link>
-      </nav>
-
-      <Outlet />
-    </div>
-  );
-}
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   beforeLoad: () => {
-    throw redirect({ to: '/applications' });
+    throw redirect({ to: DEFAULT_SECTION.path });
   },
 });
 
-const applicationsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/applications',
-  component: ApplicationsPage,
-});
+function sectionRoutes<Path extends string>(
+  path: Path,
+  SectionComponent: () => JSX.Element,
+  ItemComponent: () => JSX.Element,
+) {
+  const sectionRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path,
+    component: SectionComponent,
+  });
 
-const usersRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/users',
-  component: UsersPage,
-});
+  const itemRoute = createRoute({
+    getParentRoute: () => sectionRoute,
+    path: '$id',
+    component: ItemComponent,
+  });
 
-const routeTree = rootRoute.addChildren([indexRoute, applicationsRoute, usersRoute]);
+  return sectionRoute.addChildren([itemRoute]);
+}
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  sectionRoutes('/applications', ApplicationsPage, ApplicationsItemPage),
+  sectionRoutes('/users', UsersPage, UsersItemPage),
+  sectionRoutes('/groups', GroupsPage, GroupsItemPage),
+  sectionRoutes('/roles', RolesPage, RolesItemPage),
+  sectionRoutes('/id-providers', IdProvidersPage, IdProvidersItemPage),
+]);
 
 export const router = createRouter({
   routeTree,

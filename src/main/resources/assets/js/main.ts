@@ -1,8 +1,17 @@
 import { h, render } from 'preact';
 
 import { App } from './app/App';
+import { readConfig } from './shared/config';
+import { setPhrases } from './shared/i18n';
 
 const container = document.getElementById('app');
 if (container) {
-  render(h(App, null), container);
+  try {
+    const config = readConfig();
+    setPhrases(config.phrases, config.locale);
+    render(h(App, { config }), container);
+  } catch (error) {
+    console.error('Failed to start the Settings app:', error);
+    container.textContent = 'The Settings app could not be started.';
+  }
 }

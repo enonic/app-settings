@@ -6,3 +6,13 @@
    scanned by default). Paths are relative to this file. */
 @source '../../../../../node_modules/@enonic/ui/';
 @source '../js/';
+
+@theme {
+  --font-sans: 'Open Sans', Helvetica, sans-serif;
+}
+
+@layer base {
+  body {
+    font-size: 12px;
+  }
+}

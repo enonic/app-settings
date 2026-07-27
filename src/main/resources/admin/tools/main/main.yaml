@@ -1,5 +1,11 @@
 kind: "AdminTool"
-title: "Settings"
-description: "App settings description"
+title:
+  text: "Settings"
+  i18n: "admin.tool.displayName"
+description:
+  text: "Manage applications, users, groups, roles and ID providers"
+  i18n: "admin.tool.description"
 allow:
   - "role:system.admin"
+apis:
+  - "admin:event"
