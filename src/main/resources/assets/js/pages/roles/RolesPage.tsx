@@ -1,5 +1,5 @@
 import { SectionPage } from '../../widgets/section-page/SectionPage';
 
-export function ApplicationsPage() {
+export function RolesPage() {
   return <SectionPage />;
 }
