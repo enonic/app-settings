@@ -9,3 +9,5 @@ allow:
   - "role:system.admin"
 apis:
   - "admin:event"
+  - "admin:extension"
+  - "com.enonic.xp.app.main:events"

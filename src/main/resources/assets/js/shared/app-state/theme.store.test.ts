@@ -1,6 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { $theme, resolveTheme, setTheme, type Theme } from './theme.store';
+import { $theme, setTheme, type Theme } from './theme.store';
+
+function stubMedia(matches: boolean) {
+  const media = {
+    matches,
+    listener: undefined as (() => void) | undefined,
+    addEventListener: (_: string, cb: () => void) => {
+      media.listener = cb;
+    },
+    removeEventListener: () => {
+      media.listener = undefined;
+    },
+  };
+
+  vi.stubGlobal('window', { matchMedia: () => media });
+  return media;
+}
+
+async function freshStore() {
+  vi.resetModules();
+  return import('./theme.store');
+}
 
 beforeEach(() => {
   setTheme('system');
@@ -8,12 +29,12 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
-describe('theme store', () => {
+describe('$theme', () => {
   it('starts on the system preference', async () => {
-    vi.resetModules();
-    const fresh = await import('./theme.store');
+    const fresh = await freshStore();
 
     expect(fresh.$theme.get()).toBe('system');
   });
@@ -35,21 +56,56 @@ describe('theme store', () => {
 
     expect(seen).toEqual(['system', 'light', 'dark']);
   });
+});
 
-  it('passes explicit choices through unresolved', () => {
-    expect(resolveTheme('light')).toBe('light');
-    expect(resolveTheme('dark')).toBe('dark');
+describe('$resolvedTheme', () => {
+  it('follows the OS through a single listener while set to system', async () => {
+    const media = stubMedia(true);
+    const fresh = await freshStore();
+
+    const seen: string[] = [];
+    const unbind = fresh.$resolvedTheme.subscribe((theme) => seen.push(theme));
+    media.matches = false;
+    media.listener?.();
+    unbind();
+
+    expect(seen).toEqual(['dark', 'light']);
   });
 
-  it('follows the OS preference when set to system', () => {
-    vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) });
-    expect(resolveTheme('system')).toBe('dark');
+  it('ignores the OS once a theme is chosen explicitly', async () => {
+    const media = stubMedia(true);
+    const fresh = await freshStore();
 
-    vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) });
-    expect(resolveTheme('system')).toBe('light');
+    const seen: string[] = [];
+    const unbind = fresh.$resolvedTheme.subscribe((theme) => seen.push(theme));
+    fresh.setTheme('light');
+    media.matches = false;
+    media.listener?.();
+    unbind();
+
+    expect(seen).toEqual(['dark', 'light']);
   });
 
-  it('falls back to light where there is no window', () => {
-    expect(resolveTheme('system')).toBe('light');
+  it('falls back to light where there is no window', async () => {
+    const fresh = await freshStore();
+
+    const seen: string[] = [];
+    const unbind = fresh.$resolvedTheme.subscribe((theme) => seen.push(theme));
+    unbind();
+
+    expect(seen).toEqual(['light']);
+  });
+
+  it('drops the OS listener once nothing reads the theme', async () => {
+    vi.useFakeTimers();
+    const media = stubMedia(true);
+    const fresh = await freshStore();
+
+    const unbind = fresh.$resolvedTheme.subscribe(() => undefined);
+    unbind();
+    // Two delays: the computed unmounts first, and only then lets go of $systemTheme.
+    vi.advanceTimersByTime(2 * 1001);
+
+    expect(media.listener).toBeUndefined();
   });
 });

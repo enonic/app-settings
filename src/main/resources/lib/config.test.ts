@@ -1,3 +1,4 @@
+import { extensionUrl } from '/lib/xp/admin';
 import { getPhrases } from '/lib/xp/i18n';
 import { apiUrl, assetUrl } from '/lib/xp/portal';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +10,7 @@ const config: ToolConfig = {
   appVersion: '1.0.0',
   locale: 'en',
   assetsUrl: '/admin/tool/_/asset/com.enonic.app.settings',
+  menuLoaderUrl: '/admin/tool/_/admin:extension/com.enonic.xp.app.main:menu-loader',
   phrases: { 'nav.users': 'Users' },
   apis: {
     events: '/admin/tool/com.enonic.app.settings/main/_/com.enonic.app.settings:events',
@@ -20,6 +22,9 @@ describe('getConfig', () => {
     vi.stubGlobal('app', { name: 'com.enonic.app.settings', version: '1.0.0' });
     vi.mocked(getPhrases).mockReturnValue({ 'nav.users': 'Users' });
     vi.mocked(assetUrl).mockReturnValue('/assets');
+    vi.mocked(extensionUrl).mockImplementation(
+      ({ application, extension }) => `/_/admin:extension/${application}:${extension}`,
+    );
     vi.mocked(apiUrl).mockImplementation(
       ({ api, type }) => `${type === 'websocket' ? 'ws:' : ''}/_/${api}`,
     );
@@ -36,6 +41,16 @@ describe('getConfig', () => {
 
   it('reports the first requested locale', () => {
     expect(getConfig(['no', 'en']).locale).toBe('no');
+  });
+
+  it('points at the menu loader extension of the admin app', () => {
+    expect(getConfig(['en']).menuLoaderUrl).toBe(
+      '/_/admin:extension/com.enonic.xp.app.main:menu-loader',
+    );
+    expect(vi.mocked(extensionUrl)).toHaveBeenCalledWith({
+      application: 'com.enonic.xp.app.main',
+      extension: 'menu-loader',
+    });
   });
 
   it('points at the built-in admin:event api as a websocket url', () => {
