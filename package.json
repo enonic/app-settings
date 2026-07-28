@@ -32,6 +32,7 @@
   "devDependencies": {
     "@enonic-types/core": "^8.0.3",
     "@enonic-types/global": "^8.0.3",
+    "@enonic-types/lib-admin": "^8.0.3",
     "@enonic-types/lib-auth": "^8.0.3",
     "@enonic-types/lib-i18n": "^8.0.3",
     "@enonic-types/lib-portal": "^8.0.3",

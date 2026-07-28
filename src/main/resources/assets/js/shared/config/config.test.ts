@@ -11,6 +11,7 @@ const config: ToolConfig = {
   appVersion: '1.0.0',
   locale: 'en',
   assetsUrl: '/assets',
+  menuLoaderUrl: '/_/admin:extension/com.enonic.xp.app.main:menu-loader',
   phrases: { 'nav.users': 'Users' },
   apis: { events: '/_/app:events' },
 };
@@ -87,6 +88,13 @@ describe('readConfig', () => {
     });
 
     expect(() => readConfig(doc)).toThrow(/does not describe a tool config/);
+  });
+
+  it('still starts the app when the menu loader url is absent', () => {
+    const { menuLoaderUrl: _, ...withoutMenu } = config;
+    const doc = stubDocument({ scriptId: 'config-json', content: JSON.stringify(withoutMenu) });
+
+    expect(readConfig(doc)).toEqual(withoutMenu);
   });
 
   it('fails when phrases are missing', () => {

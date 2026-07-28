@@ -9,6 +9,7 @@ export type ToolConfig = {
   appVersion: string;
   locale: string;
   assetsUrl: string;
+  menuLoaderUrl?: string;
   phrases: Readonly<Record<string, string>>;
   apis: ApiUrls;
 };
