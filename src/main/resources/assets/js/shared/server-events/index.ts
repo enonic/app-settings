@@ -1,5 +1,4 @@
 export {
-  $serverEventsConnected,
   APPLICATION_EVENT,
   connectToServerEvents,
   IDENTITY_PATH,
@@ -15,4 +14,5 @@ export type {
   ServerEventListener,
   ServerEventNode,
 } from './server-events';
+export { $serverEventsConnected } from './server-events.store';
 export { useServerEvent } from './useServerEvent';

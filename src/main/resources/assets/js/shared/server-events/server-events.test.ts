@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  $serverEventsConnected,
   connectToServerEvents,
   isRelevantServerEvent,
   onServerEvent,
@@ -9,6 +8,7 @@ import {
   reconnectDelay,
   type ServerEvent,
 } from './server-events';
+import { $serverEventsConnected } from './server-events.store';
 
 class FakeWebSocket {
   static instances: FakeWebSocket[] = [];
