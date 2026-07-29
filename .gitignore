@@ -97,4 +97,5 @@ crashlytics-build.properties
 
 node_modules
 .claude/*
+!.claude/rules/
 .zed/*
