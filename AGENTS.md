@@ -63,6 +63,34 @@ src/main/resources/
 Import direction is one-way: `app → pages → widgets/features → entities → shared`. Details and the
 reasoning are in `.claude/rules/structure.md`.
 
+## Reference repositories
+
+Sibling checkouts, read-only — nothing here imports from them. Paths are relative to this repo's
+parent directory.
+
+| Repo                   | What to read it for                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `../app-users`         | The app the Users, Groups, Roles and ID Providers sections replace. `assets/js/app/browse/` for list rows, toolbar and actions (plus `browse/serviceaccount/`), `wizard/` for principal CRUD, passwords and public keys, `report/` for permission reports, and the backend contracts under `src/main/resources/apis/graphql` and `apis/permissionReport`.                     |
+| `../app-applications`  | The app the Applications section replaces. `assets/js/app/browse/` for the list with version and state cells, lifecycle actions and the system-app filter (`SystemAppsHelper`), `installation/` for install by URL and upload, `Market*.ts` with `resource/MarketApplicationFetcher.ts` for where "available version" comes from, and JAX-RS resources under `src/main/java`. |
+| `../app-contentstudio` | The stack model. `modules/lib/src/main/resources/assets/js/v6/` is the Feature-Sliced tree this app follows — `widgets/browse-toolbar`, `widgets/browse-grid`, `widgets/context-panel`, `features/<action>/`, `entities/<domain>/`. Its `CLAUDE.md` and `.claude/rules/` are what these conventions were adapted from. Ignore `assets/js/app/`, which is legacy class-based.  |
+| `../npm-enonic-ui`     | Source of `@enonic/ui`. Read a component before composing it — several fail silently, see `.claude/rules/enonic-ui.md`.                                                                                                                                                                                                                                                       |
+
+This app targets XP 8.1 and has **no `lib-admin-ui` dependency** — dropping that framework is the
+point of the rewrite. The two apps being replaced target the same XP version, so their server-side
+contracts, permissions and event handling are current and worth following closely; their UI is built
+on lib-admin-ui (class-based components, `Q` promises, imperative DOM) and is reference-only. Take
+behaviour, data shapes and edge cases from them, never structure or style.
+
+Content Studio is the stack model rather than a library: its v6 tree is Preact and Tailwind like ours,
+but 4-space arrow components, imports from `react`, `should` test names and a DOM test environment are
+its conventions, not ours, and its legacy layer still runs on lib-admin-ui.
+
+**Overlap with Content Studio v6 is expected and will be extracted, not duplicated.** Browse widgets,
+formatting helpers, request plumbing and parts of the XP API surface are the same problem solved
+twice, and the plan is to move that common ground into a shared library. So anything written here
+that has a v6 counterpart should stay portable — no reaching into this app's config, stores or i18n
+keys beyond what its props carry — and is worth naming in review as a candidate for extraction.
+
 ## Conventions
 
 - `.claude/rules/` holds them, scoped by file pattern: `structure.md`, `typescript.md`, `preact.md`,
