@@ -1,17 +1,27 @@
 import { Tooltip } from '@enonic/ui';
-import { Link } from '@tanstack/react-router';
-import { Settings } from 'lucide-react';
+import { Link, type LinkProps } from '@tanstack/react-router';
+import { Settings, type LucideIcon } from 'lucide-react';
 
-import { SECTIONS } from '../../app/navigation';
 import { useI18n } from '../../shared/i18n';
 import { ServerEventsIndicator } from '../server-events-indicator/ServerEventsIndicator';
+
+export type SectionRailItem = {
+  id: string;
+  path: LinkProps['to'];
+  icon: LucideIcon;
+  labelKey: string;
+};
+
+export type SectionRailProps = {
+  sections: readonly SectionRailItem[];
+};
 
 const ITEM_CLASS =
   'text-subtle hover:bg-surface-neutral-hover hover:text-main data-[status=active]:bg-btn-active ' +
   'data-[status=active]:text-alt focus-visible:ring-ring flex size-10 items-center justify-center ' +
   'rounded-sm outline-none transition-colors focus-visible:ring-2';
 
-export function SectionRail() {
+export function SectionRail({ sections }: SectionRailProps) {
   const t = useI18n();
 
   return (
@@ -27,7 +37,7 @@ export function SectionRail() {
 
       <div className="flex h-full flex-col justify-between">
         <ul className="flex flex-col items-center gap-2">
-          {SECTIONS.map(({ id, path, icon: Icon, labelKey }) => {
+          {sections.map(({ id, path, icon: Icon, labelKey }) => {
             const label = t(labelKey);
 
             return (

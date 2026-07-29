@@ -1,4 +1,4 @@
-import { atom } from 'nanostores';
+import { setServerEventsConnected } from './server-events.store';
 
 const SUB_PROTOCOL = 'text';
 
@@ -57,8 +57,6 @@ export type ServerEvent = {
 };
 
 export type ServerEventListener = (event: ServerEvent) => void;
-
-export const $serverEventsConnected = atom(false);
 
 const listeners = new Set<ServerEventListener>();
 
@@ -147,7 +145,7 @@ export function connectToServerEvents(url: string): () => void {
     isOpen = false;
     stopKeepAlive();
     stopStableTimer();
-    $serverEventsConnected.set(false);
+    setServerEventsConnected(false);
     if (disconnected || reconnectTimer !== undefined) {
       return;
     }
@@ -164,7 +162,7 @@ export function connectToServerEvents(url: string): () => void {
 
     socket.addEventListener('open', () => {
       isOpen = true;
-      $serverEventsConnected.set(true);
+      setServerEventsConnected(true);
       startKeepAlive();
       stableTimer = setTimeout(() => {
         stableTimer = undefined;
@@ -195,6 +193,6 @@ export function connectToServerEvents(url: string): () => void {
       reconnectTimer = undefined;
     }
     socket?.close();
-    $serverEventsConnected.set(false);
+    setServerEventsConnected(false);
   };
 }
