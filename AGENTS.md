@@ -4,10 +4,13 @@ Enonic XP admin application: one frame for the Applications, Users, Groups, Role
 sections. Single Gradle project — TypeScript, Preact (React compat layer), Tailwind CSS v4,
 nanostores, TanStack Router. The admin tool is restricted to `role:system.admin`.
 
-The app replaces `app-users` and `app-applications`. Every section is the same browse screen with
-different data: full-width action toolbar, list column (search, list header, rows), details column.
-That screen is a shared framework — **read `docs/browse-framework.md` before adding a section or
-touching `widgets/`.**
+The app replaces `app-users` and `app-applications`, and further XP admin applications are expected to
+move here later — the five current sections are not the final set. `app/navigation.ts` is the only
+place that knows which sections exist; nothing below `app/` enumerates them.
+
+Every section is the same browse screen with different data: full-width action toolbar, list column
+(search, list header, rows), details column. That screen is a shared framework — **read
+`docs/browse-framework.md` before adding a section or touching `widgets/`.**
 
 ## Scripts
 
@@ -56,7 +59,7 @@ src/main/resources/
     pages/              one slice per section — composition only
     widgets/            composite section-agnostic blocks (the browse framework)
     features/           user-facing actions (dialogs, wizards, commands)
-    entities/           domain models: types, api, stores
+    entities/           domain models, one slice per domain: api/, model/, ui/ segments
     shared/             api client, config, i18n, server events, app state, formatting
 ```
 
@@ -66,7 +69,7 @@ reasoning are in `.claude/rules/structure.md`.
 ## Reference repositories
 
 Sibling checkouts, read-only — nothing here imports from them. Paths are relative to this repo's
-parent directory.
+parent directory. The list grows as further admin applications are folded into this app.
 
 | Repo                   | What to read it for                                                                                                                                                                                                                                                                                                                                                           |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -81,9 +84,11 @@ contracts, permissions and event handling are current and worth following closel
 on lib-admin-ui (class-based components, `Q` promises, imperative DOM) and is reference-only. Take
 behaviour, data shapes and edge cases from them, never structure or style.
 
-Content Studio is the stack model rather than a library: its v6 tree is Preact and Tailwind like ours,
-but 4-space arrow components, imports from `react`, `should` test names and a DOM test environment are
-its conventions, not ours, and its legacy layer still runs on lib-admin-ui.
+Content Studio is an example, not an authority: its v6 tree is Preact and Tailwind like ours and worth
+reading closely, but 4-space arrow components, imports from `react`, `should` test names and a DOM test
+environment are its conventions, not ours, its entity slices are segmented inconsistently, and its
+legacy layer still runs on lib-admin-ui. Where the two disagree, `.claude/rules/` wins — the aim is to
+be tidier than the example, not to match it.
 
 **Overlap with Content Studio v6 is expected and will be extracted, not duplicated.** Browse widgets,
 formatting helpers, request plumbing and parts of the XP API surface are the same problem solved

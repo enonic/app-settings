@@ -51,5 +51,5 @@ one-time initialization.
 ## Section stores
 
 Per-section state (selection, filter, paging cursor) lives in `pages/<section>/model/`. Domain data
-lives in `entities/<domain>/<domain>.store.ts`. A page store may read an entity store; never the
+lives in `entities/<domain>/model/*.store.ts`. A page store may read an entity store; never the
 reverse.

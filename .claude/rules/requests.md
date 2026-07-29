@@ -9,7 +9,7 @@ paths:
 
 ## Client side
 
-`entities/<domain>/<domain>.api.ts` is the only place in the frontend that talks to the server.
+`entities/<domain>/api/*.api.ts` is the only place in the frontend that talks to the server.
 Widgets, pages and features call entity commands; they never call `fetch`. No entity exists yet —
 this is the shape the first one establishes.
 
@@ -24,7 +24,7 @@ export function fetchApplications(): ResultAsync<Application[], AppError> {
 
 - Use `requestJson` / `requestOptionalJson` from `shared/api`. They return
   `ResultAsync<T, AppError>` — errors are values, not throws. Do not add a second http helper.
-- Wire DTOs stay inside the api file. Map to the domain types from `<domain>.types.ts` before
+- Wire DTOs stay inside the api segment. Map to the domain types from `model/<domain>.types.ts` before
   returning; the rest of the app never sees a DTO shape.
 - Api urls come from the tool config (`shared/config`), never hardcoded or assembled from
   `window.location`.
