@@ -6,11 +6,14 @@ import {
   listAdminToolItems,
   listApiItems,
   deploymentUrlOf,
+  idProviderSourceOf,
   listComponentItems,
   listMacroItems,
   listSchemaItems,
   listTaskItems,
+  listUsedByItems,
   type ApplicationInfoSource,
+  type IdProviderSource,
 } from './application-info.source';
 
 // Every list an application contributes shares these four. The types below spread them rather than
@@ -68,6 +71,37 @@ const ApiItemType: GraphQLType = generator.createObjectType({
     ...itemFields,
     documentationUrl: {
       type: GraphQLString,
+    },
+  },
+});
+
+const IdProviderModeType: GraphQLType = generator.createEnumType({
+  name: 'IdProviderMode',
+  description: 'How an id provider application authenticates.',
+  values: ['LOCAL', 'EXTERNAL', 'MIXED'],
+});
+
+const IdProviderItemType: GraphQLType = generator.createObjectType({
+  name: 'IdProviderItem',
+  description: 'An id provider instance, as configured under ID Providers.',
+  fields: {
+    key: { type: nonNull(GraphQLString) },
+    displayName: { type: nonNull(GraphQLString) },
+  },
+});
+
+const IdProviderType: GraphQLType = generator.createObjectType({
+  name: 'IdProvider',
+  description: 'Present only on an application that declares an id provider descriptor.',
+  fields: {
+    mode: {
+      type: IdProviderModeType,
+      description: 'Nullable even here: a descriptor may omit `mode:`.',
+    },
+    usedBy: {
+      type: nonNull(list(nonNull(IdProviderItemType))),
+      description: 'Id provider instances bound to this application. Empty until one is created.',
+      resolve: (env: { source: IdProviderSource }) => listUsedByItems(env.source.application),
     },
   },
 });
@@ -133,6 +167,10 @@ export const ApplicationInfoType: GraphQLType = generator.createObjectType({
     deploymentUrl: {
       type: GraphQLString,
       resolve: (env: { source: ApplicationInfoSource }) => deploymentUrlOf(env.source.key),
+    },
+    idProvider: {
+      type: IdProviderType,
+      resolve: (env: { source: ApplicationInfoSource }) => idProviderSourceOf(env.source.key),
     },
   },
 });

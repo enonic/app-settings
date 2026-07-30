@@ -1,11 +1,13 @@
 import { listAdminExtensions, type AdminExtensionDescriptor } from '/lib/admin-extension';
 import { listAdminTools, type AdminToolDescriptor } from '/lib/admin-tool';
 import { listApis, type ApiDescriptor } from '/lib/api';
+import { getIdProviderDescriptor } from '/lib/idprovider';
 import { listMacros, type MacroDescriptor } from '/lib/macro';
 import { listTaskDescriptors, type TaskDescriptor } from '/lib/task';
 import { hasWebapp } from '/lib/webapp';
 import { getToolUrl } from '/lib/xp/admin';
 import { get } from '/lib/xp/app';
+import { getIdProviders } from '/lib/xp/auth';
 import { listComponents, listSchemas } from '/lib/xp/schema';
 import type { ContentTypeSchema, PartDescriptor } from '@enonic-types/lib-schema';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -13,6 +15,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   applicationInfoSource,
   deploymentUrlOf,
+  idProviderSourceOf,
+  listUsedByItems,
   listAdminExtensionItems,
   listAdminToolItems,
   listApiItems,
@@ -385,6 +389,71 @@ describe('deploymentUrlOf', () => {
     vi.mocked(hasWebapp).mockReturnValue(false);
 
     expect(deploymentUrlOf('com.example.app')).toBeNull();
+  });
+});
+
+describe('idProviderSourceOf', () => {
+  // The null-versus-object distinction is the whole point: null hides the section, an object with no
+  // mode still shows it. app-applications collapses both into one string field and NPEs on the second.
+  it('answers null for an application that ships no descriptor', () => {
+    vi.mocked(getIdProviderDescriptor).mockReturnValue(null);
+
+    expect(idProviderSourceOf('com.example.app')).toBeNull();
+  });
+
+  it('carries the mode the descriptor declares', () => {
+    vi.mocked(getIdProviderDescriptor).mockReturnValue({ mode: 'MIXED' });
+
+    expect(idProviderSourceOf('com.example.app')).toEqual({
+      application: 'com.example.app',
+      mode: 'MIXED',
+    });
+  });
+
+  it('is still an id provider when the descriptor omits the mode', () => {
+    vi.mocked(getIdProviderDescriptor).mockReturnValue({});
+
+    expect(idProviderSourceOf('com.example.app')).toEqual({
+      application: 'com.example.app',
+      mode: undefined,
+    });
+  });
+});
+
+describe('listUsedByItems', () => {
+  it('keeps only the providers bound to this application', () => {
+    vi.mocked(getIdProviders).mockReturnValue([
+      { key: 'oidc', displayName: 'OIDC', idProviderConfig: { applicationKey: 'com.example.app' } },
+      { key: 'other', displayName: 'Other', idProviderConfig: { applicationKey: 'com.other.app' } },
+    ]);
+
+    expect(listUsedByItems('com.example.app')).toEqual([{ key: 'oidc', displayName: 'OIDC' }]);
+  });
+
+  // An unbound provider has no idProviderConfig at all — reading through it must not throw.
+  it('skips a provider bound to no application', () => {
+    vi.mocked(getIdProviders).mockReturnValue([{ key: 'orphan', displayName: 'Orphan' }]);
+
+    expect(listUsedByItems('com.example.app')).toEqual([]);
+  });
+
+  // What the details panel shows for a freshly installed id provider app: the section, but no row.
+  it('answers an empty list when nothing is bound yet', () => {
+    vi.mocked(getIdProviders).mockReturnValue([]);
+
+    expect(listUsedByItems('com.example.app')).toEqual([]);
+  });
+
+  it('sorts by display name, ignoring case', () => {
+    vi.mocked(getIdProviders).mockReturnValue([
+      { key: 'z', displayName: 'zeta', idProviderConfig: { applicationKey: 'com.example.app' } },
+      { key: 'a', displayName: 'Alpha', idProviderConfig: { applicationKey: 'com.example.app' } },
+    ]);
+
+    expect(listUsedByItems('com.example.app').map((item) => item.displayName)).toEqual([
+      'Alpha',
+      'zeta',
+    ]);
   });
 });
 

@@ -1,11 +1,13 @@
 import { listAdminExtensions } from '/lib/admin-extension';
 import { listAdminTools } from '/lib/admin-tool';
 import { listApis } from '/lib/api';
+import { getIdProviderDescriptor } from '/lib/idprovider';
 import { listMacros } from '/lib/macro';
 import { listTaskDescriptors } from '/lib/task';
 import { hasWebapp } from '/lib/webapp';
 import { getToolUrl } from '/lib/xp/admin';
 import { get } from '/lib/xp/app';
+import { getIdProviders } from '/lib/xp/auth';
 import {
   listComponents,
   listSchemas,
@@ -28,6 +30,17 @@ export type ApplicationItem = {
 export type AdminToolItem = ApplicationItem & { url: string };
 export type AdminExtensionItem = ApplicationItem & { interfaces: string[] };
 export type ApiItem = ApplicationItem & { documentationUrl?: string };
+
+// Carries the application key so `usedBy` stays lazy, plus the mode the container already read.
+export type IdProviderSource = {
+  application: string;
+  mode?: string;
+};
+
+export type IdProviderItem = {
+  key: string;
+  displayName: string;
+};
 
 export function localNameOf(qualifiedName: string): string {
   const separator = qualifiedName.indexOf(':');
@@ -93,6 +106,18 @@ export function listApiItems(application: string): ApiItem[] {
 
 export function deploymentUrlOf(application: string): string | null {
   return hasWebapp({ application }) ? `/webapp/${application}` : null;
+}
+
+export function idProviderSourceOf(application: string): IdProviderSource | null {
+  const descriptor = getIdProviderDescriptor({ application });
+  return descriptor == null ? null : { application, mode: nonEmpty(descriptor.mode) };
+}
+
+export function listUsedByItems(application: string): IdProviderItem[] {
+  return getIdProviders()
+    .filter((idProvider) => idProvider.idProviderConfig?.applicationKey === application)
+    .map((idProvider) => ({ key: idProvider.key, displayName: idProvider.displayName }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }));
 }
 
 export function applicationInfoSource(key: string): ApplicationInfoSource | null {
