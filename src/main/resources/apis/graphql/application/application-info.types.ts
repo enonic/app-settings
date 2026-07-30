@@ -5,6 +5,7 @@ import {
   listAdminExtensionItems,
   listAdminToolItems,
   listApiItems,
+  deploymentUrlOf,
   listComponentItems,
   listMacroItems,
   listSchemaItems,
@@ -128,6 +129,10 @@ export const ApplicationInfoType: GraphQLType = generator.createObjectType({
     apis: {
       type: nonNull(list(nonNull(ApiItemType))),
       resolve: (env: { source: ApplicationInfoSource }) => listApiItems(env.source.key),
+    },
+    deploymentUrl: {
+      type: GraphQLString,
+      resolve: (env: { source: ApplicationInfoSource }) => deploymentUrlOf(env.source.key),
     },
   },
 });

@@ -3,6 +3,7 @@ import { listAdminTools, type AdminToolDescriptor } from '/lib/admin-tool';
 import { listApis, type ApiDescriptor } from '/lib/api';
 import { listMacros, type MacroDescriptor } from '/lib/macro';
 import { listTaskDescriptors, type TaskDescriptor } from '/lib/task';
+import { hasWebapp } from '/lib/webapp';
 import { getToolUrl } from '/lib/xp/admin';
 import { get } from '/lib/xp/app';
 import { listComponents, listSchemas } from '/lib/xp/schema';
@@ -11,6 +12,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   applicationInfoSource,
+  deploymentUrlOf,
   listAdminExtensionItems,
   listAdminToolItems,
   listApiItems,
@@ -368,6 +370,21 @@ describe('listApiItems', () => {
     vi.mocked(listApis).mockReturnValue([api('com.example.app:graphql', 'GraphQL')]);
 
     expect(listApiItems('com.example.app')[0]?.documentationUrl).toBeUndefined();
+  });
+});
+
+describe('deploymentUrlOf', () => {
+  it('mounts the webapp under its application key', () => {
+    vi.mocked(hasWebapp).mockReturnValue(true);
+
+    expect(deploymentUrlOf('com.example.app')).toBe('/webapp/com.example.app');
+  });
+
+  // Null is what tells the panel to leave the Web App section out; an empty string would render it.
+  it('answers null for an application shipping no webapp', () => {
+    vi.mocked(hasWebapp).mockReturnValue(false);
+
+    expect(deploymentUrlOf('com.example.app')).toBeNull();
   });
 });
 

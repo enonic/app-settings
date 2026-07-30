@@ -3,6 +3,7 @@ import { listAdminTools } from '/lib/admin-tool';
 import { listApis } from '/lib/api';
 import { listMacros } from '/lib/macro';
 import { listTaskDescriptors } from '/lib/task';
+import { hasWebapp } from '/lib/webapp';
 import { getToolUrl } from '/lib/xp/admin';
 import { get } from '/lib/xp/app';
 import {
@@ -88,6 +89,10 @@ export function listApiItems(application: string): ApiItem[] {
       documentationUrl: nonEmpty(api.documentationUrl),
     }))
     .sort(byDisplayName);
+}
+
+export function deploymentUrlOf(application: string): string | null {
+  return hasWebapp({ application }) ? `/webapp/${application}` : null;
 }
 
 export function applicationInfoSource(key: string): ApplicationInfoSource | null {
