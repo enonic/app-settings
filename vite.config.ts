@@ -29,15 +29,16 @@ export default defineConfig(({ mode }) => {
 
   const lint = {
     options: { typeAware: true, typeCheck: true },
-    // admin/** are CJS + XP globals (outside tsconfig); build/** is generated output.
-    ignorePatterns: ['build/**', 'src/main/resources/admin/**', '**/*.d.ts'],
+    // admin/** are CJS + XP globals (outside tsconfig); build/** and bin/** are generated output
+    // (bin/ is the Java language server's shadow copy of the whole resources tree).
+    ignorePatterns: ['build/**', 'bin/**', 'src/main/resources/admin/**', '**/*.d.ts'],
   };
 
   const fmt = {
     singleQuote: true, // the only non-default style; rest matches defaults
     sortImports: true,
     sortTailwindcss: true,
-    ignorePatterns: ['build/**', 'src/main/resources/admin/**'],
+    ignorePatterns: ['build/**', 'bin/**', 'src/main/resources/admin/**'],
   };
 
   // `vp pack` (tsdown) compiles server-side .ts (all under resources except assets/) to
@@ -81,6 +82,7 @@ export default defineConfig(({ mode }) => {
       '/lib/xp/auth': join(import.meta.dirname, 'src/test/mocks/lib-xp-auth.ts'),
       '/lib/xp/schema': join(import.meta.dirname, 'src/test/mocks/lib-xp-schema.ts'),
       '/lib/xp/i18n': join(import.meta.dirname, 'src/test/mocks/lib-xp-i18n.ts'),
+      '/lib/macro': join(import.meta.dirname, 'src/test/mocks/lib-macro.ts'),
       '/lib/auth': join(import.meta.dirname, 'src/main/resources/lib/auth.ts'),
       '/lib/config': join(import.meta.dirname, 'src/main/resources/lib/config.ts'),
       '/lib/i18n': join(import.meta.dirname, 'src/main/resources/lib/i18n.ts'),

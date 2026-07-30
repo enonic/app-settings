@@ -1,3 +1,4 @@
+import { listMacros } from '/lib/macro';
 import { get } from '/lib/xp/app';
 import {
   listComponents,
@@ -10,7 +11,7 @@ export type ApplicationInfoSource = {
   key: string;
 };
 
-export type SiteItem = {
+export type ApplicationItem = {
   key: string;
   name: string;
   displayName: string;
@@ -22,15 +23,26 @@ export function localNameOf(qualifiedName: string): string {
   return separator === -1 ? qualifiedName : qualifiedName.slice(separator + 1);
 }
 
-export function listSchemaItems(application: string, type: ContentSchemaType): SiteItem[] {
+export function listSchemaItems(application: string, type: ContentSchemaType): ApplicationItem[] {
   return listSchemas({ application, type })
-    .map((schema) => toSiteItem(schema.name, schema.title, schema.description))
+    .map((schema) => toApplicationItem(schema.name, schema.title, schema.description))
     .sort(byDisplayName);
 }
 
-export function listComponentItems(application: string, type: ComponentDescriptorType): SiteItem[] {
+export function listComponentItems(
+  application: string,
+  type: ComponentDescriptorType,
+): ApplicationItem[] {
   return listComponents({ application, type })
-    .map((descriptor) => toSiteItem(descriptor.key, descriptor.title, descriptor.description))
+    .map((descriptor) =>
+      toApplicationItem(descriptor.key, descriptor.title, descriptor.description),
+    )
+    .sort(byDisplayName);
+}
+
+export function listMacroItems(application: string): ApplicationItem[] {
+  return listMacros({ application })
+    .map((macro) => toApplicationItem(macro.key, macro.title, macro.description))
     .sort(byDisplayName);
 }
 
@@ -57,7 +69,11 @@ function nonEmpty(value: MaybeText): string | undefined {
   return value != null && value.length > 0 ? value : undefined;
 }
 
-function toSiteItem(qualifiedName: string, title: MaybeText, description: MaybeText): SiteItem {
+function toApplicationItem(
+  qualifiedName: string,
+  title: MaybeText,
+  description: MaybeText,
+): ApplicationItem {
   const name = localNameOf(qualifiedName);
   return {
     key: qualifiedName,
@@ -68,6 +84,6 @@ function toSiteItem(qualifiedName: string, title: MaybeText, description: MaybeT
   };
 }
 
-function byDisplayName(a: SiteItem, b: SiteItem): number {
+function byDisplayName(a: ApplicationItem, b: ApplicationItem): number {
   return a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' });
 }

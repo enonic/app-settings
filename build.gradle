@@ -15,9 +15,19 @@ app {
     systemApp = true
 }
 
+// The xp.app plugin applies the java plugin, so src/main/java compiles with no further setup —
+// but it inherits whatever JDK runs Gradle. Pin it to the one XP itself builds with
+// (xp/gradle/java.gradle), so a contributor on another JDK cannot emit bytecode XP rejects.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
 dependencies {
     implementation xplibs.api.core
     implementation xplibs.api.portal
+    implementation xplibs.api.script // ScriptBean + MapSerializable, for the beans under src/main/java
     include xplibs.portal
     include xplibs.admin
     include xplibs.app

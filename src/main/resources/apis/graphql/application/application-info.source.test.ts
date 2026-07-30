@@ -1,3 +1,4 @@
+import { listMacros, type MacroDescriptor } from '/lib/macro';
 import { get } from '/lib/xp/app';
 import { listComponents, listSchemas } from '/lib/xp/schema';
 import type { ContentTypeSchema, PartDescriptor } from '@enonic-types/lib-schema';
@@ -6,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   applicationInfoSource,
   listComponentItems,
+  listMacroItems,
   listSchemaItems,
   localNameOf,
 } from './application-info.source';
@@ -42,6 +44,10 @@ function part(key: string, title = '', description = ''): PartDescriptor {
     form: [],
     config: {},
   };
+}
+
+function macro(key: string, title = '', description = ''): MacroDescriptor {
+  return { key, title, description };
 }
 
 // XP's script mapper omits a key entirely when the Java getter returned null, so a descriptor with
@@ -160,6 +166,44 @@ describe('listComponentItems', () => {
       'two-column',
     ]);
     expect(listComponentItems('com.example.app', 'PART')).toEqual([]);
+  });
+});
+
+describe('listMacroItems', () => {
+  it('splits the qualified macro key into a local name, and reports no description', () => {
+    vi.mocked(listMacros).mockReturnValue([macro('com.example.app:quote', 'Quote')]);
+
+    expect(listMacroItems('com.example.app')).toEqual([
+      { key: 'com.example.app:quote', name: 'quote', displayName: 'Quote', description: undefined },
+    ]);
+  });
+
+  // Java's MacroDescriptor substitutes the name for a missing title, so `title` is the one mapped
+  // text field that always arrives. It can still arrive empty.
+  it('falls back to the local name when the title is empty', () => {
+    vi.mocked(listMacros).mockReturnValue([macro('com.example.app:untitled', '')]);
+
+    expect(listMacroItems('com.example.app')[0]?.displayName).toBe('untitled');
+  });
+
+  it('sorts by display name, ignoring case', () => {
+    vi.mocked(listMacros).mockReturnValue([
+      macro('com.example.app:c', 'zeta'),
+      macro('com.example.app:a', 'Alpha'),
+      macro('com.example.app:b', 'Beta'),
+    ]);
+
+    expect(listMacroItems('com.example.app').map((item) => item.displayName)).toEqual([
+      'Alpha',
+      'Beta',
+      'zeta',
+    ]);
+  });
+
+  it('answers an empty list for an application shipping no macros', () => {
+    vi.mocked(listMacros).mockReturnValue([]);
+
+    expect(listMacroItems('com.example.app')).toEqual([]);
   });
 });
 
