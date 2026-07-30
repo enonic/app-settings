@@ -73,6 +73,7 @@ export default defineConfig(({ mode }) => {
     passWithNoTests: true,
     // XP supplies these at runtime; under vitest they resolve to local doubles.
     alias: {
+      '/lib/graphql': join(import.meta.dirname, 'src/test/mocks/lib-graphql.ts'),
       '/lib/mustache': join(import.meta.dirname, 'src/test/mocks/lib-mustache.ts'),
       '/lib/xp/portal': join(import.meta.dirname, 'src/test/mocks/lib-xp-portal.ts'),
       '/lib/xp/admin': join(import.meta.dirname, 'src/test/mocks/lib-xp-admin.ts'),
