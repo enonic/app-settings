@@ -28,6 +28,7 @@ dependencies {
     implementation xplibs.api.core
     implementation xplibs.api.portal
     implementation xplibs.api.script
+    implementation xplibs.api.admin // AdminToolDescriptorService, AdminExtensionDescriptorService
     include xplibs.portal
     include xplibs.admin
     include xplibs.app

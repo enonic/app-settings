@@ -1,7 +1,10 @@
-import { GraphQLString, list, nonNull, type GraphQLType } from '/lib/graphql';
+import { GraphQLString, list, nonNull, type GraphQLFields, type GraphQLType } from '/lib/graphql';
 
 import { generator } from '../schema/generator';
 import {
+  listAdminExtensionItems,
+  listAdminToolItems,
+  listApiItems,
   listComponentItems,
   listMacroItems,
   listSchemaItems,
@@ -9,23 +12,60 @@ import {
   type ApplicationInfoSource,
 } from './application-info.source';
 
+// Every list an application contributes shares these four. The types below spread them rather than
+// extend them — lib-graphql's builder has no inheritance, and a shared type could not carry the one
+// extra field each admin-extension list needs.
+const itemFields: GraphQLFields = {
+  key: {
+    type: nonNull(GraphQLString),
+    description: 'Qualified name, `<application>:<name>`.',
+  },
+  name: {
+    type: nonNull(GraphQLString),
+    description: 'Name without the application prefix.',
+  },
+  displayName: {
+    type: nonNull(GraphQLString),
+    description: 'Descriptor title, falling back to the name.',
+  },
+  description: {
+    type: GraphQLString,
+  },
+};
+
 const ApplicationItemType: GraphQLType = generator.createObjectType({
   name: 'ApplicationItem',
-  description: 'One schema, component or macro descriptor an application contributes.',
+  description: 'One schema, component, macro or task descriptor an application contributes.',
+  fields: itemFields,
+});
+
+const AdminToolItemType: GraphQLType = generator.createObjectType({
+  name: 'AdminToolItem',
   fields: {
-    key: {
+    ...itemFields,
+    url: {
       type: nonNull(GraphQLString),
-      description: 'Qualified name, `<application>:<name>`.',
+      description: 'Where the tool is mounted, `/admin/<application>/<name>`.',
     },
-    name: {
-      type: nonNull(GraphQLString),
-      description: 'Name without the application prefix.',
+  },
+});
+
+const AdminExtensionItemType: GraphQLType = generator.createObjectType({
+  name: 'AdminExtensionItem',
+  fields: {
+    ...itemFields,
+    interfaces: {
+      type: nonNull(list(nonNull(GraphQLString))),
+      description: 'The admin interfaces the extension plugs into.',
     },
-    displayName: {
-      type: nonNull(GraphQLString),
-      description: 'Descriptor title, falling back to the name.',
-    },
-    description: {
+  },
+});
+
+const ApiItemType: GraphQLType = generator.createObjectType({
+  name: 'ApiItem',
+  fields: {
+    ...itemFields,
+    documentationUrl: {
       type: GraphQLString,
     },
   },
@@ -75,6 +115,19 @@ export const ApplicationInfoType: GraphQLType = generator.createObjectType({
     tasks: {
       type: applicationItems,
       resolve: (env: { source: ApplicationInfoSource }) => listTaskItems(env.source.key),
+    },
+    adminTools: {
+      type: nonNull(list(nonNull(AdminToolItemType))),
+      resolve: (env: { source: ApplicationInfoSource }) => listAdminToolItems(env.source.key),
+    },
+    adminExtensions: {
+      type: nonNull(list(nonNull(AdminExtensionItemType))),
+      description: 'What 7.x called widgets.',
+      resolve: (env: { source: ApplicationInfoSource }) => listAdminExtensionItems(env.source.key),
+    },
+    apis: {
+      type: nonNull(list(nonNull(ApiItemType))),
+      resolve: (env: { source: ApplicationInfoSource }) => listApiItems(env.source.key),
     },
   },
 });

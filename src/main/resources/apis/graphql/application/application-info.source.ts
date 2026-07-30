@@ -1,5 +1,9 @@
+import { listAdminExtensions } from '/lib/admin-extension';
+import { listAdminTools } from '/lib/admin-tool';
+import { listApis } from '/lib/api';
 import { listMacros } from '/lib/macro';
 import { listTaskDescriptors } from '/lib/task';
+import { getToolUrl } from '/lib/xp/admin';
 import { get } from '/lib/xp/app';
 import {
   listComponents,
@@ -18,6 +22,11 @@ export type ApplicationItem = {
   displayName: string;
   description?: string;
 };
+
+// The three admin-extension lists each carry one field the other eight do not.
+export type AdminToolItem = ApplicationItem & { url: string };
+export type AdminExtensionItem = ApplicationItem & { interfaces: string[] };
+export type ApiItem = ApplicationItem & { documentationUrl?: string };
 
 export function localNameOf(qualifiedName: string): string {
   const separator = qualifiedName.indexOf(':');
@@ -51,6 +60,33 @@ export function listMacroItems(application: string): ApplicationItem[] {
 export function listTaskItems(application: string): ApplicationItem[] {
   return listTaskDescriptors({ application })
     .map((task) => toApplicationItem(task.key, undefined, task.description))
+    .sort(byDisplayName);
+}
+
+export function listAdminToolItems(application: string): AdminToolItem[] {
+  return listAdminTools({ application })
+    .map((tool) => {
+      const item = toApplicationItem(tool.key, tool.title, tool.description);
+      return { ...item, url: getToolUrl(application, item.name) };
+    })
+    .sort(byDisplayName);
+}
+
+export function listAdminExtensionItems(application: string): AdminExtensionItem[] {
+  return listAdminExtensions({ application })
+    .map((extension) => ({
+      ...toApplicationItem(extension.key, extension.title, extension.description),
+      interfaces: extension.interfaces ?? [],
+    }))
+    .sort(byDisplayName);
+}
+
+export function listApiItems(application: string): ApiItem[] {
+  return listApis({ application })
+    .map((api) => ({
+      ...toApplicationItem(api.key, api.title, api.description),
+      documentationUrl: nonEmpty(api.documentationUrl),
+    }))
     .sort(byDisplayName);
 }
 

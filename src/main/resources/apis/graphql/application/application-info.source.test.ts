@@ -1,5 +1,9 @@
+import { listAdminExtensions, type AdminExtensionDescriptor } from '/lib/admin-extension';
+import { listAdminTools, type AdminToolDescriptor } from '/lib/admin-tool';
+import { listApis, type ApiDescriptor } from '/lib/api';
 import { listMacros, type MacroDescriptor } from '/lib/macro';
 import { listTaskDescriptors, type TaskDescriptor } from '/lib/task';
+import { getToolUrl } from '/lib/xp/admin';
 import { get } from '/lib/xp/app';
 import { listComponents, listSchemas } from '/lib/xp/schema';
 import type { ContentTypeSchema, PartDescriptor } from '@enonic-types/lib-schema';
@@ -7,6 +11,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   applicationInfoSource,
+  listAdminExtensionItems,
+  listAdminToolItems,
+  listApiItems,
   listComponentItems,
   listMacroItems,
   listSchemaItems,
@@ -54,6 +61,22 @@ function macro(key: string, title = '', description = ''): MacroDescriptor {
 
 function task(key: string, description?: string): TaskDescriptor {
   return { key, description };
+}
+
+function adminTool(key: string, title?: string): AdminToolDescriptor {
+  return { key, title };
+}
+
+function adminExtension(
+  key: string,
+  title?: string,
+  interfaces?: string[],
+): AdminExtensionDescriptor {
+  return { key, title, interfaces };
+}
+
+function api(key: string, title?: string, documentationUrl?: string): ApiDescriptor {
+  return { key, title, documentationUrl };
 }
 
 // XP's script mapper omits a key entirely when the Java getter returned null, so a descriptor with
@@ -254,6 +277,97 @@ describe('listTaskItems', () => {
     vi.mocked(listTaskDescriptors).mockReturnValue([]);
 
     expect(listTaskItems('com.example.app')).toEqual([]);
+  });
+});
+
+describe('listAdminToolItems', () => {
+  // The url is the one field no bean supplies — lib-admin answers it from the app key and the
+  // local name, which is why the mapper does not build it in Java.
+  it('builds the tool url from the local name', () => {
+    vi.mocked(listAdminTools).mockReturnValue([
+      adminTool('com.example.app:dashboard', 'Dashboard'),
+    ]);
+    vi.mocked(getToolUrl).mockImplementation(
+      (application, tool) => `/admin/${application}/${tool}`,
+    );
+
+    expect(listAdminToolItems('com.example.app')).toEqual([
+      {
+        key: 'com.example.app:dashboard',
+        name: 'dashboard',
+        displayName: 'Dashboard',
+        description: undefined,
+        url: '/admin/com.example.app/dashboard',
+      },
+    ]);
+  });
+
+  it('answers an empty list for an application contributing no tools', () => {
+    vi.mocked(listAdminTools).mockReturnValue([]);
+
+    expect(listAdminToolItems('com.example.app')).toEqual([]);
+  });
+});
+
+describe('listAdminExtensionItems', () => {
+  it('carries the interfaces the extension plugs into', () => {
+    vi.mocked(listAdminExtensions).mockReturnValue([
+      adminExtension('com.example.app:stats', 'Stats', ['contentBrowsePanel']),
+    ]);
+
+    expect(listAdminExtensionItems('com.example.app')).toEqual([
+      {
+        key: 'com.example.app:stats',
+        name: 'stats',
+        displayName: 'Stats',
+        description: undefined,
+        interfaces: ['contentBrowsePanel'],
+      },
+    ]);
+  });
+
+  // The schema promises a non-null list, and the bridge drops an empty array rather than sending
+  // one — without the fallback the field would break the contract it declares.
+  it('reports no interfaces as an empty list, never absent', () => {
+    vi.mocked(listAdminExtensions).mockReturnValue([adminExtension('com.example.app:bare')]);
+
+    expect(listAdminExtensionItems('com.example.app')[0]?.interfaces).toEqual([]);
+  });
+
+  it('sorts by display name, ignoring case', () => {
+    vi.mocked(listAdminExtensions).mockReturnValue([
+      adminExtension('com.example.app:z', 'zeta'),
+      adminExtension('com.example.app:a', 'Alpha'),
+    ]);
+
+    expect(listAdminExtensionItems('com.example.app').map((item) => item.displayName)).toEqual([
+      'Alpha',
+      'zeta',
+    ]);
+  });
+});
+
+describe('listApiItems', () => {
+  it('carries the documentation url when the descriptor declares one', () => {
+    vi.mocked(listApis).mockReturnValue([
+      api('com.example.app:graphql', 'GraphQL', 'https://example.com/docs'),
+    ]);
+
+    expect(listApiItems('com.example.app')).toEqual([
+      {
+        key: 'com.example.app:graphql',
+        name: 'graphql',
+        displayName: 'GraphQL',
+        description: undefined,
+        documentationUrl: 'https://example.com/docs',
+      },
+    ]);
+  });
+
+  it('reports an absent documentation url as undefined', () => {
+    vi.mocked(listApis).mockReturnValue([api('com.example.app:graphql', 'GraphQL')]);
+
+    expect(listApiItems('com.example.app')[0]?.documentationUrl).toBeUndefined();
   });
 });
 
