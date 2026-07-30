@@ -1,4 +1,5 @@
 import { listMacros, type MacroDescriptor } from '/lib/macro';
+import { listTaskDescriptors, type TaskDescriptor } from '/lib/task';
 import { get } from '/lib/xp/app';
 import { listComponents, listSchemas } from '/lib/xp/schema';
 import type { ContentTypeSchema, PartDescriptor } from '@enonic-types/lib-schema';
@@ -9,6 +10,7 @@ import {
   listComponentItems,
   listMacroItems,
   listSchemaItems,
+  listTaskItems,
   localNameOf,
 } from './application-info.source';
 
@@ -48,6 +50,10 @@ function part(key: string, title = '', description = ''): PartDescriptor {
 
 function macro(key: string, title = '', description = ''): MacroDescriptor {
   return { key, title, description };
+}
+
+function task(key: string, description?: string): TaskDescriptor {
+  return { key, description };
 }
 
 // XP's script mapper omits a key entirely when the Java getter returned null, so a descriptor with
@@ -204,6 +210,50 @@ describe('listMacroItems', () => {
     vi.mocked(listMacros).mockReturnValue([]);
 
     expect(listMacroItems('com.example.app')).toEqual([]);
+  });
+});
+
+describe('listTaskItems', () => {
+  // The one list whose displayName carries no extra information: TaskDescriptor has no title.
+  it('reports the local name as the display name', () => {
+    vi.mocked(listTaskDescriptors).mockReturnValue([
+      task('com.example.app:reindex', 'Rebuilds the index'),
+    ]);
+
+    expect(listTaskItems('com.example.app')).toEqual([
+      {
+        key: 'com.example.app:reindex',
+        name: 'reindex',
+        displayName: 'reindex',
+        description: 'Rebuilds the index',
+      },
+    ]);
+  });
+
+  it('reports a description the bridge never sent as absent', () => {
+    vi.mocked(listTaskDescriptors).mockReturnValue([task('com.example.app:bare')]);
+
+    expect(listTaskItems('com.example.app')[0]?.description).toBeUndefined();
+  });
+
+  it('sorts by name, which app-applications leaves in locator order', () => {
+    vi.mocked(listTaskDescriptors).mockReturnValue([
+      task('com.example.app:zip'),
+      task('com.example.app:Archive'),
+      task('com.example.app:build'),
+    ]);
+
+    expect(listTaskItems('com.example.app').map((item) => item.name)).toEqual([
+      'Archive',
+      'build',
+      'zip',
+    ]);
+  });
+
+  it('answers an empty list for an application declaring no tasks', () => {
+    vi.mocked(listTaskDescriptors).mockReturnValue([]);
+
+    expect(listTaskItems('com.example.app')).toEqual([]);
   });
 });
 

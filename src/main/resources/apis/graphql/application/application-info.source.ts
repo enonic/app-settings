@@ -1,4 +1,5 @@
 import { listMacros } from '/lib/macro';
+import { listTaskDescriptors } from '/lib/task';
 import { get } from '/lib/xp/app';
 import {
   listComponents,
@@ -46,6 +47,13 @@ export function listMacroItems(application: string): ApplicationItem[] {
     .sort(byDisplayName);
 }
 
+// A task descriptor has no title at all, so displayName always resolves to the name.
+export function listTaskItems(application: string): ApplicationItem[] {
+  return listTaskDescriptors({ application })
+    .map((task) => toApplicationItem(task.key, undefined, task.description))
+    .sort(byDisplayName);
+}
+
 export function applicationInfoSource(key: string): ApplicationInfoSource | null {
   return get({ key }) == null ? null : { key };
 }
@@ -54,25 +62,15 @@ export function applicationInfoSource(key: string): ApplicationInfoSource | null
 // * Helpers
 // *
 
-/**
- * A text field an XP lib declares as `string` but may not send at all.
- *
- * `ScriptMapGenerator.putInMap` drops a key whenever the Java getter returned null, and both
- * `SchemaMapper` and `DescriptorMapper` write `title` and `description` straight from nullable
- * getters. So a descriptor with no title arrives with no `title` property — while
- * `@enonic-types/lib-schema` types it as non-null. Every mapped text field is absent-capable.
- */
-type MaybeText = string | undefined;
-
 // ! Keep the null check. The declared type says it cannot be undefined; the runtime disagrees.
-function nonEmpty(value: MaybeText): string | undefined {
+function nonEmpty(value?: string): string | undefined {
   return value != null && value.length > 0 ? value : undefined;
 }
 
 function toApplicationItem(
   qualifiedName: string,
-  title: MaybeText,
-  description: MaybeText,
+  title?: string,
+  description?: string,
 ): ApplicationItem {
   const name = localNameOf(qualifiedName);
   return {

@@ -83,6 +83,7 @@ export default defineConfig(({ mode }) => {
       '/lib/xp/schema': join(import.meta.dirname, 'src/test/mocks/lib-xp-schema.ts'),
       '/lib/xp/i18n': join(import.meta.dirname, 'src/test/mocks/lib-xp-i18n.ts'),
       '/lib/macro': join(import.meta.dirname, 'src/test/mocks/lib-macro.ts'),
+      '/lib/task': join(import.meta.dirname, 'src/test/mocks/lib-task.ts'),
       '/lib/auth': join(import.meta.dirname, 'src/main/resources/lib/auth.ts'),
       '/lib/config': join(import.meta.dirname, 'src/main/resources/lib/config.ts'),
       '/lib/i18n': join(import.meta.dirname, 'src/main/resources/lib/i18n.ts'),

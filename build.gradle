@@ -27,7 +27,7 @@ java {
 dependencies {
     implementation xplibs.api.core
     implementation xplibs.api.portal
-    implementation xplibs.api.script // ScriptBean + MapSerializable, for the beans under src/main/java
+    implementation xplibs.api.script
     include xplibs.portal
     include xplibs.admin
     include xplibs.app

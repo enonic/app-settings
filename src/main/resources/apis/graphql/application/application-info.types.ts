@@ -5,6 +5,7 @@ import {
   listComponentItems,
   listMacroItems,
   listSchemaItems,
+  listTaskItems,
   type ApplicationInfoSource,
 } from './application-info.source';
 
@@ -70,6 +71,10 @@ export const ApplicationInfoType: GraphQLType = generator.createObjectType({
     macros: {
       type: applicationItems,
       resolve: (env: { source: ApplicationInfoSource }) => listMacroItems(env.source.key),
+    },
+    tasks: {
+      type: applicationItems,
+      resolve: (env: { source: ApplicationInfoSource }) => listTaskItems(env.source.key),
     },
   },
 });
