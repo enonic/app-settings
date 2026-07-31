@@ -1,7 +1,7 @@
 import { GraphQLBoolean, GraphQLString, nonNull, type GraphQLType } from '/lib/graphql';
 
 import { generator } from '../schema/generator';
-import { displayNameOf, type ApplicationSource } from './application.source';
+import { displayNameOf, iconDataUriOf, type ApplicationSource } from './application.source';
 
 export const ApplicationStateType: GraphQLType = generator.createEnumType({
   name: 'ApplicationState',
@@ -40,6 +40,10 @@ export const ApplicationType: GraphQLType = generator.createObjectType({
     modifiedTime: {
       type: GraphQLString,
       description: 'Closest thing XP records to an install date.',
+    },
+    icon: {
+      type: GraphQLString,
+      resolve: (env: { source: ApplicationSource }) => iconDataUriOf(env.source),
     },
     minSystemVersion: {
       type: GraphQLString,

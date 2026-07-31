@@ -1,7 +1,13 @@
+import { encodeApplicationIcon } from '/lib/icon';
 import { getDescriptor, list, type Application, type ApplicationDescriptor } from '/lib/xp/app';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { displayNameOf, listApplications, type ApplicationSource } from './application.source';
+import {
+  displayNameOf,
+  iconDataUriOf,
+  listApplications,
+  type ApplicationSource,
+} from './application.source';
 
 function application(key: string, overrides: Partial<Application> = {}): Application {
   return {
@@ -36,6 +42,40 @@ function source(key: string, title: string | null): ApplicationSource {
 
 afterEach(() => {
   vi.resetAllMocks();
+});
+
+describe('iconDataUriOf', () => {
+  const withIcon: ApplicationSource = {
+    ...application('com.example.booster'),
+    descriptor: {
+      ...descriptor('com.example.booster', 'Booster'),
+      icon: { data: {} as never, mimeType: 'image/svg+xml', modifiedTime: '2026-07-30T10:00:00Z' },
+    },
+  };
+
+  it('composes the descriptor mime type with the bytes the bean encoded', () => {
+    vi.mocked(encodeApplicationIcon).mockReturnValue('PHN2Zy8+');
+
+    expect(iconDataUriOf(withIcon)).toBe('data:image/svg+xml;base64,PHN2Zy8+');
+    expect(vi.mocked(encodeApplicationIcon)).toHaveBeenCalledWith({
+      application: 'com.example.booster',
+    });
+  });
+
+  it('reads nothing for an application that ships no icon', () => {
+    expect(iconDataUriOf(source('com.example.plain', 'Plain'))).toBeUndefined();
+    expect(vi.mocked(encodeApplicationIcon)).not.toHaveBeenCalled();
+  });
+
+  it('reads nothing when the application has no descriptor at all', () => {
+    expect(iconDataUriOf(source('com.example.bare', null))).toBeUndefined();
+  });
+
+  it('survives a descriptor whose icon the bean could not read', () => {
+    vi.mocked(encodeApplicationIcon).mockReturnValue(null);
+
+    expect(iconDataUriOf(withIcon)).toBeUndefined();
+  });
 });
 
 describe('displayNameOf', () => {

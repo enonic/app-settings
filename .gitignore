@@ -106,4 +106,3 @@ node_modules
 .claude/*
 !.claude/rules/
 .zed/*
-docs

@@ -1,3 +1,4 @@
+import { encodeApplicationIcon } from '/lib/icon';
 import { getDescriptor, list, type Application, type ApplicationDescriptor } from '/lib/xp/app';
 
 export type ApplicationSource = Application & {
@@ -7,6 +8,16 @@ export type ApplicationSource = Application & {
 export function displayNameOf(source: ApplicationSource): string {
   const title = source.descriptor?.title;
   return title != null && title.length > 0 ? title : source.key;
+}
+
+export function iconDataUriOf(source: ApplicationSource): string | undefined {
+  const mimeType = source.descriptor?.icon?.mimeType;
+  if (mimeType == null) {
+    return undefined;
+  }
+
+  const encoded = encodeApplicationIcon({ application: source.key });
+  return encoded == null ? undefined : `data:${mimeType};base64,${encoded}`;
 }
 
 export function listApplications(): ApplicationSource[] {
