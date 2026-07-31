@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { $theme, setTheme, type Theme } from './theme.store';
+import { $theme, cycleTheme, setTheme, type Theme } from './theme.store';
 
 function stubMedia(matches: boolean) {
   const media = {
@@ -43,6 +43,19 @@ describe('$theme', () => {
     setTheme('dark');
 
     expect($theme.get()).toBe('dark');
+  });
+
+  it('cycles light, dark, system and back', () => {
+    setTheme('light');
+
+    cycleTheme();
+    expect($theme.get()).toBe('dark');
+
+    cycleTheme();
+    expect($theme.get()).toBe('system');
+
+    cycleTheme();
+    expect($theme.get()).toBe('light');
   });
 
   it('notifies subscribers until they unbind', () => {

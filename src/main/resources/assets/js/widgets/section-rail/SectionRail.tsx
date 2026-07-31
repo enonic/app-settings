@@ -17,7 +17,7 @@ export type SectionRailProps = {
 };
 
 const ITEM_CLASS =
-  'text-subtle hover:bg-surface-neutral-hover hover:text-main data-[status=active]:bg-btn-active ' +
+  'text-main hover:bg-surface-neutral-hover data-[status=active]:bg-btn-active ' +
   'data-[status=active]:text-alt focus-visible:ring-ring flex size-10 items-center justify-center ' +
   'rounded-sm outline-none transition-colors focus-visible:ring-2';
 

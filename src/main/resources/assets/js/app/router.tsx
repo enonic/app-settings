@@ -35,7 +35,8 @@ const indexRoute = createRoute({
 function sectionRoutes<Path extends string>(
   path: Path,
   SectionComponent: () => JSX.Element,
-  ItemComponent: () => JSX.Element,
+  // An item component renders nothing while its section is still loading.
+  ItemComponent: () => JSX.Element | null,
 ) {
   const sectionRoute = createRoute({
     getParentRoute: () => rootRoute,

@@ -11,6 +11,16 @@ export function setTheme(theme: Theme): void {
   $theme.set(theme);
 }
 
+const THEME_CYCLE: Record<Theme, Theme> = {
+  light: 'dark',
+  dark: 'system',
+  system: 'light',
+};
+
+export function cycleTheme(): void {
+  setTheme(THEME_CYCLE[$theme.get()]);
+}
+
 function systemTheme(): ResolvedTheme {
   if (typeof window === 'undefined') {
     return 'light';

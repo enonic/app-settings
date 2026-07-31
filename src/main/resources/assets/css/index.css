@@ -11,8 +11,6 @@
   --font-sans: 'Open Sans', Helvetica, sans-serif;
 }
 
-@layer base {
-  body {
-    font-size: 12px;
-  }
-}
+/* ? No base font-size override: @enonic/ui and Content Studio v6 are built against
+   Tailwind's 16px root, so a 12px body left every unstyled title smaller than the
+   text-sm subtitle under it. */
