@@ -39,13 +39,13 @@ the full width; the two columns start below it. The search field belongs to the 
 
 Per-section differences are **data only**:
 
-|                       | Applications                            | Users                                       | Groups                                                     | ID Providers                      |
-| --------------------- | --------------------------------------- | ------------------------------------------- | ---------------------------------------------------------- | --------------------------------- |
-| Toolbar actions       | Install / Uninstall / Start / Stop      | New user / Edit / Delete                    | New group / Edit / Delete                                  | New provider / Edit / Delete      |
-| Row subtitle          | description                             | user name                                   | group path                                                 | provider key                      |
-| Row meta cells        | installed + available version, state    | (reserved), ID provider                     | (reserved), ID provider                                    | state, provider type              |
-| Details header action | state dropdown                          | —                                           | —                                                          | —                                 |
-| Details sections      | Application, Tasks, Admin extensions, … | User (+ Edit button), Roles (7), Groups (5) | Info (+ Edit button), Members (8) → Users (6) / Groups (2) | Info (+ Edit button), Users (124) |
+|                       | Applications                            | Users                                       | Groups                                                                | ID Providers                                             |
+| --------------------- | --------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------- |
+| Toolbar actions       | Install / Uninstall / Start / Stop      | New user / Edit / Delete                    | New group / Edit / Delete                                             | New provider / Edit / Delete                             |
+| Row subtitle          | description                             | user name                                   | group name                                                            | provider key                                             |
+| Row meta cells        | installed + available version, state    | ID provider                                 | ID provider                                                           | bound application                                        |
+| Details header action | state dropdown                          | —                                           | —                                                                     | —                                                        |
+| Details sections      | Application, Tasks, Admin extensions, … | User (+ Edit button), Roles (7), Groups (5) | Info (+ Edit button), Members (8) → Users (6) / Groups (2), Roles (3) | Info (+ Edit button), Users (124), Groups (8), Roles (4) |
 
 That table is the whole justification for the framework: same widgets, different props.
 
@@ -53,15 +53,22 @@ Roles is deliberately absent from the table: it is the day-0 consumer of the fra
 the plainest possible mapping — title, the role key as its subtitle, no meta cells,
 `New role / Edit / Delete` — so that nothing section-specific hides a gap in the shared widgets.
 
-A principal key is shown as a path, not in its `role:system.admin` wire form: `toPrincipalPath()` in
-`entities/principal` turns it into `/role/system.admin`, and every place that puts a key under a
-display name uses it — the row subtitle and the details header alike.
+Under a display name goes the principal's own **name** — `alice`, `administrators`, `cms.admin` —
+never the `role:system.admin` wire form and never a path: `principalName()` in `entities/principal`
+takes what the key ends with, and a user's `login` is the same string. The provider it belongs to is
+provenance and goes in the meta cell, so it is never repeated under the name. Rows and the details
+header agree on this.
 
 For rows that represent a real domain object, the **last meta cell is provenance**: which ID provider
-a user or group comes from, which type of provider backs an ID provider, which state an application is
-in. Transient rows are exempt (§ 3.3). Cells left of it are section-specific. The `Info` / `More info`
-cells the Users and Groups mockups show are not defined yet — `meta` is an array, so they slot in
-later without a contract change.
+a user or group comes from, which application backs an ID provider, which state an application is in.
+Transient rows are exempt (§ 3.3). Cells left of it are section-specific, and a value that is absent
+means no cell rather than an empty one — `meta` is a list of cells. The `Info` / `More info` cells the
+Users and Groups mockups show are not defined yet, and neither is `Active` / `Inactive` on an ID
+provider (§ 5); `meta` is an array, so both slot in later without a contract change.
+
+A details panel may hold more lists than the mockups draw where the data is already there: a group
+shows the roles it holds, an ID provider the users, groups and roles of its principals. A section with
+nothing in it is not rendered at all (§ 3.4).
 
 There is no ID-provider tree anywhere: providers are their own flat section. A consequence for the
 Users and Groups wizards — the provider a principal is created in has to be picked explicitly in the
@@ -105,6 +112,7 @@ widgets/details-panel/DetailsPanel.tsx      Empty / Header / Section / Subsectio
 widgets/details-panel/details-panel.ts      withCount, the label-with-count helper
 widgets/details-panel/DetailsEmpty.tsx      the column with nothing to show
 shared/selection                            createSelectionStore<K>()
+shared/search                               createSearchStore()
 shared/format                               formatDate, formatDateTime, formatBytes, getInitials
 ```
 
@@ -433,8 +441,11 @@ export type DetailsListItemProps = {
   `Edit role` / `Edit user` button, which sits inside the section, not in the header). A section
   renders it right-aligned below its content; the button is `variant="outline"` at size `sm`, so
   36px tall.
-- `Subsection` splits a section's list by kind — `Members (8)` holding `Users (6)` and `Groups (2)` —
-  and a section renders only the subsections that have entries.
+- `Subsection` splits a section's list by kind — `Members (8)` holding `Users (6)` and `Groups (2)`.
+- **A section with nothing in it is not rendered at all**, and neither is an empty subsection:
+  `Members (0)` is a label and a rule over empty space. `filledSections` beside the panel takes the
+  sections a page is thinking of rendering and hands back the ones that have items, so every panel
+  drops them the same way.
 - `ListItem` gets an optional `expandable` later for the nested groups in the Groups mockup —
   additive, needed by Groups only.
 - The panel scrolls independently of the list column.
@@ -453,8 +464,9 @@ export type SelectionStore<K extends string = string> = {
 export function createSelectionStore<K extends string = string>(): SelectionStore<K>;
 ```
 
-One instance per section, created in `pages/<section>/model/`. Cleared on refresh and on leaving the
-section.
+One instance per section, created in `pages/<section>/model/`, next to a `createSearchStore()` for the
+search box. Both are cleared on leaving the section, and the selection on refresh as well. A section
+writes neither by hand: `useBrowseSection` takes the two stores and does the clearing.
 
 **There is no app-wide read-only flag.** The tool is already gated on `role:system.admin`, so whoever
 is inside may act; a `$readOnly` atom would only be a second, weaker gate that every section has to
@@ -474,9 +486,13 @@ entities/principal/
   index.ts                  the slice's public API
 ```
 
-Users, groups, roles and ID providers are one `principal` slice with a file per subdomain: they share
-`PrincipalKey`, provider membership and each other's member lists, and four slices would force either
-cross-slice imports or domain types in `shared/`. Applications is its own slice. Segment layout is in
+Users, groups, roles and ID providers are one `principal` slice with a file per subdomain, because
+they hold each other: a role lists its members, a group its members and roles, a user its roles and
+groups, and an ID provider the principals that belong to it. Four slices would force either
+cross-slice imports or domain types in `shared/`. Note that an ID provider is **not** a principal —
+`PrincipalKey` is the closed union of `user:` / `group:` / `role:` keys, while a provider's key is a
+plain string, and none of the key helpers apply to it. It lives in this slice because it references
+principals, not because it is one. Applications is its own slice. Segment layout is in
 `.claude/rules/structure.md`.
 
 **The principal types are the platform's own.** `model/principal.types.ts` re-exports `Principal`,
@@ -484,8 +500,9 @@ cross-slice imports or domain types in `shared/`. Applications is its own slice.
 `@enonic-types/core`, so the client cannot drift from what `lib/xp/auth` returns and the keys keep
 their template-literal form (`role:${string}`, `user:${string}:${string}`). Only what the platform
 does not model is added locally: `Role` gains the `members` list that `getMembers` returns separately,
-and `principal.keys.ts` holds the key predicates the UI needs — `isSystemRole`, `toPrincipalPath`,
-`idProviderOf`. A key coming from a route stays a plain `string` until a principal answers to it, so
+`Group` its members and roles, `User` its roles and groups plus the `description` and `createdTime` the
+mockups ask for and `lib/xp/auth` does not carry; and `principal.keys.ts` holds the key helpers the UI
+needs — `isSystemRole`, `isSystemUser`, `principalName`, `idProviderOf`. A key coming from a route stays a plain `string` until a principal answers to it, so
 lookups like `useRole(id)` take `string`, never a cast to `PrincipalKey`.
 
 - All I/O returns `ResultAsync<T, AppError>` through `shared/api`. Nothing else calls `fetch`.
@@ -503,7 +520,11 @@ lookups like `useRole(id)` take `string`, never a cast to `PrincipalKey`.
   an api file. Until issue #8 settles the backend shape (GraphQL vs REST behind a common request
   layer), a section can back its api segment with fixtures; switching to the real transport then
   costs one file per domain. `api/roles.api.ts` is that fixture today — a `fetchRoles()` returning
-  `okAsync`, with the store, the hook and the page above it already in their final shape.
+  `okAsync`, with the store, the hook and the page above it already in their final shape. All four
+  subdomains share one `api/fixtures.ts`, and they **spread** its constants rather than retyping a
+  principal (`{ ...SU, roles, groups }` is a `User`): a section that only references a principal
+  cannot then disagree with the section that owns it, which is a fixture-only nuisance today and a
+  real bug the moment a real backend has to agree with itself.
 - The page turns keys into domain objects for `ActionContext`: `selected` is
   `rows.filter(r => selectedKeys.has(r.key))` mapped back through the entity list, `active` is the
   same lookup for the route's `$id`. The widgets never hold domain objects, and no separate key→item
