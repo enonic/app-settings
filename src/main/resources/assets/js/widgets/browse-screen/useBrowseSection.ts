@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/preact';
-import type { ReadableAtom } from 'nanostores';
 import { useEffect } from 'preact/hooks';
 
+import type { SearchStore } from '../../shared/search';
 import type { SelectionStore } from '../../shared/selection';
 import { useActiveKey } from '../browse-layout/useActiveKey';
 import { type BrowseListStatus, type BrowseRow, shownRowKey } from '../browse-list/browse-list';
@@ -20,8 +20,7 @@ export type BrowseSectionOptions<T extends { key: string }> = {
   status: BrowseListStatus;
   /** The section's own stores, from `pages/<section>/model/`. */
   selection: SelectionStore;
-  $query: ReadableAtom<string>;
-  onQueryChange: (query: string) => void;
+  search: SearchStore;
   /** Section-specific pure functions. */
   filter: (items: readonly T[], query: string) => T[];
   toRow: (item: T) => BrowseRow;
@@ -52,20 +51,19 @@ export function useBrowseSection<T extends { key: string }>({
   items,
   status,
   selection,
-  $query,
-  onQueryChange,
+  search,
   filter,
   toRow,
   reload,
 }: BrowseSectionOptions<T>): BrowseSection<T> {
   const selectedKeys = useStore(selection.$selected);
-  const query = useStore($query);
+  const query = useStore(search.$query);
   const activeKey = useActiveKey();
 
   useEffect(() => {
     return () => {
       selection.clear();
-      onQueryChange('');
+      search.clear();
     };
     // ? The stores outlive the page, so the cleanup only has to run when it unmounts.
   }, []);
@@ -85,7 +83,7 @@ export function useBrowseSection<T extends { key: string }>({
       selected: visible.filter(({ key }) => selectedKeys.has(key)),
       active: items.find(({ key }) => key === activeKey),
     },
-    onQueryChange,
+    onQueryChange: search.set,
     onSelectionChange: (keys) => {
       selection.replace([...keys]);
 

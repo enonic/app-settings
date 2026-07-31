@@ -8,9 +8,21 @@ export function isSystemRole(key: PrincipalKey): boolean {
   return key.startsWith(SYSTEM_ROLE_PREFIX) || key.startsWith(PROJECT_ROLE_PREFIX);
 }
 
-/** The key as a path, which is how it is shown under a display name: `/role/system.admin`. */
-export function toPrincipalPath(key: PrincipalKey): string {
-  return `/${key.split(':').join('/')}`;
+// The two users the platform owns and lib-admin-ui's `isSystem()` refuses to delete.
+const SYSTEM_USER_KEYS = ['user:system:su', 'user:system:anonymous'];
+
+/** Users the platform owns: `su` and `anonymous`, which may not be deleted. */
+export function isSystemUser(key: PrincipalKey): boolean {
+  return SYSTEM_USER_KEYS.includes(key);
+}
+
+/**
+ * The principal's own name, which is what its key ends with: `alice`, `administrators`,
+ * `cms.admin`. This is the string the real data carries and the one shown under a display name;
+ * the provider it belongs to is provenance and goes in a meta cell instead.
+ */
+export function principalName(key: PrincipalKey): string {
+  return key.slice(key.lastIndexOf(':') + 1);
 }
 
 /**

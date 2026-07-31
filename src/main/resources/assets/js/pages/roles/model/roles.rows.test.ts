@@ -17,11 +17,11 @@ describe('toRoleRow', () => {
     expect(toRoleRow(role).key).toBe('role:store.manager');
   });
 
-  it('shows the display name over the key as a path', () => {
+  it('shows the display name over the role name', () => {
     const { title, subtitle } = toRoleRow(role);
 
     expect(title).toBe('Store Manager');
-    expect(subtitle).toBe('/role/store.manager');
+    expect(subtitle).toBe('store.manager');
   });
 
   it('leaves the meta cells to the sections that have provenance to show', () => {

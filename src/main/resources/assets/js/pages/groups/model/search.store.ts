@@ -1,11 +1,3 @@
-import { atom } from 'nanostores';
+import { createSearchStore } from '../../../shared/search';
 
-export const $groupsQuery = atom<string>('');
-
-export function setGroupsQuery(query: string): void {
-  $groupsQuery.set(query);
-}
-
-export function clearGroupsQuery(): void {
-  setGroupsQuery('');
-}
+export const groupsSearch = createSearchStore();

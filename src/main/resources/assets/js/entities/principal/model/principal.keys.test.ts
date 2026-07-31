@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { idProviderOf, isSystemRole, toPrincipalPath } from './principal.keys';
+import { idProviderOf, isSystemRole, isSystemUser, principalName } from './principal.keys';
 
 describe('isSystemRole', () => {
   it('holds for a role the platform ships', () => {
@@ -23,20 +23,27 @@ describe('isSystemRole', () => {
   });
 });
 
-describe('toPrincipalPath', () => {
-  it('leads with a slash and separates on slashes', () => {
-    expect(toPrincipalPath('role:system.admin')).toBe('/role/system.admin');
+describe('isSystemUser', () => {
+  it('holds for the two users the platform owns', () => {
+    expect(isSystemUser('user:system:su')).toBe(true);
+    expect(isSystemUser('user:system:anonymous')).toBe(true);
   });
 
-  it('keeps every segment of a key that carries a provider', () => {
-    expect(toPrincipalPath('user:system:su')).toBe('/user/system/su');
-    expect(toPrincipalPath('group:system:administrators')).toBe('/group/system/administrators');
+  it('fails for a user an administrator created, even in the system provider', () => {
+    expect(isSystemUser('user:system:jane')).toBe(false);
+    expect(isSystemUser('user:ldap:alice')).toBe(false);
+  });
+});
+
+describe('principalName', () => {
+  it('takes the name a role key ends with, dots and all', () => {
+    expect(principalName('role:cms.admin')).toBe('cms.admin');
+    expect(principalName('role:cms.project.default.owner')).toBe('cms.project.default.owner');
   });
 
-  it('leaves the dots inside an id alone', () => {
-    expect(toPrincipalPath('role:cms.project.default.owner')).toBe(
-      '/role/cms.project.default.owner',
-    );
+  it('takes the name after the provider for a user or a group', () => {
+    expect(principalName('user:ldap:alice')).toBe('alice');
+    expect(principalName('group:system:administrators')).toBe('administrators');
   });
 });
 

@@ -18,11 +18,11 @@ describe('toGroupRow', () => {
     expect(toGroupRow(group).key).toBe('group:ldap:developers');
   });
 
-  it('shows the display name over the key as a path', () => {
+  it('shows the display name over the group name', () => {
     const { title, subtitle } = toGroupRow(group);
 
     expect(title).toBe('Developers');
-    expect(subtitle).toBe('/group/ldap/developers');
+    expect(subtitle).toBe('developers');
   });
 
   it('carries the provider as its only meta cell', () => {

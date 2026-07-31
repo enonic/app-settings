@@ -8,7 +8,7 @@ import { useBrowseSection } from '../../widgets/browse-screen/useBrowseSection';
 import { ROLE_ACTIONS } from './model/roles.actions';
 import { filterRoles } from './model/roles.filter';
 import { toRoleRow } from './model/roles.rows';
-import { $rolesQuery, setRolesQuery } from './model/search.store';
+import { rolesSearch } from './model/search.store';
 import { rolesSelection } from './model/selection.store';
 
 export function RolesPage() {
@@ -22,8 +22,7 @@ export function RolesPage() {
     items,
     status,
     selection: rolesSelection,
-    $query: $rolesQuery,
-    onQueryChange: setRolesQuery,
+    search: rolesSearch,
     filter: filterRoles,
     // A fresh icon element per row: Preact writes into a vnode as it renders it.
     toRow: (role) => toRoleRow(role, <UserPen size={24} strokeWidth={1.5} aria-hidden />),
