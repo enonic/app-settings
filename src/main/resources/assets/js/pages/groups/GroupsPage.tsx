@@ -8,7 +8,7 @@ import { useBrowseSection } from '../../widgets/browse-screen/useBrowseSection';
 import { GROUP_ACTIONS } from './model/groups.actions';
 import { filterGroups } from './model/groups.filter';
 import { toGroupRow } from './model/groups.rows';
-import { $groupsQuery, setGroupsQuery } from './model/search.store';
+import { groupsSearch } from './model/search.store';
 import { groupsSelection } from './model/selection.store';
 
 export function GroupsPage() {
@@ -22,8 +22,7 @@ export function GroupsPage() {
     items,
     status,
     selection: groupsSelection,
-    $query: $groupsQuery,
-    onQueryChange: setGroupsQuery,
+    search: groupsSearch,
     filter: filterGroups,
     // A fresh icon element per row: Preact writes into a vnode as it renders it.
     toRow: (group) => toGroupRow(group, <Users size={24} strokeWidth={1.5} aria-hidden />),

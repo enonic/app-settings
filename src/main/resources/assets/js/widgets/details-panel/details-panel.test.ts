@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { withCount } from './details-panel';
+import { filledSections, withCount } from './details-panel';
 
 describe('withCount', () => {
   it('appends the count in brackets', () => {
@@ -13,5 +13,21 @@ describe('withCount', () => {
 
   it('leaves the label alone when there is no count', () => {
     expect(withCount('Role', undefined)).toBe('Role');
+  });
+});
+
+describe('filledSections', () => {
+  it('keeps the sections that have items, in order', () => {
+    const sections = [
+      { labelKey: 'users', items: ['a'] },
+      { labelKey: 'groups', items: [] },
+      { labelKey: 'roles', items: ['b', 'c'] },
+    ];
+
+    expect(filledSections(sections).map(({ labelKey }) => labelKey)).toEqual(['users', 'roles']);
+  });
+
+  it('drops everything when nothing has items', () => {
+    expect(filledSections([{ labelKey: 'users', items: [] }])).toEqual([]);
   });
 });
