@@ -1,25 +1,8 @@
 import { errAsync, okAsync, type ResultAsync } from 'neverthrow';
 
 import { AppError } from '../../../shared/api';
-import type { Group, Role, User } from '../model/principal.types';
-
-const SU: User = {
-  type: 'user',
-  key: 'user:system:su',
-  displayName: 'Super User',
-  login: 'su',
-  idProvider: 'system',
-  hasPassword: true,
-  modifiedTime: '2026-06-02T09:12:00Z',
-};
-
-const ADMINISTRATORS: Group = {
-  type: 'group',
-  key: 'group:system:administrators',
-  displayName: 'Administrators',
-  description: 'Users with full access',
-  modifiedTime: '2026-06-02T09:12:00Z',
-};
+import type { Role } from '../model/principal.types';
+import { ADMINISTRATORS, SU } from './fixtures';
 
 // TODO: [#8] Fixtures until the backend api settles — then this file calls the endpoint as
 // `requestJson<RoleDto[]>(url, { signal })` and maps the wire dto to `Role`; the signal is
