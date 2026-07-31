@@ -102,8 +102,9 @@ keys beyond what its props carry — and is worth naming in review as a candidat
   `stores.md`, `requests.md`, `enonic-ui.md`, `testing.md`, `comments.md`. Read the relevant rule
   before writing in that area.
 - Every user-visible string goes through `useI18n()`; phrases live in `i18n/phrases.properties`,
-  sentence-case, grouped by section. Existing keys are `nav.<section>`, `section.<section>.title` and
-  ungrouped app-shell keys; new section keys extend that as `<section>.<area>.<name>`.
+  sentence-case, grouped by section. Existing keys are `nav.<section>`, `section.<section>.title`,
+  `browse.*` for the browse widgets and ungrouped app-shell keys; new section keys extend that as
+  `<section>.<area>.<name>`.
 - Tests sit next to the code as `*.test.ts(x)`. The vitest environment is `node` and no DOM library
   is installed, so component rendering is not tested — keep testable logic in pure helpers.
 - `AGENTS.md` is a copy of this file for agents that read that name. Edit both, keep them identical.

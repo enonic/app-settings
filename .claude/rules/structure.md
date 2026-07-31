@@ -84,9 +84,11 @@ Every user-visible string goes through `useI18n()`; `i18n/phrases.properties` is
 with banner comments, and phrases stay sentence-case even where the UI uppercases them.
 
 Existing keys: `nav.<section>` for the rail, `section.<section>.title` for the section heading,
-app-shell keys ungrouped (`app.displayName`, `item.id`, `serverEvents.connected`), and
-`admin.tool.*`, which XP resolves from `main.yaml` rather than the UI. New section keys extend that
-scheme as `<section>.<area>.<name>` — `users.details.roles`, `applications.action.install`.
+`browse.*` for the section-agnostic browse widgets, app-shell keys ungrouped (`app.displayName`,
+`item.id`, `serverEvents.connected`), and `admin.tool.*`, which XP resolves from `main.yaml` rather
+than the UI. New section keys extend that scheme as `<section>.<area>.<name>` — `users.details.roles`,
+`applications.action.install`. A widget resolves the `labelKey` it is handed; it never builds a key
+from a section id.
 
 ## Sections
 
