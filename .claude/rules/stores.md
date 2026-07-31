@@ -19,7 +19,7 @@ cleared, never cached.
 
 ## Conventions
 
-- Stores are prefixed `$`: `$selected`, `$applications`, `$readOnly`.
+- Stores are prefixed `$`: `$selected`, `$applications`, `$rolesQuery`.
 - One domain concept per file. If the file needs "and" to describe it, split it.
 - Mutations are exported functions in the store file (`setTheme`, `clear`), not `.set()` calls from
   components.

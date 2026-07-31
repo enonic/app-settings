@@ -19,7 +19,14 @@ onChange />` with no children is an empty bordered box. Compose `<SearchField.Ic
   `ListItem.Content` / `ListItem.DefaultContent` and `ListItem.Right`, in that order. Any other
   child is dropped silently.
 - **`SelectableListItem` is just `ListItem` + a `Checkbox` in `Left`** with no way to stop the
-  checkbox click from bubbling. Rows that navigate on click compose `ListItem` directly.
+  checkbox click from bubbling. `ListItem` fits a static list — the details panel uses it — but not a
+  browse row: its root is a plain function component, so it takes no `ref`, which a row needs for
+  roving focus. Browse rows are a plain `div` styled from `treeListRowVariants`, see
+  `docs/browse-framework.md` § 3.3.
+- **`TreeList` / `VirtualizedTreeList` are for trees.** Content Studio's content tree is the model for
+  row geometry, hover, selected state and keyboard navigation, and `treeListRowVariants` in
+  `../npm-enonic-ui/src/components/tree-list/tree-list.tsx` is where those classes are written down —
+  copy the styles, do not adopt the component for a flat list.
 - **`Separator label="…"`** already applies `text-subtle uppercase tracking-wider` to the label — do
   not restate those, and keep the phrase sentence-case in `phrases.properties`.
 - **`Avatar.Fallback`** renders only while `imageLoadingStatus` is `idle` or `error`; with no
