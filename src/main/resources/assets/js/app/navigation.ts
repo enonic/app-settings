@@ -1,4 +1,4 @@
-import { CircleUserRound, KeyRound, type LucideIcon, ShieldUser, Star, Users } from 'lucide-react';
+import { CircleUserRound, type LucideIcon, Star, UserPen, Users, UserShield } from 'lucide-react';
 
 export type SectionId = 'applications' | 'id-providers' | 'roles' | 'groups' | 'users';
 
@@ -37,14 +37,14 @@ export const SECTIONS: readonly Section[] = [
   {
     id: 'roles',
     path: '/roles',
-    icon: KeyRound,
+    icon: UserPen,
     labelKey: 'nav.roles',
     titleKey: 'section.roles.title',
   },
   {
     id: 'id-providers',
     path: '/id-providers',
-    icon: ShieldUser,
+    icon: UserShield,
     labelKey: 'nav.idProviders',
     titleKey: 'section.idProviders.title',
   },
