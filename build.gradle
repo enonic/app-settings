@@ -23,6 +23,7 @@ dependencies {
     include xplibs.app
     include xplibs.auth
     include xplibs.i18n
+    include xplibs.schema
     include 'com.enonic.lib:lib-graphql:3.0.0'
     include 'com.enonic.lib:lib-mustache:3.0.0'
 

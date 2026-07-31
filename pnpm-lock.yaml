@@ -161,6 +161,9 @@ importers:
       '@enonic-types/lib-portal':
         specifier: ^8.0.3
         version: 8.0.3
+      '@enonic-types/lib-schema':
+        specifier: ^8.0.3
+        version: 8.0.3
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(@voidzero-dev/vite-plus-core@0.2.5(@types/node@26.1.1)(jiti@2.7.0)(typescript@7.0.2))
@@ -229,6 +232,9 @@ packages:
 
   '@enonic-types/lib-portal@8.0.3':
     resolution: {integrity: sha512-/T0uSjJcTMwD02E7tJ5RO8tSEm9/zuBZEr4eEXQcSivLy8vjCd0ecv//32OuHyBnVAFeKsYp+xPfRFjmj/p2Ag==}
+
+  '@enonic-types/lib-schema@8.0.3':
+    resolution: {integrity: sha512-wyKPGDi1UINWQrEFfqw9mSakKGNXAxfhoWJGqDPK9uq5gxVlFZVO6J7ztvcWjVwTAxVgL9yJkix6/C6spYN3QQ==}
 
   '@enonic/ui@1.0.5':
     resolution: {integrity: sha512-TMNzJ5juqX7e0PKd0CfJBd4ESh5+/LajV7h0E0dFl76pR2ZTpSfK3bUvAVayB51nvcxxqJmXUnoxvjLByvJ+gQ==}
