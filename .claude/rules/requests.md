@@ -30,6 +30,11 @@ export function fetchApplications(): ResultAsync<Application[], AppError> {
   `window.location`.
 - Pass an `AbortSignal` for anything a user can retrigger (search, paging) and cancel the previous
   request.
+- **One request to this app at a time.** XP gives an application a single-threaded GraalJS context, so
+  overlapping requests into our own JS serialize at best and throw at worst.
+  `requestGraphQl` enforces it with a single-flight queue; a second app-owned api must go through that
+  same queue rather than adding its own. It is not a performance device — ask for everything a screen
+  needs in one document, with several root fields and aliases, instead of firing parallel queries.
 - Surface failures as state: the store keeps `status: 'loading' | 'ready' | 'error'` and the widget
   renders it. No `alert`, no silent `catch`.
 
