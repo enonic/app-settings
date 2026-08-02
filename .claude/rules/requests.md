@@ -32,6 +32,10 @@ export function fetchApplications(): ResultAsync<Application[], AppError> {
   request.
 - Surface failures as state: the store keeps `status: 'loading' | 'ready' | 'error'` and the widget
   renders it. No `alert`, no silent `catch`.
+- That covers loading something. The outcome of a command the user triggered — start, delete,
+  install — has no screen of its own to fail on, so it goes to `notifyError` from
+  `shared/notifications`. A load failure never becomes a notification, and a command failure never
+  becomes list state.
 
 ## Server side
 

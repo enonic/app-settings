@@ -1,5 +1,6 @@
 import { Outlet } from '@tanstack/react-router';
 
+import { NotificationList } from '../widgets/notifications/NotificationList';
 import { SectionRail } from '../widgets/section-rail/SectionRail';
 import { AppBar } from './AppBar';
 import { SECTIONS } from './navigation';
@@ -16,6 +17,8 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      <NotificationList />
     </div>
   );
 }
