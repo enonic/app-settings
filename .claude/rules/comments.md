@@ -11,7 +11,7 @@ for the right density — every comment there explains a decision that would oth
 
 ## Prefixes
 
-Adopted from Content Studio; only the section header appears in this repo so far.
+Adopted from Content Studio; all four are in use here.
 
 - `// ! ` — a real hazard: race, security implication, breaking behaviour
 - `// ? ` — an open question or the rationale for an unusual pattern

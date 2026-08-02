@@ -34,6 +34,12 @@ onChange />` with no children is an empty bordered box. Compose `<SearchField.Ic
 - **`Toolbar`** is `Root` / `Container` / `Item` / `Separator` plus `ToggleGroup` / `ToggleItem`;
   `Container` requires `aria-label`, and `Item` wraps a focusable child with `asChild`. Roving
   tabindex and arrow-key navigation come from `Container` — do not reimplement them.
+- **`Toast` sorts its children by identity.** Only a `Toast.Button` reaches the action column;
+  everything else lands in the content column, so `Toast.Close` composed by hand renders in the
+  wrong place and `withClose` is the only way to the close button — along with its hardcoded English
+  `aria-label`. `Toast.Icon` renders `null` and reaches the root through context, so it has to be a
+  child rather than a prop, and it is what decides the root's `role`. `widgets/notifications/`
+  is the worked example.
 - `SplitView` does **not** exist in `@enonic/ui` at all: the `split-view/` folder in the library
   checkout is empty and no commit in its history ever added one. Two-column layouts are flexbox.
 

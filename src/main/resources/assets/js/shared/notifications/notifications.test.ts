@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   admit,
   EMPTY_STATE,
-  isDuplicate,
+  findDuplicate,
+  isUrgent,
   lifetimeFor,
   LONG_LIFETIME_MS,
   type Notification,
@@ -21,6 +22,15 @@ function stateOf(visible: readonly Notification[], queued: readonly Notification
   return { visible, queued } satisfies NotificationsState;
 }
 
+describe('isUrgent', () => {
+  it('counts a warning and an error, and nothing else', () => {
+    expect(isUrgent('error')).toBe(true);
+    expect(isUrgent('warning')).toBe(true);
+    expect(isUrgent('info')).toBe(false);
+    expect(isUrgent('success')).toBe(false);
+  });
+});
+
 describe('lifetimeFor', () => {
   it('gives a warning and an error the long lifetime', () => {
     expect(lifetimeFor('error')).toBe(LONG_LIFETIME_MS);
@@ -31,21 +41,32 @@ describe('lifetimeFor', () => {
     expect(lifetimeFor('info')).toBe(SHORT_LIFETIME_MS);
     expect(lifetimeFor('success')).toBe(SHORT_LIFETIME_MS);
   });
+
+  it('takes the lifetime it was asked for over the tone default', () => {
+    expect(lifetimeFor('error', 1000)).toBe(1000);
+  });
+
+  it('falls back to the tone default for a lifetime that would expire before the first paint', () => {
+    expect(lifetimeFor('info', 0)).toBe(SHORT_LIFETIME_MS);
+    expect(lifetimeFor('info', -1)).toBe(SHORT_LIFETIME_MS);
+    expect(lifetimeFor('info', Number.POSITIVE_INFINITY)).toBe(SHORT_LIFETIME_MS);
+    expect(lifetimeFor('info', Number.NaN)).toBe(SHORT_LIFETIME_MS);
+  });
 });
 
-describe('isDuplicate', () => {
+describe('findDuplicate', () => {
   it('matches on tone and text together', () => {
     const state = stateOf([notification(1, 'Failed')]);
 
-    expect(isDuplicate(state, { tone: 'info', text: 'Failed' })).toBe(true);
-    expect(isDuplicate(state, { tone: 'error', text: 'Failed' })).toBe(false);
-    expect(isDuplicate(state, { tone: 'info', text: 'Something else' })).toBe(false);
+    expect(findDuplicate(state, { tone: 'info', text: 'Failed' })?.id).toBe(1);
+    expect(findDuplicate(state, { tone: 'error', text: 'Failed' })).toBeUndefined();
+    expect(findDuplicate(state, { tone: 'info', text: 'Something else' })).toBeUndefined();
   });
 
   it('sees what is still queued', () => {
     const state = stateOf([], [notification(1, 'Failed')]);
 
-    expect(isDuplicate(state, { tone: 'info', text: 'Failed' })).toBe(true);
+    expect(findDuplicate(state, { tone: 'info', text: 'Failed' })?.id).toBe(1);
   });
 });
 
@@ -62,12 +83,6 @@ describe('admit', () => {
 
     expect(filled.visible).toHaveLength(VISIBLE_LIMIT);
     expect(filled.queued.map(({ id }) => id)).toEqual([4]);
-  });
-
-  it('returns the state it was given for a duplicate', () => {
-    const state = admit(EMPTY_STATE, notification(1, 'Failed'));
-
-    expect(admit(state, notification(2, 'Failed'))).toBe(state);
   });
 });
 
