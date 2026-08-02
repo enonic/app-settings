@@ -48,10 +48,12 @@ is enough.
 ## Structure
 
 ```
+src/main/java/          script beans, one package per lib/*.ts that wraps them — only for data no
+                        XP JS lib exposes
 src/main/resources/
   admin/tools/main/     the single admin tool: descriptor, controller, page template
   apis/                 app-owned HTTP APIs, one folder per api (added when a section needs one)
-  lib/                  server modules (auth guard, i18n, tool config)
+  lib/                  server modules (auth guard, i18n, tool config, bean wrappers)
   types/                hand-written declarations for XP libs without a type package
   i18n/phrases.properties
   assets/js/

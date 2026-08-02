@@ -1,3 +1,97 @@
+---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    configDependencies: {}
+    packageManagerDependencies:
+      '@pnpm/exe':
+        specifier: 10.33.4
+        version: 10.33.4
+      pnpm:
+        specifier: 10.33.4
+        version: 10.33.4
+
+packages:
+
+  '@pnpm/exe@10.33.4':
+    resolution: {integrity: sha512-/kXXlHAXWHt7INYwQIWg2eQ85GaUqgfj0ltUB7T9emhA1smOgamJ8cQEhNBzc32vmKaV1bI5IxFShe1rfXMTDw==}
+    hasBin: true
+
+  '@pnpm/linux-arm64@10.33.4':
+    resolution: {integrity: sha512-VGX2CIOL/1RwOfAsQM8i4XYJXer/LUM/T2gB8eIG/g8PIxpYqJ1Fv5xjCz7x2s2Kek4mujim+3mQ0aOGnqj99Q==}
+    cpu: [arm64]
+    os: [linux]
+    hasBin: true
+
+  '@pnpm/linux-x64@10.33.4':
+    resolution: {integrity: sha512-hTlGChXiJ9/NGm43d/Ai/7SQ6X7S1WQkq5+7TfNNyloB06BaKfSjlPhI9qJIEnlBKr/bkgoql1EC8zBvF2Ebxg==}
+    cpu: [x64]
+    os: [linux]
+    hasBin: true
+
+  '@pnpm/macos-arm64@10.33.4':
+    resolution: {integrity: sha512-8hfg2/6zHmptukEO8DwKCGp7OWCjDSelkBvtbcbbE1UBXwRTH5N6yCklIYK3SLfdlWfYEgHRt1SBq2AHkm90Xw==}
+    cpu: [arm64]
+    os: [darwin]
+    hasBin: true
+
+  '@pnpm/macos-x64@10.33.4':
+    resolution: {integrity: sha512-FuQJvHhcgJ0OMVqrbf35LUn3TAD1c8fekJL1i7gSY5ls0QtoYt49XtoDaD6beFcvrJ1GyubERlDsFe3957iXUQ==}
+    cpu: [x64]
+    os: [darwin]
+    hasBin: true
+
+  '@pnpm/win-arm64@10.33.4':
+    resolution: {integrity: sha512-13O9kR6A0AvhhGMGocxt7ujvyIzJkAir3fCVTvKFCJYHLjSANeNMrCutczxDdg3VkedZiftMWsLfCRQ64GXpQA==}
+    cpu: [arm64]
+    os: [win32]
+    hasBin: true
+
+  '@pnpm/win-x64@10.33.4':
+    resolution: {integrity: sha512-O0XumKXWdF+newAVzemkGyW/FBvGQ3t9bXG0iAYvxDxLAcTaNxUueKLNQjTCSlpgm+4s6HKw/kq6Z6i6Y+Bqeg==}
+    cpu: [x64]
+    os: [win32]
+    hasBin: true
+
+  pnpm@10.33.4:
+    resolution: {integrity: sha512-HGezs1my1AgRm6HtKJ80uPw8aHNBK+xv0mT73IJInlEPy+y5zp0i2ufzt2Jp2EQQRgFL3KU7mXnNelYa1jG4AA==}
+    engines: {node: '>=18.12'}
+    hasBin: true
+
+snapshots:
+
+  '@pnpm/exe@10.33.4':
+    optionalDependencies:
+      '@pnpm/linux-arm64': 10.33.4
+      '@pnpm/linux-x64': 10.33.4
+      '@pnpm/macos-arm64': 10.33.4
+      '@pnpm/macos-x64': 10.33.4
+      '@pnpm/win-arm64': 10.33.4
+      '@pnpm/win-x64': 10.33.4
+
+  '@pnpm/linux-arm64@10.33.4':
+    optional: true
+
+  '@pnpm/linux-x64@10.33.4':
+    optional: true
+
+  '@pnpm/macos-arm64@10.33.4':
+    optional: true
+
+  '@pnpm/macos-x64@10.33.4':
+    optional: true
+
+  '@pnpm/win-arm64@10.33.4':
+    optional: true
+
+  '@pnpm/win-x64@10.33.4':
+    optional: true
+
+  pnpm@10.33.4: {}
+
+---
 lockfileVersion: '9.0'
 
 settings:
@@ -55,13 +149,19 @@ importers:
       '@enonic-types/lib-admin':
         specifier: ^8.0.3
         version: 8.0.3
-      '@enonic-types/lib-auth':
+      '@enonic-types/lib-app':
         specifier: ^8.0.3
         version: 8.0.3
+      '@enonic-types/lib-auth':
+        specifier: 8.0.4-B1
+        version: 8.0.4-B1
       '@enonic-types/lib-i18n':
         specifier: ^8.0.3
         version: 8.0.3
       '@enonic-types/lib-portal':
+        specifier: ^8.0.3
+        version: 8.0.3
+      '@enonic-types/lib-schema':
         specifier: ^8.0.3
         version: 8.0.3
       '@tailwindcss/vite':
@@ -115,20 +215,29 @@ packages:
   '@enonic-types/core@8.0.3':
     resolution: {integrity: sha512-8A5loeFE6KNV/1yEtQpWK1gAc914LdTHGl4+1HbCM4qYFq1XvjSNgFUpRnPvDP6CQXpB0j4zWsUu883ULSKTjg==}
 
+  '@enonic-types/core@8.0.4-B1':
+    resolution: {integrity: sha512-vWFb1E/QgP46JiRmLT36DqdmcxWkLFRKgk10bgOjmsNuKE3Zrqbpls60kVGLyOq5SfZpaSvIHIXvCkbtqhsq2Q==}
+
   '@enonic-types/global@8.0.3':
     resolution: {integrity: sha512-ZHiTuBlcCVvjL7SLnJZ0or3GXEwFN5BAYaGQnG+jv3j8WBkqa/2yG9qUif/cTIY7W2/kLgy3ZoSPxM+0ekEPrA==}
 
   '@enonic-types/lib-admin@8.0.3':
     resolution: {integrity: sha512-JIwcd1QgYJvtn1CvbqY9vEX8u8GoucQKGfJOmeUl42wKvCpFG+tVP1Bh8C9sQq3pMve+TfQJs+/LQ5UykK1biA==}
 
-  '@enonic-types/lib-auth@8.0.3':
-    resolution: {integrity: sha512-4LY2TB1Y6LA5MarAhd+bU0t7TOGR2F60sulHr6ihkJ2l/eBX4orPz3GsqBsCeaKYBSR++MuDRpXDtfKz7Rm9qg==}
+  '@enonic-types/lib-app@8.0.3':
+    resolution: {integrity: sha512-0nyIV1n9HE/e8Z+4KYA0vPYrSUhRU/SsbXNzftx82Rxsnq2JGcN2ug3sud5kqMJAnvaqckC1Mlaa01I/i+Lsmw==}
+
+  '@enonic-types/lib-auth@8.0.4-B1':
+    resolution: {integrity: sha512-cfNtSuFoZZjt8pq1mi0Pz9rjF6aJDgnNweZl0jLkl55N9rQrJMz/jhzqh/muwMNrYrkJWMfZNroT9td4HZwCYg==}
 
   '@enonic-types/lib-i18n@8.0.3':
     resolution: {integrity: sha512-OGOlolt4/mDrCK1BXa1+rINCJuuWGSWzaodpbCRcJslF0wKcGraOd9Pza0/SWMh+Uz/oVYadsvkSl/C3W8aKiA==}
 
   '@enonic-types/lib-portal@8.0.3':
     resolution: {integrity: sha512-/T0uSjJcTMwD02E7tJ5RO8tSEm9/zuBZEr4eEXQcSivLy8vjCd0ecv//32OuHyBnVAFeKsYp+xPfRFjmj/p2Ag==}
+
+  '@enonic-types/lib-schema@8.0.3':
+    resolution: {integrity: sha512-wyKPGDi1UINWQrEFfqw9mSakKGNXAxfhoWJGqDPK9uq5gxVlFZVO6J7ztvcWjVwTAxVgL9yJkix6/C6spYN3QQ==}
 
   '@enonic/ui@1.0.5':
     resolution: {integrity: sha512-TMNzJ5juqX7e0PKd0CfJBd4ESh5+/LajV7h0E0dFl76pR2ZTpSfK3bUvAVayB51nvcxxqJmXUnoxvjLByvJ+gQ==}
@@ -1554,6 +1663,8 @@ snapshots:
 
   '@enonic-types/core@8.0.3': {}
 
+  '@enonic-types/core@8.0.4-B1': {}
+
   '@enonic-types/global@8.0.3':
     dependencies:
       '@enonic-types/core': 8.0.3
@@ -1562,15 +1673,23 @@ snapshots:
     dependencies:
       '@enonic-types/core': 8.0.3
 
-  '@enonic-types/lib-auth@8.0.3':
+  '@enonic-types/lib-app@8.0.3':
     dependencies:
       '@enonic-types/core': 8.0.3
+
+  '@enonic-types/lib-auth@8.0.4-B1':
+    dependencies:
+      '@enonic-types/core': 8.0.4-B1
 
   '@enonic-types/lib-i18n@8.0.3':
     dependencies:
       '@enonic-types/core': 8.0.3
 
   '@enonic-types/lib-portal@8.0.3':
+    dependencies:
+      '@enonic-types/core': 8.0.3
+
+  '@enonic-types/lib-schema@8.0.3':
     dependencies:
       '@enonic-types/core': 8.0.3
 
