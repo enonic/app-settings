@@ -29,15 +29,16 @@ export default defineConfig(({ mode }) => {
 
   const lint = {
     options: { typeAware: true, typeCheck: true },
-    // admin/** are CJS + XP globals (outside tsconfig); build/** is generated output.
-    ignorePatterns: ['build/**', 'src/main/resources/admin/**', '**/*.d.ts'],
+    // admin/** are CJS + XP globals (outside tsconfig); build/** and bin/** are generated output
+    // (bin/ is the Java language server's shadow copy of the whole resources tree).
+    ignorePatterns: ['build/**', 'bin/**', 'src/main/resources/admin/**', '**/*.d.ts'],
   };
 
   const fmt = {
     singleQuote: true, // the only non-default style; rest matches defaults
     sortImports: true,
     sortTailwindcss: true,
-    ignorePatterns: ['build/**', 'src/main/resources/admin/**'],
+    ignorePatterns: ['build/**', 'bin/**', 'src/main/resources/admin/**'],
   };
 
   // `vp pack` (tsdown) compiles server-side .ts (all under resources except assets/) to
@@ -73,11 +74,22 @@ export default defineConfig(({ mode }) => {
     passWithNoTests: true,
     // XP supplies these at runtime; under vitest they resolve to local doubles.
     alias: {
+      '/lib/graphql': join(import.meta.dirname, 'src/test/mocks/lib-graphql.ts'),
       '/lib/mustache': join(import.meta.dirname, 'src/test/mocks/lib-mustache.ts'),
       '/lib/xp/portal': join(import.meta.dirname, 'src/test/mocks/lib-xp-portal.ts'),
       '/lib/xp/admin': join(import.meta.dirname, 'src/test/mocks/lib-xp-admin.ts'),
+      '/lib/xp/app': join(import.meta.dirname, 'src/test/mocks/lib-xp-app.ts'),
       '/lib/xp/auth': join(import.meta.dirname, 'src/test/mocks/lib-xp-auth.ts'),
+      '/lib/xp/schema': join(import.meta.dirname, 'src/test/mocks/lib-xp-schema.ts'),
       '/lib/xp/i18n': join(import.meta.dirname, 'src/test/mocks/lib-xp-i18n.ts'),
+      '/lib/macro': join(import.meta.dirname, 'src/test/mocks/lib-macro.ts'),
+      '/lib/task': join(import.meta.dirname, 'src/test/mocks/lib-task.ts'),
+      '/lib/admin-tool': join(import.meta.dirname, 'src/test/mocks/lib-admin-tool.ts'),
+      '/lib/admin-extension': join(import.meta.dirname, 'src/test/mocks/lib-admin-extension.ts'),
+      '/lib/api': join(import.meta.dirname, 'src/test/mocks/lib-api.ts'),
+      '/lib/icon': join(import.meta.dirname, 'src/test/mocks/lib-icon.ts'),
+      '/lib/webapp': join(import.meta.dirname, 'src/test/mocks/lib-webapp.ts'),
+      '/lib/idprovider': join(import.meta.dirname, 'src/test/mocks/lib-idprovider.ts'),
       '/lib/auth': join(import.meta.dirname, 'src/main/resources/lib/auth.ts'),
       '/lib/config': join(import.meta.dirname, 'src/main/resources/lib/config.ts'),
       '/lib/i18n': join(import.meta.dirname, 'src/main/resources/lib/i18n.ts'),

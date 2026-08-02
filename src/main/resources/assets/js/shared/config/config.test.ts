@@ -13,7 +13,7 @@ const config: ToolConfig = {
   assetsUrl: '/assets',
   menuLoaderUrl: '/_/admin:extension/com.enonic.xp.app.main:menu-loader',
   phrases: { 'nav.users': 'Users' },
-  apis: { events: '/_/app:events' },
+  apis: { events: '/_/app:events', graphql: '/_/app:graphql' },
 };
 
 type StubOptions = {
@@ -101,6 +101,16 @@ describe('readConfig', () => {
     const doc = stubDocument({
       scriptId: 'config-json',
       content: JSON.stringify({ ...config, phrases: undefined }),
+    });
+
+    expect(() => readConfig(doc)).toThrow(/does not describe a tool config/);
+  });
+
+  // Every api url is required: an absent one only surfaces as a failed request much later.
+  it('fails when an api url is missing', () => {
+    const doc = stubDocument({
+      scriptId: 'config-json',
+      content: JSON.stringify({ ...config, apis: { events: '/_/app:events' } }),
     });
 
     expect(() => readConfig(doc)).toThrow(/does not describe a tool config/);

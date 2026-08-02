@@ -8,6 +8,7 @@ description:
 allow:
   - "role:system.admin"
 apis:
+  - "graphql"
   - "admin:event"
   - "admin:extension"
   - "com.enonic.xp.app.main:events"
