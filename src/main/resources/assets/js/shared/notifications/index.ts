@@ -1,4 +1,4 @@
-export { LONG_LIFETIME_MS, SHORT_LIFETIME_MS, VISIBLE_LIMIT } from './notifications';
+export { isUrgent, LONG_LIFETIME_MS, SHORT_LIFETIME_MS, VISIBLE_LIMIT } from './notifications';
 export type {
   Notification,
   NotificationAction,

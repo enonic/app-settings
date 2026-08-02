@@ -36,30 +36,34 @@ export const SHORT_LIFETIME_MS = 5000;
 
 export const LONG_LIFETIME_MS = 30_000;
 
-/** A warning or an error is worth reading twice; the rest is confirmation of what was just done. */
-export function lifetimeFor(tone: NotificationTone): number {
-  return tone === 'error' || tone === 'warning' ? LONG_LIFETIME_MS : SHORT_LIFETIME_MS;
+export function isUrgent(tone: NotificationTone): boolean {
+  return tone === 'error' || tone === 'warning';
 }
 
 /**
- * The same message twice is one message. Acting on several items reports one failure per item, and
- * three identical toasts say nothing the first does not.
+ * The requested lifetime, or the tone's own — a warning or an error is worth reading twice. Only a
+ * positive finite one is taken: `setTimeout` waits no time at all for both zero and `Infinity`.
  */
-export function isDuplicate(
+export function lifetimeFor(tone: NotificationTone, requestedMs?: number): number {
+  if (requestedMs != null && Number.isFinite(requestedMs) && requestedMs > 0) {
+    return requestedMs;
+  }
+
+  return isUrgent(tone) ? LONG_LIFETIME_MS : SHORT_LIFETIME_MS;
+}
+
+/** Acting on several items reports one failure per item; three identical toasts say it once. */
+export function findDuplicate(
   { visible, queued }: NotificationsState,
   candidate: Pick<Notification, 'tone' | 'text'>,
-): boolean {
-  return [...visible, ...queued].some(
+): Notification | undefined {
+  return [...visible, ...queued].find(
     ({ tone, text }) => tone === candidate.tone && text === candidate.text,
   );
 }
 
-/** Shows the notification, or queues it while the stack is full. A duplicate changes nothing. */
+/** Shows the notification, or queues it while the stack is full. Deduplication is the caller's. */
 export function admit(state: NotificationsState, notification: Notification): NotificationsState {
-  if (isDuplicate(state, notification)) {
-    return state;
-  }
-
   if (state.visible.length < VISIBLE_LIMIT) {
     return { ...state, visible: [...state.visible, notification] };
   }

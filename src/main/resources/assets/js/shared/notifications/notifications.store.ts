@@ -3,6 +3,7 @@ import { atom, computed } from 'nanostores';
 import {
   admit,
   EMPTY_STATE,
+  findDuplicate,
   lifetimeFor,
   type Notification,
   type NotificationOptions,
@@ -18,50 +19,53 @@ type Timer = {
 
 const $state = atom<NotificationsState>(EMPTY_STATE);
 
-/** The notifications on screen. What is queued behind them is not the viewport's business. */
 export const $notifications = computed($state, ({ visible }) => visible);
 
 const timers = new Map<number, Timer>();
 
 let lastId = 0;
 
-/** Shows a notification and returns its id, or `undefined` where one just like it is already up. */
-export function notify(options: NotificationOptions): number | undefined {
-  const {
-    tone = 'info',
-    text,
-    autoHide = true,
-    lifetimeMs = lifetimeFor(tone),
-    actions = [],
-  } = options;
+/**
+ * Shows a notification and returns its id. One just like it is not shown twice: the id of the one
+ * already up comes back instead, so the caller can still take that one down.
+ */
+export function notify(options: NotificationOptions): number {
+  const { tone = 'info', text, autoHide = true, lifetimeMs, actions = [] } = options;
 
-  lastId += 1;
-  const notification: Notification = { id: lastId, tone, text, autoHide, lifetimeMs, actions };
-
-  const next = admit($state.get(), notification);
-  if (next === $state.get()) {
-    return undefined;
+  const duplicate = findDuplicate($state.get(), { tone, text });
+  if (duplicate != null) {
+    return duplicate.id;
   }
 
-  $state.set(next);
+  lastId += 1;
+  const notification: Notification = {
+    id: lastId,
+    tone,
+    text,
+    autoHide,
+    lifetimeMs: lifetimeFor(tone, lifetimeMs),
+    actions,
+  };
+
+  $state.set(admit($state.get(), notification));
   syncTimers();
 
   return notification.id;
 }
 
-export function notifySuccess(text: string, options: ToneOptions = {}): number | undefined {
+export function notifySuccess(text: string, options: ToneOptions = {}): number {
   return notify({ ...options, tone: 'success', text });
 }
 
-export function notifyInfo(text: string, options: ToneOptions = {}): number | undefined {
+export function notifyInfo(text: string, options: ToneOptions = {}): number {
   return notify({ ...options, tone: 'info', text });
 }
 
-export function notifyWarning(text: string, options: ToneOptions = {}): number | undefined {
+export function notifyWarning(text: string, options: ToneOptions = {}): number {
   return notify({ ...options, tone: 'warning', text });
 }
 
-export function notifyError(text: string, options: ToneOptions = {}): number | undefined {
+export function notifyError(text: string, options: ToneOptions = {}): number {
   return notify({ ...options, tone: 'error', text });
 }
 
@@ -75,7 +79,6 @@ export function clearNotifications(): void {
   syncTimers();
 }
 
-/** Hovering holds a notification on screen: it is being read. */
 export function pauseNotification(id: number): void {
   const timer = timers.get(id);
   if (timer?.id == null || timer.startedAt == null) {
@@ -83,7 +86,7 @@ export function pauseNotification(id: number): void {
   }
 
   clearTimeout(timer.id);
-  timer.remainingMs = Math.max(0, timer.remainingMs - (Date.now() - timer.startedAt));
+  timer.remainingMs = Math.max(0, timer.remainingMs - (performance.now() - timer.startedAt));
   timer.id = undefined;
   timer.startedAt = undefined;
 }
@@ -110,7 +113,7 @@ function startTimer(id: number): void {
     return;
   }
 
-  timer.startedAt = Date.now();
+  timer.startedAt = performance.now();
   timer.id = setTimeout(() => dismissNotification(id), timer.remainingMs);
 }
 
