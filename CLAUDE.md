@@ -62,7 +62,8 @@ src/main/resources/
     widgets/            composite section-agnostic blocks (the browse framework)
     features/           user-facing actions (dialogs, wizards, commands)
     entities/           domain models, one slice per domain: api/, model/, ui/ segments
-    shared/             api client, config, i18n, server events, app state, formatting
+    shared/             api client, config, i18n, server events, notifications, app state,
+                        formatting
 ```
 
 Import direction is one-way: `app → pages → widgets/features → entities → shared`. Details and the
