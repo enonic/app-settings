@@ -1,5 +1,6 @@
 import { useStore } from '@nanostores/preact';
 import { Outlet, useNavigate } from '@tanstack/react-router';
+import { useMemo } from 'preact/hooks';
 
 import { $applications, ApplicationIcon, refreshApplications } from '../../entities/application';
 import { useI18n } from '../../shared/i18n';
@@ -15,6 +16,10 @@ export function ApplicationsPage() {
   const t = useI18n();
   const navigate = useNavigate();
   const { status, items } = useStore($applications);
+  const query = useStore(applicationsSearch.$query);
+
+  // The whole list is loaded, so the search narrows it here rather than on the server.
+  const visible = useMemo(() => filterApplications(items, query), [items, query]);
 
   const section = useBrowseSection({
     openItem: (key) =>
@@ -24,7 +29,7 @@ export function ApplicationsPage() {
     status,
     selection: applicationsSelection,
     search: applicationsSearch,
-    filter: filterApplications,
+    visible,
     // A fresh icon element per row: Preact writes into a vnode as it renders it.
     toRow: (application) =>
       toApplicationRow(

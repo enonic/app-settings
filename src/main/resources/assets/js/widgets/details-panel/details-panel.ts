@@ -13,3 +13,13 @@ export function filledSections<S extends { items: readonly unknown[] }>(
 ): S[] {
   return sections.filter(({ items }) => items.length > 0);
 }
+
+/**
+ * The same, for a section whose size is known before its contents are.
+ *
+ * A set the caller has only counted still earns its heading — `Users (4213)` says something even
+ * with no rows under it — so emptiness is decided by `total`, never by how many rows arrived.
+ */
+export function countedSections<S extends { set: { total: number } }>(sections: readonly S[]): S[] {
+  return sections.filter(({ set }) => set.total > 0);
+}

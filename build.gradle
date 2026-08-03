@@ -34,6 +34,7 @@ dependencies {
     include xplibs.app
     include xplibs.auth
     include xplibs.i18n
+    include xplibs.project
     include xplibs.schema
     include 'com.enonic.lib:lib-graphql:3.0.0'
     include 'com.enonic.lib:lib-mustache:3.0.0'
@@ -42,7 +43,6 @@ dependencies {
     //include xplibs.context
     //include xplibs.event
     //include xplibs.sse
-    //include xplibs.project
     //include xplibs.io
     //include xplibs.mail
     //include xplibs.repo

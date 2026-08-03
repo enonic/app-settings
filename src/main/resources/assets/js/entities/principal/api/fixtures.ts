@@ -1,7 +1,7 @@
 import type { Group, Role, User } from '@enonic-types/core';
 
-// TODO: [#8] Every fixture in this file goes away with the real transport. Until then it is the
-// single source for who exists: an api segment spreads these constants and adds what its own
+// TODO: [#37] Users is the last subdomain reading fixtures, so this file goes away with it. Until then
+// it is the single source for who exists: an api segment spreads these constants and adds what its own
 // subdomain carries — `{ ...SU, roles, groups }` is a `User` — so a key or a display name cannot
 // drift between the section that owns a principal and the sections that only reference it.
 
@@ -155,30 +155,6 @@ export const ADMIN_LOGIN_ROLE: Role = {
   modifiedTime: '2026-06-02T09:12:00Z',
 };
 
-export const AUTHENTICATED_ROLE: Role = {
-  type: 'role',
-  key: 'role:system.authenticated',
-  displayName: 'Authenticated',
-  description: 'Everyone who is logged in',
-  modifiedTime: '2026-06-02T09:12:00Z',
-};
-
-export const EVERYONE_ROLE: Role = {
-  type: 'role',
-  key: 'role:system.everyone',
-  displayName: 'Everyone',
-  description: 'Everyone, logged in or not',
-  modifiedTime: '2026-06-02T09:12:00Z',
-};
-
-export const USER_ADMIN_ROLE: Role = {
-  type: 'role',
-  key: 'role:system.user.admin',
-  displayName: 'User Administrator',
-  description: 'Manage users, groups and roles',
-  modifiedTime: '2026-06-02T09:12:00Z',
-};
-
 export const CMS_ADMIN_ROLE: Role = {
   type: 'role',
   key: 'role:cms.admin',
@@ -193,12 +169,4 @@ export const CMS_EXPERT_ROLE: Role = {
   displayName: 'Content Manager Expert',
   description: 'Access to the source of a content',
   modifiedTime: '2026-07-14T14:41:00Z',
-};
-
-export const STORE_MANAGER_ROLE: Role = {
-  type: 'role',
-  key: 'role:store.manager',
-  displayName: 'Store Manager',
-  description: 'Manage products and orders',
-  modifiedTime: '2026-07-21T08:05:00Z',
 };

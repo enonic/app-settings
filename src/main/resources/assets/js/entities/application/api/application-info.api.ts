@@ -1,6 +1,6 @@
 import type { ResultAsync } from 'neverthrow';
 
-import { type AppError, requestGraphQl } from '../../../shared/api';
+import { type AppError, requestGraphQlDocument } from '../../../shared/api';
 import type {
   AdminExtensionItem,
   AdminToolItem,
@@ -11,32 +11,28 @@ import type {
   IdProviderMode,
 } from '../model/application.types';
 
-const APPLICATION_ITEM_FIELDS = `
-  fragment ApplicationItemFields on ApplicationItem {
-    key
-    name
-    displayName
-    description
-  }
-`;
+const ITEM_FIELDS = `key name displayName description`;
 
-// The three admin lists are types of their own, each with one field the others lack, so they cannot
-// share the fragment above.
-const APPLICATION_INFO_QUERY = `
-  ${APPLICATION_ITEM_FIELDS}
+// ! A document rather than a root: `applicationInfo(key:)` answers `null` for a key nothing is
+// ! installed under, and the panel renders that as an application with nothing to show rather than as
+// ! a failed request.
+//
+// The three admin lists are types of their own, each with one field the others lack, so each spells
+// out what it adds to the shared item fields.
+const APPLICATION_INFO_DOCUMENT = `
   query ApplicationInfo($key: String!) {
     applicationInfo(key: $key) {
-      contentTypes { ...ApplicationItemFields }
-      mixins { ...ApplicationItemFields }
-      formFragments { ...ApplicationItemFields }
-      pages { ...ApplicationItemFields }
-      parts { ...ApplicationItemFields }
-      layouts { ...ApplicationItemFields }
-      macros { ...ApplicationItemFields }
-      tasks { ...ApplicationItemFields }
-      adminTools { key name displayName description url }
-      adminExtensions { key name displayName description interfaces }
-      apis { key name displayName description documentationUrl }
+      contentTypes { ${ITEM_FIELDS} }
+      mixins { ${ITEM_FIELDS} }
+      formFragments { ${ITEM_FIELDS} }
+      pages { ${ITEM_FIELDS} }
+      parts { ${ITEM_FIELDS} }
+      layouts { ${ITEM_FIELDS} }
+      macros { ${ITEM_FIELDS} }
+      tasks { ${ITEM_FIELDS} }
+      adminTools { ${ITEM_FIELDS} url }
+      adminExtensions { ${ITEM_FIELDS} interfaces }
+      apis { ${ITEM_FIELDS} documentationUrl }
       deploymentUrl
       idProvider {
         mode
@@ -84,9 +80,12 @@ export function fetchApplicationInfo(
   key: string,
   signal?: AbortSignal,
 ): ResultAsync<ApplicationInfo | undefined, AppError> {
-  return requestGraphQl<ApplicationInfoResult>(APPLICATION_INFO_QUERY, { key }, signal).map(
-    ({ applicationInfo }) =>
-      applicationInfo == null ? undefined : toApplicationInfo(applicationInfo),
+  return requestGraphQlDocument<ApplicationInfoResult>(
+    APPLICATION_INFO_DOCUMENT,
+    { key },
+    signal,
+  ).map(({ applicationInfo }) =>
+    applicationInfo == null ? undefined : toApplicationInfo(applicationInfo),
   );
 }
 

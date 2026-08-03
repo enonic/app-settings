@@ -1,8 +1,8 @@
 import { Avatar, Button } from '@enonic/ui';
 import { UserPen } from 'lucide-react';
 
-import { idProviderOf, principalName, type Role } from '../../entities/principal';
-import { getInitials } from '../../shared/format';
+import { principalName, useIdProviderName, type Role } from '../../entities/principal';
+import { formatDateTime, getInitials } from '../../shared/format';
 import { useI18n } from '../../shared/i18n';
 import { filledSections } from '../../widgets/details-panel/details-panel';
 import { DetailsPanel } from '../../widgets/details-panel/DetailsPanel';
@@ -13,7 +13,8 @@ export type RoleDetailsProps = {
 
 export function RoleDetails({ role }: RoleDetailsProps) {
   const t = useI18n();
-  const { key, displayName, description, members } = role;
+  const providerName = useIdProviderName();
+  const { key, displayName, description, modifiedTime, members } = role;
 
   // Users first, groups last, both flat: a group in a role is a row, not a branch.
   const memberSubsections = filledSections([
@@ -36,9 +37,12 @@ export function RoleDetails({ role }: RoleDetailsProps) {
           <Button variant="outline" size="sm" label={t('roles.details.edit')} />
         }
       >
-        {description !== undefined && (
-          <DetailsPanel.Field labelKey="roles.details.description">
-            {description}
+        <DetailsPanel.Field labelKey="roles.details.description">
+          {description ?? t('roles.details.noDescription')}
+        </DetailsPanel.Field>
+        {modifiedTime !== undefined && (
+          <DetailsPanel.Field labelKey="roles.details.timestamps">
+            {formatDateTime(modifiedTime)}
           </DetailsPanel.Field>
         )}
       </DetailsPanel.Section>
@@ -58,7 +62,7 @@ export function RoleDetails({ role }: RoleDetailsProps) {
                     }
                     title={member.displayName}
                     subtitle={principalName(member.key)}
-                    meta={idProviderOf(member.key)}
+                    meta={providerName(member.key)}
                   />
                 ))}
               </DetailsPanel.List>

@@ -17,12 +17,15 @@ const SYSTEM_PROVIDER_KEY = 'system';
  * The provider the installation is built on stays, and a provider with users in it is refused —
  * app-users asks the server the same question through `IdProvider.checkOnDeletable`, which is where
  * this check belongs once there is a server to ask.
+ *
+ * ! The count decides, never the loaded rows: the list query takes totals without fetching anyone,
+ * ! so an empty `items` means nobody asked, not that the provider is empty.
  */
 function deletable(ctx: ActionContext<IdProvider>): boolean {
   const targets = actionTargets(ctx);
   return (
     targets.length > 0 &&
-    targets.every(({ key, users }) => key !== SYSTEM_PROVIDER_KEY && users.length === 0)
+    targets.every(({ key, users }) => key !== SYSTEM_PROVIDER_KEY && users.total === 0)
   );
 }
 

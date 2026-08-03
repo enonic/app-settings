@@ -1,4 +1,4 @@
-import { isSystemRole, type Role } from '../../../entities/principal';
+import { isReservedRole, type Role } from '../../../entities/principal';
 import {
   type ActionContext,
   actionTargets,
@@ -12,7 +12,7 @@ function pending(): void {
 
 function deletable(ctx: ActionContext<Role>): boolean {
   const targets = actionTargets(ctx);
-  return targets.length > 0 && targets.every(({ key }) => !isSystemRole(key));
+  return targets.length > 0 && targets.every(({ key }) => !isReservedRole(key));
 }
 
 export const ROLE_ACTIONS: readonly SectionAction<Role>[] = [

@@ -1,7 +1,7 @@
 import { Avatar, Button } from '@enonic/ui';
 import { UserPen, Users } from 'lucide-react';
 
-import { type Group, idProviderOf, principalName } from '../../entities/principal';
+import { type Group, principalName, useIdProviderName } from '../../entities/principal';
 import { getInitials } from '../../shared/format';
 import { useI18n } from '../../shared/i18n';
 import { filledSections } from '../../widgets/details-panel/details-panel';
@@ -13,6 +13,7 @@ export type GroupDetailsProps = {
 
 export function GroupDetails({ group }: GroupDetailsProps) {
   const t = useI18n();
+  const providerName = useIdProviderName();
   const { key, displayName, description, members, roles } = group;
 
   // Users first, groups last, both flat: a group inside a group is a row, not a branch.
@@ -48,7 +49,7 @@ export function GroupDetails({ group }: GroupDetailsProps) {
           </DetailsPanel.Field>
         )}
         <DetailsPanel.Field labelKey="groups.details.idProvider">
-          {idProviderOf(key)}
+          {providerName(key)}
         </DetailsPanel.Field>
       </DetailsPanel.Section>
 
@@ -67,7 +68,7 @@ export function GroupDetails({ group }: GroupDetailsProps) {
                     }
                     title={member.displayName}
                     subtitle={principalName(member.key)}
-                    meta={idProviderOf(member.key)}
+                    meta={providerName(member.key)}
                   />
                 ))}
               </DetailsPanel.List>

@@ -24,7 +24,11 @@ export type DetailsSectionProps = {
   count?: number;
   /** Rendered at the end of the section, e.g. the Edit button. */
   action?: ReactNode;
-  children: ReactNode;
+  /**
+   * Optional, because a section whose size is known before its contents are is a heading and a
+   * number on its own — `Users (4213)` says something, an empty list under it does not.
+   */
+  children?: ReactNode;
 };
 
 export type DetailsSubsectionProps = {

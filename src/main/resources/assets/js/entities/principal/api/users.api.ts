@@ -23,10 +23,10 @@ import {
   SUPPORT,
 } from './fixtures';
 
-// TODO: [#8] Fixtures until the backend api settles — then this file calls the endpoint as
-// `requestJson<UserDto[]>(url, { signal })` and maps the wire dto to `User`; the signal is
-// threaded through already, so nothing above it changes. `description` and `createdTime` have no
-// home in `lib/xp/auth`'s user and will have to come off the node behind the principal.
+// TODO: [#37] Fixtures until Users moves onto the schema — the other three subdomains already call
+// `requestGraphQl`, and this one waits because it is the only section that cannot load whole: it needs
+// server-side search, filter, sort and paging through `findUsers`. `description` and `createdTime` have
+// no home in `lib/xp/auth`'s user either and will have to come off the node behind the principal.
 const USERS: readonly User[] = [
   {
     ...SU,

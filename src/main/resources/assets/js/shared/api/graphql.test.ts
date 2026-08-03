@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setConfig, type ToolConfig } from '../config';
 import { $config } from '../config/config.store';
-import { requestGraphQl } from './graphql';
+import { requestGraphQl, requestGraphQlDocument, requestGraphQlRoots } from './graphql';
 
 const config = {
   appId: 'com.enonic.xp.app.settings',
@@ -16,6 +16,9 @@ const config = {
     serverApp: { start: '/_/server:app/start', stop: '/_/server:app/stop' },
   },
 } satisfies ToolConfig;
+
+const ROLES = { field: 'roles', selection: '{ key }' };
+const PROJECTS = { field: 'projects', selection: '{ id }' };
 
 function respondWith(body: unknown, status = 200): void {
   globalThis.fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status }));
@@ -48,28 +51,45 @@ function captureRequests(): PendingRequest[] {
   return requests;
 }
 
+beforeEach(() => {
+  setConfig(config);
+});
+
+afterEach(() => {
+  $config.set(undefined);
+  vi.restoreAllMocks();
+});
+
 describe('requestGraphQl', () => {
-  beforeEach(() => {
-    setConfig(config);
+  it('builds one operation around the root it was given', async () => {
+    const requests = captureRequests();
+
+    const roles = requestGraphQl<{ roles: string[] }>(ROLES);
+
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    expect(requests[0]?.query).toBe('query Roles { roles { key } }');
+
+    requests[0]?.respondWith({ data: { roles: ['a'] } });
+    const result = await roles;
+    expect(result.isOk() && result.value.roles).toEqual(['a']);
   });
 
-  afterEach(() => {
-    $config.set(undefined);
-    vi.restoreAllMocks();
+  it('asks for a scalar root field without a selection', async () => {
+    const requests = captureRequests();
+
+    const version = requestGraphQl<{ systemVersion: string }>({ field: 'systemVersion' });
+
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    expect(requests[0]?.query).toBe('query SystemVersion { systemVersion }');
+
+    requests[0]?.respondWith({ data: { systemVersion: '8.1.0' } });
+    expect((await version).isOk()).toBe(true);
   });
 
-  it('resolves the data payload', async () => {
-    respondWith({ data: { systemVersion: '8.1.0' } });
+  it('posts to the url from the tool config', async () => {
+    respondWith({ data: { roles: [] } });
 
-    const result = await requestGraphQl<{ systemVersion: string }>('{ systemVersion }');
-
-    expect(result.isOk() && result.value).toEqual({ systemVersion: '8.1.0' });
-  });
-
-  it('posts the query and variables to the url from the tool config', async () => {
-    respondWith({ data: {} });
-
-    await requestGraphQl('query Q($k: String) { x(key: $k) }', { k: 'app' });
+    await requestGraphQl(ROLES);
 
     const [url, options] = vi.mocked(globalThis.fetch).mock.calls[0] as [
       string,
@@ -77,50 +97,58 @@ describe('requestGraphQl', () => {
     ];
     expect(url).toBe('/_/app:graphql');
     expect(options.method).toBe('POST');
-    expect(JSON.parse(options.body ?? '')).toEqual({
-      query: 'query Q($k: String) { x(key: $k) }',
-      variables: { k: 'app' },
-    });
+    expect(JSON.parse(options.body ?? '')).toEqual({ query: 'query Roles { roles { key } }' });
   });
 
-  it('fails with the first GraphQL error message', async () => {
-    respondWith({ errors: [{ message: 'Field undefined' }, { message: 'ignored' }] });
+  it('treats an empty list as an answer, not as absence', async () => {
+    respondWith({ data: { roles: [] } });
 
-    const result = await requestGraphQl('{ nope }');
+    const result = await requestGraphQl<{ roles: string[] }>(ROLES);
 
-    expect(result.isErr() && result.error.message).toBe('Field undefined');
+    expect(result.isOk() && result.value.roles).toEqual([]);
   });
 
-  it('fails even when errors arrive alongside partial data', async () => {
-    respondWith({ data: { systemVersion: null }, errors: [{ message: 'Resolver blew up' }] });
+  it('fails when its field came back null, reporting what the response said', async () => {
+    respondWith({ data: { roles: null }, errors: [{ message: 'Principals are unreachable' }] });
 
-    const result = await requestGraphQl('{ systemVersion }');
+    const result = await requestGraphQl(ROLES);
 
-    expect(result.isErr() && result.error.message).toBe('Resolver blew up');
+    expect(result.isErr() && result.error.message).toBe('Principals are unreachable');
+  });
+
+  // ! What a nullable root field newly permits: null with nothing to explain it. Letting this through as
+  // ! success would hand a mapper a null and throw inside `ResultAsync.map`, where neverthrow does not
+  // ! catch — the store's `match` would never run and its status would stay `loading` for good.
+  it('fails when its field came back null and no error explains why', async () => {
+    respondWith({ data: { roles: null } });
+
+    const result = await requestGraphQl(ROLES);
+
+    expect(result.isErr() && result.error.message).toBe(
+      'GraphQL response carried no `roles` and no error explaining why',
+    );
+  });
+
+  it('reports every error message when the response carries several', async () => {
+    respondWith({ errors: [{ message: 'Field undefined' }, { message: 'Also broken' }] });
+
+    const result = await requestGraphQl(ROLES);
+
+    expect(result.isErr() && result.error.message).toBe('Field undefined; Also broken');
   });
 
   it('falls back to a generic message when an error carries none', async () => {
     respondWith({ errors: [{}] });
 
-    const result = await requestGraphQl('{ nope }');
+    const result = await requestGraphQl(ROLES);
 
     expect(result.isErr() && result.error.message).toBe('GraphQL request failed');
-  });
-
-  it('fails when the response carries neither data nor errors', async () => {
-    respondWith({});
-
-    const result = await requestGraphQl('{ systemVersion }');
-
-    expect(result.isErr() && result.error.message).toBe(
-      'GraphQL response carried neither data nor errors',
-    );
   });
 
   it('surfaces the server message on a non-200 status', async () => {
     respondWith({ message: 'Request body carries no `query` string' }, 400);
 
-    const result = await requestGraphQl('');
+    const result = await requestGraphQl(ROLES);
 
     expect(result.isErr() && result.error.message).toBe('Request body carries no `query` string');
   });
@@ -129,46 +157,187 @@ describe('requestGraphQl', () => {
     $config.set(undefined);
     globalThis.fetch = vi.fn();
 
-    const result = await requestGraphQl('{ systemVersion }');
+    const result = await requestGraphQl(ROLES);
 
     expect(result.isErr()).toBe(true);
     expect(vi.mocked(globalThis.fetch)).not.toHaveBeenCalled();
   });
+});
 
-  it('holds a second operation back until the first has answered', async () => {
+describe('requestGraphQlRoots', () => {
+  it('puts every root in one document under the name it was given', async () => {
     const requests = captureRequests();
 
-    const first = requestGraphQl<{ a: number }>('{ a }');
-    const second = requestGraphQl<{ b: number }>('{ b }');
+    const screen = requestGraphQlRoots([ROLES, PROJECTS], 'RolesScreen');
 
     await vi.waitFor(() => expect(requests).toHaveLength(1));
-    expect(requests[0]?.query).toBe('{ a }');
+    expect(requests[0]?.query).toBe('query RolesScreen { roles { key } projects { id } }');
 
-    requests[0]?.respondWith({ data: { a: 1 } });
-    const firstResult = await first;
-    expect(firstResult.isOk() && firstResult.value).toEqual({ a: 1 });
-
-    await vi.waitFor(() => expect(requests).toHaveLength(2));
-    expect(requests[1]?.query).toBe('{ b }');
-
-    requests[1]?.respondWith({ data: { b: 2 } });
-    const secondResult = await second;
-    expect(secondResult.isOk() && secondResult.value).toEqual({ b: 2 });
+    requests[0]?.respondWith({ data: { roles: ['a'], projects: ['b'] } });
+    expect((await screen).isOk()).toBe(true);
   });
 
-  it('keeps the queue moving when the operation ahead fails', async () => {
+  it('hands back the data as it arrived, with no message', async () => {
+    respondWith({ data: { roles: ['a'], projects: ['b'] } });
+
+    const result = await requestGraphQlRoots<{ roles: string[]; projects: string[] }>(
+      [ROLES, PROJECTS],
+      'RolesScreen',
+    );
+
+    expect(result.isOk() && result.value).toEqual({
+      data: { roles: ['a'], projects: ['b'] },
+      message: undefined,
+    });
+  });
+
+  // ! It does not decide what a failure means. A field that failed is null in `data` and the caller —
+  // ! which knows what it asked for — turns that into per-domain state.
+  it('succeeds with a null field beside the ones that arrived', async () => {
+    respondWith({
+      data: { roles: ['a'], projects: null },
+      errors: [{ message: 'Project repo is down' }],
+    });
+
+    const result = await requestGraphQlRoots<{ roles: string[]; projects: string[] | null }>(
+      [ROLES, PROJECTS],
+      'RolesScreen',
+    );
+
+    expect(result.isOk() && result.value.data.roles).toEqual(['a']);
+    expect(result.isOk() && result.value.data.projects).toBeNull();
+    expect(result.isOk() && result.value.message).toBe('Project repo is down');
+  });
+
+  it('carries every message when several fields failed', async () => {
+    respondWith({
+      data: { roles: null, projects: null },
+      errors: [{ message: 'Principals are unreachable' }, { message: 'Project repo is down' }],
+    });
+
+    const result = await requestGraphQlRoots([ROLES, PROJECTS], 'RolesScreen');
+
+    expect(result.isOk() && result.value.message).toBe(
+      'Principals are unreachable; Project repo is down',
+    );
+  });
+
+  it('fails as a whole when the answer carries no data at all', async () => {
+    respondWith({ errors: [{ message: 'Query is invalid' }] });
+
+    const result = await requestGraphQlRoots([ROLES, PROJECTS], 'RolesScreen');
+
+    expect(result.isErr() && result.error.message).toBe('Query is invalid');
+  });
+});
+
+describe('requestGraphQlDocument', () => {
+  it('sends the document and its variables untouched', async () => {
+    respondWith({ data: { x: 1 } });
+
+    await requestGraphQlDocument('query X($k: String) { x(key: $k) }', { k: 'app' });
+
+    const [, options] = vi.mocked(globalThis.fetch).mock.calls[0] as [string, { body?: string }];
+    expect(JSON.parse(options.body ?? '')).toEqual({
+      query: 'query X($k: String) { x(key: $k) }',
+      variables: { k: 'app' },
+    });
+  });
+
+  it('fails on any error, since it cannot know which field the caller needed', async () => {
+    respondWith({ data: { x: 1 }, errors: [{ message: 'Resolver blew up' }] });
+
+    const result = await requestGraphQlDocument('query X { x }');
+
+    expect(result.isErr() && result.error.message).toBe('Resolver blew up');
+  });
+
+  // Why it is the right home for a field whose null is a legitimate answer, like `applicationInfo`.
+  it('hands a null field through as success', async () => {
+    respondWith({ data: { applicationInfo: null } });
+
+    const result = await requestGraphQlDocument<{ applicationInfo: unknown }>(
+      'query Info { applicationInfo(key: "nope") { key } }',
+    );
+
+    expect(result.isOk() && result.value.applicationInfo).toBeNull();
+  });
+});
+
+describe('the request queue', () => {
+  it('holds a request back until the one in flight has answered, in the order asked', async () => {
     const requests = captureRequests();
 
-    const first = requestGraphQl('{ a }');
-    const second = requestGraphQl<{ b: number }>('{ b }');
+    const roles = requestGraphQl<{ roles: string[] }>(ROLES);
+    const projects = requestGraphQl<{ projects: string[] }>(PROJECTS);
 
     await vi.waitFor(() => expect(requests).toHaveLength(1));
-    requests[0]?.fail(new TypeError('Network is down'));
-    expect((await first).isErr()).toBe(true);
+    expect(requests[0]?.query).toBe('query Roles { roles { key } }');
+
+    requests[0]?.respondWith({ data: { roles: ['a'] } });
+    expect((await roles).isOk()).toBe(true);
 
     await vi.waitFor(() => expect(requests).toHaveLength(2));
-    requests[1]?.respondWith({ data: { b: 2 } });
-    const secondResult = await second;
-    expect(secondResult.isOk() && secondResult.value).toEqual({ b: 2 });
+    expect(requests[1]?.query).toBe('query Projects { projects { id } }');
+
+    requests[1]?.respondWith({ data: { projects: ['b'] } });
+    expect((await projects).isOk()).toBe(true);
+  });
+
+  it('keeps moving when the request ahead fails', async () => {
+    const requests = captureRequests();
+
+    const roles = requestGraphQl(ROLES);
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    const projects = requestGraphQl<{ projects: string[] }>(PROJECTS);
+
+    requests[0]?.fail(new TypeError('Network is down'));
+    expect((await roles).isErr()).toBe(true);
+
+    await vi.waitFor(() => expect(requests).toHaveLength(2));
+    requests[1]?.respondWith({ data: { projects: ['b'] } });
+    expect((await projects).isOk()).toBe(true);
+  });
+
+  // ! A body no GraphQL server should produce. It has to fail as a value, because a throw escaping the
+  // ! drain loop would leave the queue wedged and every later request in the page's life unanswered.
+  it('fails as a value on a payload it cannot read, and stays alive', async () => {
+    respondWith(null);
+
+    expect((await requestGraphQl(ROLES)).isErr()).toBe(true);
+
+    respondWith({ data: { projects: ['b'] } });
+    const after = await requestGraphQl<{ projects: string[] }>(PROJECTS);
+    expect(after.isOk() && after.value.projects).toEqual(['b']);
+  });
+
+  it('answers a cancelled request without sending it', async () => {
+    const requests = captureRequests();
+
+    const aborted = new AbortController();
+    const dropped = requestGraphQl(ROLES, aborted.signal);
+    const kept = requestGraphQl<{ projects: string[] }>(PROJECTS);
+    aborted.abort();
+
+    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    // Only the surviving caller's document, so the cancelled one cost the server nothing.
+    expect(requests[0]?.query).toBe('query Projects { projects { id } }');
+    expect((await dropped).isErr()).toBe(true);
+
+    requests[0]?.respondWith({ data: { projects: ['b'] } });
+    expect((await kept).isOk()).toBe(true);
+  });
+
+  it('forwards the caller signal, so a request in flight can be cancelled', async () => {
+    const signals: (AbortSignal | undefined)[] = [];
+    globalThis.fetch = vi.fn((_url: unknown, options?: { signal?: AbortSignal }) => {
+      signals.push(options?.signal);
+      return Promise.resolve(new Response(JSON.stringify({ data: { roles: [] } })));
+    }) as unknown as typeof globalThis.fetch;
+
+    const controller = new AbortController();
+    await requestGraphQl(ROLES, controller.signal);
+
+    expect(signals[0]).toBe(controller.signal);
   });
 });

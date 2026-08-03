@@ -12,6 +12,12 @@ Every section is the same browse screen with different data: full-width action t
 (search, list header, rows), details column. That screen is a shared framework — **read
 `docs/browse-framework.md` before adding a section or touching `widgets/`.**
 
+Three documents carry what the code cannot say. `docs/browse-framework.md` is the contract for that
+screen. `docs/unified-api.md` is the plan for the one GraphQL layer all five sections read through,
+with its decisions and phases. `docs/platform-facts.md` records what XP actually does where its types
+and documentation mislead — **read it before concluding an XP lib cannot do something**, and re-verify
+against `../xp` rather than re-deriving.
+
 ## Scripts
 
 | Intent                            | Command                         |

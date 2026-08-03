@@ -1,38 +1,69 @@
-import { errAsync, okAsync, type ResultAsync } from 'neverthrow';
+import type { GraphQlRoot } from '../../../shared/api';
+import type { PrincipalKey, PrincipalRef, Role, RoleKey } from '../model/principal.types';
 
-import { AppError } from '../../../shared/api';
-import type { Role } from '../model/principal.types';
-import {
-  ADMIN_LOGIN_ROLE,
-  ADMIN_ROLE,
-  ADMINISTRATORS,
-  AUTHENTICATED_ROLE,
-  CMS_ADMIN_ROLE,
-  CMS_EXPERT_ROLE,
-  EVERYONE_ROLE,
-  STORE_MANAGER_ROLE,
-  SU,
-  USER_ADMIN_ROLE,
-} from './fixtures';
-
-// TODO: [#8] Fixtures until the backend api settles — then this file calls the endpoint as
-// `requestJson<RoleDto[]>(url, { signal })` and maps the wire dto to `Role`; the signal is
-// threaded through already, so nothing above it changes.
-const ROLES: readonly Role[] = [
-  { ...ADMIN_ROLE, members: [SU, ADMINISTRATORS] },
-  { ...ADMIN_LOGIN_ROLE, members: [ADMINISTRATORS] },
-  { ...AUTHENTICATED_ROLE, members: [] },
-  { ...EVERYONE_ROLE, members: [] },
-  { ...USER_ADMIN_ROLE, members: [ADMINISTRATORS] },
-  { ...CMS_ADMIN_ROLE, members: [SU] },
-  { ...CMS_EXPERT_ROLE, members: [] },
-  { ...STORE_MANAGER_ROLE, members: [SU] },
-];
-
-export function fetchRoles(signal?: AbortSignal): ResultAsync<Role[], AppError> {
-  if (signal?.aborted === true) {
-    return errAsync(new AppError('Loading roles was cancelled'));
+const ROLES_SELECTION = `{
+  key
+  displayName
+  description
+  modifiedTime
+  members {
+    key
+    type
+    displayName
   }
+}`;
 
-  return okAsync([...ROLES]);
+/**
+ * The root field and selection for the role list, exported so a screen that needs roles alongside other
+ * domains can put them in one document. What the wire looks like stays here either way.
+ */
+export const ROLES_ROOT: GraphQlRoot = { field: 'roles', selection: ROLES_SELECTION };
+
+type PrincipalRefDto = {
+  key: string;
+  type: PrincipalRef['type'];
+  displayName: string;
+};
+
+type RoleDto = {
+  key: string;
+  displayName: string;
+  description: string | null;
+  modifiedTime: string | null;
+  members: PrincipalRefDto[];
+};
+
+export type RolesData = { roles: RoleDto[] | null };
+
+export function toRoles(dtos: readonly RoleDto[]): Role[] {
+  return dtos.map(toRole);
+}
+
+//
+// * Helpers
+//
+
+// An empty string is absence, not a value: the details panel falls back on a missing description
+// and would otherwise render a blank field.
+function nonEmpty(value: string | null): string | undefined {
+  return value != null && value.length > 0 ? value : undefined;
+}
+
+function toRole(dto: RoleDto): Role {
+  return {
+    type: 'role',
+    key: dto.key as RoleKey,
+    displayName: dto.displayName,
+    description: nonEmpty(dto.description),
+    modifiedTime: nonEmpty(dto.modifiedTime),
+    members: dto.members.map(toPrincipalRef),
+  };
+}
+
+function toPrincipalRef(dto: PrincipalRefDto): PrincipalRef {
+  return {
+    key: dto.key as PrincipalKey,
+    type: dto.type,
+    displayName: dto.displayName,
+  };
 }

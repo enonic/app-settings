@@ -1,11 +1,51 @@
 import type { PrincipalKey } from './principal.types';
 
 const SYSTEM_ROLE_PREFIX = 'role:system.';
+const CMS_ROLE_PREFIX = 'role:cms.';
 const PROJECT_ROLE_PREFIX = 'role:cms.project.';
 
-/** Roles the platform owns: created by XP or by a project, and never deletable. */
-export function isSystemRole(key: PrincipalKey): boolean {
-  return key.startsWith(SYSTEM_ROLE_PREFIX) || key.startsWith(PROJECT_ROLE_PREFIX);
+/**
+ * The project a role belongs to, or undefined when it belongs to none.
+ *
+ * A project role is keyed `role:cms.project.<id>.<projectRole>` where the trailing segment is one of
+ * owner, editor, author, contributor or viewer. The id is everything in between, because a project
+ * id may itself contain dots.
+ */
+export function projectRoleIdOf(key: PrincipalKey): string | undefined {
+  if (!key.startsWith(PROJECT_ROLE_PREFIX)) {
+    return undefined;
+  }
+
+  const rest = key.slice(PROJECT_ROLE_PREFIX.length);
+  const lastDot = rest.lastIndexOf('.');
+  return lastDot <= 0 ? undefined : rest.slice(0, lastDot);
+}
+
+/**
+ * Roles that ship with the platform: `role:system.*`, and the `role:cms.*` ones that are not a
+ * project's — `cms.admin`, `cms.cm.app`, `cms.expert`.
+ *
+ * Recognised by prefix rather than by an exhaustive list of `RoleKeys`, so a role XP adds later is
+ * covered. The direction of the error matters: this also feeds `isReservedRole`, and holding back a
+ * custom role is a nuisance where offering to delete a platform role is a broken instance.
+ */
+export function isPlatformRole(key: PrincipalKey): boolean {
+  if (key.startsWith(PROJECT_ROLE_PREFIX)) {
+    return false;
+  }
+
+  return key.startsWith(SYSTEM_ROLE_PREFIX) || key.startsWith(CMS_ROLE_PREFIX);
+}
+
+/**
+ * Roles no administrator may delete: the platform's own, plus every project's five.
+ *
+ * ! The two are separate questions and only this one gates Delete. A project role is not a platform
+ * ! role — it comes and goes with its project — but deleting one takes that project's access control
+ * ! with it.
+ */
+export function isReservedRole(key: PrincipalKey): boolean {
+  return isPlatformRole(key) || projectRoleIdOf(key) !== undefined;
 }
 
 // The two users the platform owns and lib-admin-ui's `isSystem()` refuses to delete.

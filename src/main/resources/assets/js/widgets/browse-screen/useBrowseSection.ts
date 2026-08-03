@@ -21,8 +21,22 @@ export type BrowseSectionOptions<T extends { key: string }> = {
   /** The section's own stores, from `pages/<section>/model/`. */
   selection: SelectionStore;
   search: SearchStore;
-  /** Section-specific pure functions. */
-  filter: (items: readonly T[], query: string) => T[];
+  /**
+   * Further per-section narrowing cleared on leaving, alongside the selection and the query — a
+   * bucket filter belongs here. Anything the user would expect gone on coming back.
+   */
+  resetOnLeave?: readonly { clear: () => void }[];
+  /**
+   * The rows to show, in the order to show them: `items` after the section's own search, bucket
+   * filter and sort.
+   *
+   * The section computes it rather than handing over a callback, because it needs the intermediate
+   * result anyway — a filter's counts are taken over the searched items — and a hook that took a
+   * `filter(items, query)` would either run the search twice or be passed a function ignoring both
+   * of its arguments. Narrowing and ordering are the section's business; turning the result into
+   * rows, selection scope and handlers is this hook's.
+   */
+  visible: readonly T[];
   toRow: (item: T) => BrowseRow;
   reload: () => void;
 };
@@ -52,7 +66,8 @@ export function useBrowseSection<T extends { key: string }>({
   status,
   selection,
   search,
-  filter,
+  resetOnLeave,
+  visible,
   toRow,
   reload,
 }: BrowseSectionOptions<T>): BrowseSection<T> {
@@ -64,11 +79,10 @@ export function useBrowseSection<T extends { key: string }>({
     return () => {
       selection.clear();
       search.clear();
+      resetOnLeave?.forEach((store) => store.clear());
     };
     // ? The stores outlive the page, so the cleanup only has to run when it unmounts.
   }, []);
-
-  const visible = filter(items, query);
 
   return {
     rows: visible.map(toRow),

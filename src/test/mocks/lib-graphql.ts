@@ -25,13 +25,27 @@ export const GraphQLString = stub<GraphQLType>('String', {});
 export const DateTime = stub<GraphQLType>('DateTime', {});
 export const Json = stub<GraphQLType>('Json', {});
 
-export const createObjectType = vi.fn((params: CreateObjectTypeParams) =>
-  stub<GraphQLType>('ObjectType', { name: params.name, fields: params.fields }),
-);
+// ! Type names are global to a schema, and graphql-java rejects a duplicate only when the schema is
+// ! assembled — which happens at module load, so one clash 500s every query, not just the new one.
+// ! The doubles enforce it instead, and any test importing the schema is the check.
+const declared = new Set<string>();
 
-export const createEnumType = vi.fn((params: CreateEnumTypeParams) =>
-  stub<GraphQLType>('EnumType', { name: params.name, values: params.values }),
-);
+function declare(name: string): void {
+  if (declared.has(name)) {
+    throw new Error(`GraphQL type '${name}' is declared twice — names are global to the schema`);
+  }
+  declared.add(name);
+}
+
+export const createObjectType = vi.fn((params: CreateObjectTypeParams) => {
+  declare(params.name);
+  return stub<GraphQLType>('ObjectType', { name: params.name, fields: params.fields });
+});
+
+export const createEnumType = vi.fn((params: CreateEnumTypeParams) => {
+  declare(params.name);
+  return stub<GraphQLType>('EnumType', { name: params.name, values: params.values });
+});
 
 export const createSchema = vi.fn((params: CreateSchemaParams) =>
   stub<GraphQLSchema>('Schema', { query: params.query, mutation: params.mutation }),

@@ -1,5 +1,7 @@
+import { useStore } from '@nanostores/preact';
 import { Outlet, useNavigate } from '@tanstack/react-router';
 import { CircleUserRound } from 'lucide-react';
+import { useMemo } from 'preact/hooks';
 
 import { loadUsers, useUsers } from '../../entities/principal';
 import { useI18n } from '../../shared/i18n';
@@ -15,6 +17,10 @@ export function UsersPage() {
   const t = useI18n();
   const navigate = useNavigate();
   const { status, items } = useUsers();
+  const query = useStore(usersSearch.$query);
+
+  // No filter or sort control here yet, so the search is all there is to narrow by.
+  const visible = useMemo(() => filterUsers(items, query), [items, query]);
 
   const section = useBrowseSection({
     openItem: (key) => void navigate({ to: '/users/$id', params: { id: key }, replace: true }),
@@ -23,7 +29,7 @@ export function UsersPage() {
     status,
     selection: usersSelection,
     search: usersSearch,
-    filter: filterUsers,
+    visible,
     // A fresh icon element per row: Preact writes into a vnode as it renders it.
     toRow: (user) => toUserRow(user, <CircleUserRound size={24} strokeWidth={1.5} aria-hidden />),
     reload: () => void loadUsers(),

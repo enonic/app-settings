@@ -1,44 +1,73 @@
-import { errAsync, okAsync, type ResultAsync } from 'neverthrow';
+import type { GraphQlRoot } from '../../../shared/api';
+import type { Group, GroupKey, PrincipalKey, PrincipalRef } from '../model/principal.types';
 
-import { AppError } from '../../../shared/api';
-import type { Group } from '../model/principal.types';
-import {
-  ADMIN_LOGIN_ROLE,
-  ADMIN_ROLE,
-  ADMINISTRATORS,
-  ALICE,
-  BOB,
-  CAROL,
-  CMS_ADMIN_ROLE,
-  CMS_EXPERT_ROLE,
-  CONTRIBUTORS,
-  DEVELOPERS,
-  EDITORS,
-  ERIK,
-  JANE,
-  JOHN,
-  MAJA,
-  MARKETING,
-  SU,
-  SUPPORT,
-} from './fixtures';
-
-// TODO: [#8] Fixtures until the backend api settles — then this file calls the endpoint as
-// `requestJson<GroupDto[]>(url, { signal })` and maps the wire dto to `Group`; the signal is
-// threaded through already, so nothing above it changes.
-const GROUPS: readonly Group[] = [
-  { ...ADMINISTRATORS, members: [SU], roles: [ADMIN_ROLE, ADMIN_LOGIN_ROLE] },
-  { ...EDITORS, members: [JANE, CONTRIBUTORS], roles: [CMS_ADMIN_ROLE] },
-  { ...CONTRIBUTORS, members: [JOHN], roles: [CMS_EXPERT_ROLE] },
-  { ...DEVELOPERS, members: [ALICE, BOB], roles: [ADMIN_LOGIN_ROLE] },
-  { ...SUPPORT, members: [CAROL], roles: [] },
-  { ...MARKETING, members: [ERIK, MAJA], roles: [CMS_ADMIN_ROLE, CMS_EXPERT_ROLE] },
-];
-
-export function fetchGroups(signal?: AbortSignal): ResultAsync<Group[], AppError> {
-  if (signal?.aborted === true) {
-    return errAsync(new AppError('Loading groups was cancelled'));
+const GROUPS_SELECTION = `{
+  key
+  displayName
+  description
+  members {
+    key
+    type
+    displayName
   }
+  roles {
+    key
+    type
+    displayName
+  }
+}`;
 
-  return okAsync([...GROUPS]);
+/**
+ * The root field and selection for the group list, exported so a screen that needs groups alongside
+ * other domains can put them in one document. What the wire looks like stays here either way.
+ */
+export const GROUPS_ROOT: GraphQlRoot = { field: 'groups', selection: GROUPS_SELECTION };
+
+type PrincipalRefDto = {
+  key: string;
+  type: PrincipalRef['type'];
+  displayName: string;
+};
+
+type GroupDto = {
+  key: string;
+  displayName: string;
+  description: string | null;
+  members: PrincipalRefDto[];
+  roles: PrincipalRefDto[];
+};
+
+export type GroupsData = { groups: GroupDto[] | null };
+
+export function toGroups(dtos: readonly GroupDto[]): Group[] {
+  return dtos.map(toGroup);
+}
+
+//
+// * Helpers
+//
+
+function toGroup(dto: GroupDto): Group {
+  return {
+    type: 'group',
+    key: dto.key as GroupKey,
+    displayName: dto.displayName,
+    description: nonEmpty(dto.description),
+    members: dto.members.map(toPrincipalRef),
+    roles: dto.roles.map(toPrincipalRef),
+  };
+}
+
+function toPrincipalRef(dto: PrincipalRefDto): PrincipalRef {
+  return {
+    key: dto.key as PrincipalKey,
+    type: dto.type,
+    displayName: dto.displayName,
+  };
+}
+
+// An empty string is absence, not a value: the details panel omits a missing description and would
+// otherwise render a blank field.
+function nonEmpty(value: string | null): string | undefined {
+  return value != null && value.length > 0 ? value : undefined;
 }
