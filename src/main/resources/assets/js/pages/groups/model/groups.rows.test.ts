@@ -25,8 +25,14 @@ describe('toGroupRow', () => {
     expect(subtitle).toBe('developers');
   });
 
-  it('carries the provider as its only meta cell', () => {
-    expect(toGroupRow(group).meta).toEqual(['ldap']);
+  it('names the provider in its only meta cell', () => {
+    expect(toGroupRow(group, undefined, () => 'Company directory').meta).toEqual([
+      'Company directory',
+    ]);
+  });
+
+  it('leaves the cell out while the providers have not arrived', () => {
+    expect(toGroupRow(group).meta).toBeUndefined();
   });
 
   it('carries the icon the page hands it', () => {

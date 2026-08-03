@@ -1,10 +1,11 @@
 import type {
   Group as XpGroup,
   Principal,
+  PrincipalKey,
+  PrincipalType,
   Role as XpRole,
   User as XpUser,
 } from '@enonic-types/core';
-import type { IdProvider as XpIdProvider } from '@enonic-types/lib-auth';
 
 /**
  * The principal shapes come from the platform's own types, so nothing here can drift from what
@@ -20,19 +21,40 @@ export type {
   UserKey,
 } from '@enonic-types/core';
 
-/** A role with its member list, which the platform exposes separately through `getMembers`. */
-export type Role = XpRole & {
-  members: readonly Principal[];
+/**
+ * A principal as it appears in a member or membership list: the three fields such a row shows. The
+ * full `Principal` union also carries login, email and provider, which no list renders and which
+ * would make every membership list polymorphic on the wire to no purpose.
+ */
+export type PrincipalRef = {
+  type: PrincipalType;
+  key: PrincipalKey;
+  displayName: string;
+};
+
+/**
+ * A role with its member list, which the platform exposes separately through `getMembers`.
+ *
+ * `modifiedTime` is optional here although `@enonic-types/core` declares it required: it is written
+ * from a nullable Java getter, and the script bridge drops the key instead of sending null.
+ */
+export type Role = Omit<XpRole, 'modifiedTime'> & {
+  modifiedTime?: string;
+  members: readonly PrincipalRef[];
 };
 
 /**
  * A group with its members and the roles it holds. Both are separate calls in the platform —
- * `getMembers` and `getMemberships` — and a member that is itself a group appears here as the
- * platform's plain `Principal`, without members of its own: the UI shows no nesting.
+ * `getMembers` and `getMemberships` — and a member that is itself a group appears here as a plain
+ * reference, without members of its own: the UI shows no nesting.
+ *
+ * `modifiedTime` is optional here although `@enonic-types/core` declares it required, for the reason
+ * given on `Role`.
  */
-export type Group = XpGroup & {
-  members: readonly Principal[];
-  roles: readonly Principal[];
+export type Group = Omit<XpGroup, 'modifiedTime'> & {
+  modifiedTime?: string;
+  members: readonly PrincipalRef[];
+  roles: readonly PrincipalRef[];
 };
 
 /**
@@ -52,21 +74,49 @@ export type User = XpUser & {
 };
 
 /**
- * An ID provider with the principals that belong to it — users and groups, the two kinds a
- * provider holds; roles have no provider at all. The platform's own type comes from
- * `@enonic-types/lib-auth`, because `getIdProviders` is what returns it; `idProviderConfig` is
- * absent while a provider is bound to no application, and such a provider serves no login.
+ * An ID provider with the principals that belong to it — users and groups, the two kinds a provider
+ * holds. Roles have no provider at all, so there is none of them here.
+ *
+ * Declared locally rather than off `@enonic-types/lib-auth`: every field below either replaces one
+ * of the platform's or has no counterpart in it, so the intersection would promise a shape the wire
+ * does not carry.
  *
  * There is no `Active` / `Inactive` flag: the platform has none, and which reading it should take is
  * still open — see § 5 of `docs/browse-framework.md`.
  */
-export type IdProvider = XpIdProvider & {
-  users: readonly Principal[];
-  groups: readonly Principal[];
+export type IdProvider = {
+  key: string;
+  displayName: string;
+  description?: string;
   /**
-   * The roles held by this provider's principals. A role belongs to no provider — `role:<id>` has
-   * no provider segment — so this is an aggregate over the memberships of the users and groups
-   * above, and the backend is where it gets computed once there is one.
+   * The application the provider is bound to, named as an administrator recognises it. Absent means
+   * bound to nothing, and such a provider serves no login.
+   *
+   * Not the platform's `idProviderConfig`: that carries the application *key* and the per-instance
+   * config tree, and every screen wants the name. The key rides along because the details panel
+   * still identifies the application by it.
    */
-  roles: readonly Principal[];
+  application?: BoundApplication;
+  users: PrincipalSet;
+  groups: PrincipalSet;
+};
+
+export type BoundApplication = {
+  key: string;
+  displayName: string;
+};
+
+/**
+ * A set of principals whose size is known and whose contents may not be.
+ *
+ * A provider can hold a whole corporate directory, so the two are separate requests: `total` comes
+ * from the search itself and costs nothing, while `items` is every row and is asked for only when
+ * something means to render them. Absent `items` is "not fetched", never "none".
+ *
+ * There is no `roles` counterpart yet. The roles a provider's principals hold is an aggregate with
+ * no cheap query behind it — see #23.
+ */
+export type PrincipalSet = {
+  total: number;
+  items?: readonly PrincipalRef[];
 };

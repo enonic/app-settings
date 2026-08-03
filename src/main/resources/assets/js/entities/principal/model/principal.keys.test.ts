@@ -1,25 +1,67 @@
 import { describe, expect, it } from 'vitest';
 
-import { idProviderOf, isSystemRole, isSystemUser, principalName } from './principal.keys';
+import {
+  idProviderOf,
+  isPlatformRole,
+  isReservedRole,
+  isSystemUser,
+  principalName,
+  projectRoleIdOf,
+} from './principal.keys';
 
-describe('isSystemRole', () => {
-  it('holds for a role the platform ships', () => {
-    expect(isSystemRole('role:system.admin')).toBe(true);
-    expect(isSystemRole('role:system.everyone')).toBe(true);
+describe('projectRoleIdOf', () => {
+  it('reads the project out of a project role key', () => {
+    expect(projectRoleIdOf('role:cms.project.intranet.editor')).toBe('intranet');
   });
 
-  it('holds for a project role', () => {
-    expect(isSystemRole('role:cms.project.default.owner')).toBe(true);
+  it('reads a project id that itself contains dots', () => {
+    expect(projectRoleIdOf('role:cms.project.intranet.no.viewer')).toBe('intranet.no');
+  });
+
+  it('answers undefined for a role that belongs to no project', () => {
+    expect(projectRoleIdOf('role:cms.admin')).toBeUndefined();
+    expect(projectRoleIdOf('role:store.manager')).toBeUndefined();
+  });
+});
+
+describe('isPlatformRole', () => {
+  it('holds for a role the platform ships', () => {
+    expect(isPlatformRole('role:system.admin')).toBe(true);
+    expect(isPlatformRole('role:system.everyone')).toBe(true);
+  });
+
+  it('holds for the cms roles a role:system. check alone misses', () => {
+    expect(isPlatformRole('role:cms.admin')).toBe(true);
+    expect(isPlatformRole('role:cms.cm.app')).toBe(true);
+    expect(isPlatformRole('role:cms.expert')).toBe(true);
+  });
+
+  it('fails for a project role, which the platform does not own', () => {
+    expect(isPlatformRole('role:cms.project.default.owner')).toBe(false);
   });
 
   it('fails for a role an administrator created', () => {
-    expect(isSystemRole('role:store.manager')).toBe(false);
-    expect(isSystemRole('role:cms.admin')).toBe(false);
+    expect(isPlatformRole('role:store.manager')).toBe(false);
   });
 
   it('fails for a principal that is not a role', () => {
-    expect(isSystemRole('user:system:su')).toBe(false);
-    expect(isSystemRole('group:system:administrators')).toBe(false);
+    expect(isPlatformRole('user:system:su')).toBe(false);
+    expect(isPlatformRole('group:system:administrators')).toBe(false);
+  });
+});
+
+describe('isReservedRole', () => {
+  it('holds for a platform role', () => {
+    expect(isReservedRole('role:system.admin')).toBe(true);
+    expect(isReservedRole('role:cms.admin')).toBe(true);
+  });
+
+  it('holds for a project role, whose deletion would break the project', () => {
+    expect(isReservedRole('role:cms.project.default.owner')).toBe(true);
+  });
+
+  it('fails for a role an administrator created', () => {
+    expect(isReservedRole('role:store.manager')).toBe(false);
   });
 });
 

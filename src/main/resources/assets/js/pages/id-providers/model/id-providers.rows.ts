@@ -4,7 +4,7 @@ import type { IdProvider } from '../../../entities/principal';
 import type { BrowseRow } from '../../../widgets/browse-list/browse-list';
 
 export function toIdProviderRow(provider: IdProvider, icon?: ReactNode): BrowseRow {
-  const applicationKey = provider.idProviderConfig?.applicationKey;
+  const application = provider.application?.displayName;
 
   return {
     key: provider.key,
@@ -14,6 +14,6 @@ export function toIdProviderRow(provider: IdProvider, icon?: ReactNode): BrowseR
     icon,
     // The application the provider is bound to. Bound to none means no cell at all — `meta` is a
     // list of cells, and an absent value is not one.
-    meta: applicationKey === undefined ? undefined : [applicationKey],
+    meta: application === undefined ? undefined : [application],
   };
 }

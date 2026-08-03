@@ -15,7 +15,7 @@ export const applicationQueryFields: GraphQLFields = {
     resolve: (env: { args: { key: string } }) => getApplication(env.args.key),
   },
   applications: {
-    type: nonNull(list(nonNull(ApplicationType))),
+    type: list(nonNull(ApplicationType)),
     description: 'Every installed application, sorted by display name.',
     resolve: () => listApplications(),
   },

@@ -7,10 +7,9 @@ const provider: IdProvider = {
   key: 'ldap',
   displayName: 'Company directory',
   description: 'Everyone with a company account',
-  idProviderConfig: { applicationKey: 'com.enonic.app.ldapidprovider' },
-  users: [],
-  groups: [],
-  roles: [],
+  application: { key: 'com.enonic.app.ldapidprovider', displayName: 'LDAP ID Provider' },
+  users: { total: 0 },
+  groups: { total: 0 },
 };
 
 describe('toIdProviderRow', () => {
@@ -26,16 +25,15 @@ describe('toIdProviderRow', () => {
   });
 
   it('carries the bound application as its only meta cell', () => {
-    expect(toIdProviderRow(provider).meta).toEqual(['com.enonic.app.ldapidprovider']);
+    expect(toIdProviderRow(provider).meta).toEqual(['LDAP ID Provider']);
   });
 
   it('renders no cell at all for a provider bound to no application', () => {
     const unbound: IdProvider = {
       key: 'partners',
       displayName: 'Partners',
-      users: [],
-      groups: [],
-      roles: [],
+      users: { total: 0 },
+      groups: { total: 0 },
     };
 
     expect(toIdProviderRow(unbound).meta).toBeUndefined();

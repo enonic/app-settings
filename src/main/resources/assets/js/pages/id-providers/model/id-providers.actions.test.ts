@@ -1,38 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
-import type { IdProvider, Principal } from '../../../entities/principal';
+import type { IdProvider } from '../../../entities/principal';
 import type { ActionContext, SectionAction } from '../../../widgets/browse-toolbar/actions';
 import { ID_PROVIDER_ACTIONS } from './id-providers.actions';
-
-const alice: Principal = {
-  type: 'user',
-  key: 'user:ldap:alice',
-  displayName: 'Alice Ward',
-  login: 'alice',
-  idProvider: 'ldap',
-  hasPassword: false,
-};
 
 const system: IdProvider = {
   key: 'system',
   displayName: 'System',
-  users: [],
-  groups: [],
-  roles: [],
+  users: { total: 0 },
+  groups: { total: 0 },
 };
 const empty: IdProvider = {
   key: 'partners',
   displayName: 'Partners',
-  users: [],
-  groups: [],
-  roles: [],
+  users: { total: 0 },
+  groups: { total: 0 },
 };
 const populated: IdProvider = {
   key: 'ldap',
   displayName: 'Company directory',
-  users: [alice],
-  groups: [],
-  roles: [],
+  users: { total: 1 },
+  groups: { total: 0 },
 };
 
 function context(overrides: Partial<ActionContext<IdProvider>> = {}): ActionContext<IdProvider> {

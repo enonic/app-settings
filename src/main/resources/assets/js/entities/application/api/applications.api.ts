@@ -1,42 +1,41 @@
 import type { ResultAsync } from 'neverthrow';
 
-import { type AppError, requestGraphQl } from '../../../shared/api';
+import {
+  type AppError,
+  type GraphQlRoot,
+  requestGraphQl,
+  requestGraphQlDocument,
+} from '../../../shared/api';
 import type { Application, ApplicationState } from '../model/application.types';
 
-// The last three are the details panel's, not a row's: they are scalars off the application and
+// The last five are the details panel's, not a row's: they are scalars off the application and
 // descriptor this query already loads, while `applicationInfo` costs a jar walk per field.
-const APPLICATION_ROW = `
-  fragment ApplicationRow on Application {
-    key
-    displayName
-    description
-    version
-    state
-    system
-    icon
-    modifiedTime
-    minSystemVersion
-    maxSystemVersion
-    vendorName
-    vendorUrl
-  }
+const APPLICATION_FIELDS = `
+  key
+  displayName
+  description
+  version
+  state
+  system
+  icon
+  modifiedTime
+  minSystemVersion
+  maxSystemVersion
+  vendorName
+  vendorUrl
 `;
 
-const APPLICATIONS_QUERY = `
-  ${APPLICATION_ROW}
-  query Applications {
-    applications {
-      ...ApplicationRow
-    }
-  }
-`;
+export const APPLICATIONS_ROOT: GraphQlRoot = {
+  field: 'applications',
+  selection: `{${APPLICATION_FIELDS}}`,
+};
 
-const APPLICATION_QUERY = `
-  ${APPLICATION_ROW}
+// ! A document rather than a root: `application(key:)` answers `null` for a key nothing is installed
+// ! under, which is an answer the store acts on — it drops the row — and `requestGraphQl` treats a
+// ! missing field as a failure.
+const APPLICATION_DOCUMENT = `
   query Application($key: String!) {
-    application(key: $key) {
-      ...ApplicationRow
-    }
+    application(key: $key) {${APPLICATION_FIELDS}}
   }
 `;
 
@@ -60,8 +59,8 @@ type ApplicationsResult = { applications: ApplicationRowDto[] };
 type ApplicationResult = { application: ApplicationRowDto | null };
 
 export function fetchApplications(signal?: AbortSignal): ResultAsync<Application[], AppError> {
-  return requestGraphQl<ApplicationsResult>(APPLICATIONS_QUERY, undefined, signal).map(
-    ({ applications }) => applications.map(toApplication),
+  return requestGraphQl<ApplicationsResult>(APPLICATIONS_ROOT, signal).map(({ applications }) =>
+    applications.map(toApplication),
   );
 }
 
@@ -69,7 +68,7 @@ export function fetchApplication(
   key: string,
   signal?: AbortSignal,
 ): ResultAsync<Application | undefined, AppError> {
-  return requestGraphQl<ApplicationResult>(APPLICATION_QUERY, { key }, signal).map(
+  return requestGraphQlDocument<ApplicationResult>(APPLICATION_DOCUMENT, { key }, signal).map(
     ({ application }) => (application == null ? undefined : toApplication(application)),
   );
 }

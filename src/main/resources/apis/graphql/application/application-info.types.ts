@@ -90,8 +90,11 @@ const IdProviderItemType: GraphQLType = generator.createObjectType({
   },
 });
 
-const IdProviderType: GraphQLType = generator.createObjectType({
-  name: 'IdProvider',
+// ? `ApplicationIdProvider`, not `IdProvider`: this is the id-provider facet of an application, not
+// ? a provider instance — that name belongs to the `idProviders` root field. Type names are global
+// ? to the schema, and lib-graphql rejects a duplicate only when the schema is assembled.
+const ApplicationIdProviderType: GraphQLType = generator.createObjectType({
+  name: 'ApplicationIdProvider',
   description: 'Present only on an application that declares an id provider descriptor.',
   fields: {
     mode: {
@@ -169,7 +172,7 @@ export const ApplicationInfoType: GraphQLType = generator.createObjectType({
       resolve: (env: { source: ApplicationInfoSource }) => deploymentUrlOf(env.source.key),
     },
     idProvider: {
-      type: IdProviderType,
+      type: ApplicationIdProviderType,
       resolve: (env: { source: ApplicationInfoSource }) => idProviderSourceOf(env.source.key),
     },
   },

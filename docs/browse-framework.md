@@ -4,8 +4,9 @@ Every section of this app — Applications, Users, Groups, Roles, ID Providers �
 with different data. This document is the contract for that screen: what the shared widgets are,
 what they accept, and where the boundary between shared and section-specific code runs.
 
-**Status: implemented as the day-0 skeleton (#17).** Every signature below exists in `widgets/`, and
-Roles is wired to all of it on fixture data, with no mutation wired yet. Sections are built against
+**Status: implemented as the day-0 skeleton (#17).** Every signature below exists in `widgets/`. Roles,
+Groups and ID Providers are wired to all of it on live data through the GraphQL layer, Users still on
+fixtures (#37), and no mutation is wired anywhere yet. Sections are built against
 these signatures, so that one list, toolbar and details panel serve every section instead of being
 written once per section. The current five are not the final set — further admin applications are expected to move
 into this app, so nothing here may enumerate sections or assume how many there are.
@@ -119,7 +120,7 @@ shared/format                               formatDate, formatDateTime, formatBy
 **A section composes `BrowseScreen`, not the widgets one by one.** The first two sections came out
 identical below their props — same toolbar, search, header, list, context menu and details column,
 wired the same way — so the wiring lives in `BrowseScreen` and `useBrowseSection`, and a page states
-only what is its own: its items and status, its `filter`, its `toRow`, its actions, its stores, and how
+only what is its own: its items and status, its `visible` rows, its `toRow`, its actions, its stores, and how
 to navigate to an item. That is about forty lines per section. The widgets below stay usable on their
 own for a screen that is not a browse screen.
 
@@ -207,7 +208,7 @@ Rules:
 - The toolbar renders text buttons in the given order and derives `disabled` from `enabled(ctx)`.
   A disabled action stays visible and greyed — the mockups show `Option 5` / `Slett` that way.
 - A refusal is expressed **inside `enabled`**, never re-checked in `run`, and it names the rule it
-  comes from — `isSystemRole` for Delete, not a global flag (§ 3.5).
+  comes from — `isReservedRole` for Delete, not a global flag (§ 3.5).
 - `run` calls a command from `entities/` or opens a `features/` dialog. No fetch in the widget.
 - **An action targets `actionTargets(ctx)`, not `ctx.selected`.** With rows ticked it is the ticked
   set; with none, the active row — Content Studio's "current items". So highlighting a row, or
@@ -278,8 +279,9 @@ Rules:
 - Skeleton, empty and error states live in the widget, not in pages.
 - **Search is the page's state, never the widget's.** A section that loads whole filters what it
   already has: the query lives in a `pages/<section>/model/search.store.ts` atom, a pure
-  `filter<Domain>(items, query)` beside it does the matching, and no request leaves the browser — Roles
-  matches display name and description that way. A section that pages server-side (Users, once #8
+  `search<Domain>(items, query)` beside it does the matching, and no request leaves the browser — Roles
+  matches display name, description and the name read off the key that way. A section that pages
+  server-side (Users, once #37
   lands) moves the query into a URL search param (`?q=`, `?provider=`) so it survives a reload, and
   debounces input at 300 ms — `/identity` server events fan out per user and would otherwise thrash the
   list. The widgets stay stateless either way.
@@ -347,30 +349,64 @@ text-subtle` subtitle — and it lives in `widgets/item-label/` because the deta
 - One row is tabbable: the cursor's, or the first when the cursor is not in the list at all
   (`tabbableRowKey`), so a query that filters it out cannot leave the list without a tab stop. The
   cursor takes the DOM focus only while the focus is already inside the list, so a query that filters
-  it out and back cannot yank the focus out of the search field — Content Studio guards its rows the
-  same way, through `checkFocusWithin`. The toolbar's own roving tabindex and arrow keys come from
+  it out and back cannot yank the focus out of the search field — the guard is the
+  `closest('[role="listbox"]')?.contains(document.activeElement)` check in `BrowseListRow.tsx`. The toolbar's own roving tabindex and arrow keys come from
   `Toolbar.Container`. Range select with `Shift` comes later.
 - A `disabled` row exists for work in flight: an application being uploaded is a row before it is an
   application, keyed by its upload id, with a progress bar as its last meta cell. It must not
   navigate and must not be selectable, and `enabled(ctx)` in the toolbar never sees it, because it
   never enters the selection.
 
-### 3.6 Rendered but not wired in v1
+### 3.6 Header controls
 
-Two of the controls the mockups show have no agreed behaviour yet. They are rendered so the screen
-matches the design, and they do nothing:
+The two controls the mockups show beside `Select all` and `Refresh` are wired where a section has
+supplied them, and render as an inert button where it has not:
 
-| Control                 | v1 state                                                      |
-| ----------------------- | ------------------------------------------------------------- |
-| `Type to search` field  | working where the section loads whole — Roles filters on it   |
-| `Filter list` button    | rendered `disabled`, no panel — filtering is not designed yet |
-| `Sort after` button     | rendered `disabled`, no dropdown                              |
-| `Select all`, `Refresh` | fully working                                                 |
+| Control                 | v1 state                                                               |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `Type to search` field  | working in every section that loads whole                              |
+| `Filter list` button    | working in Roles, Groups and ID Providers; `disabled` where no entries |
+| `Sort after` button     | working in Roles, Groups and ID Providers; `disabled` where no options |
+| `Select all`, `Refresh` | fully working                                                          |
 
-Do not build a filter panel or a sort dropdown ahead of that decision; the slots in
-`BrowseListHeaderProps` are where they land. Sorting also has a backend constraint —
-`findPrincipals` has no server-side sort, so sorting Users beyond the fetched page needs work in #8,
-while Applications, Roles and ID Providers load whole and can sort client-side.
+A section supplies both through the slots in `BrowseListHeaderProps`, and the widgets behind them —
+`BrowseFilter` and `BrowseSort` — stay section-agnostic: an entry is `{ id, label, count }` and an
+option is `{ id, label }`. Supply nothing and the header renders its inert button, which is what Users
+still does. Applications has no browse screen at all yet — `ApplicationsPage` is a bare `SectionPage`.
+
+Roles settled the shape, and Groups and ID Providers follow it with entries of their own — one per ID
+provider, and one per bound application with the unbound collected last. The filter is a multi-select:
+nothing ticked narrows nothing, several ticked are a union, and counts are taken after the search but
+before the filter itself, so they read as "where did the search find anything" rather than restating the
+current narrowing. A bucket nothing falls into is dropped **unless it is ticked**, so a narrowing can
+never become invisible and impossible to untick.
+
+That invariant needs two things, and both are easy to get wrong. **Which entries exist comes from every
+row, never from the searched ones** — counts alone follow the search — because an entry built from the
+search disappears the moment the query stops matching it, taking a ticked one with it. And **an entry's
+identity is read off the rows, never off a separately loaded list**: a principal key carries its provider,
+a role key carries its project. Deciding a role's bucket against the loaded projects meant a failed
+projects load reclassified every project role at once, so a ticked project bucket matched nothing while
+vanishing from the menu. The loaded list contributes labels and the buckets that own no row yet; when it
+is missing, the id stands in as the label.
+
+Sorting offers display name ascending and descending and nothing else, since none of the three carries
+another orderable field. `modifiedTime` would be the candidate for Roles and Groups and never arrives:
+`PrincipalNodeTranslator` does not copy it off the node, which is a defect on the XP side rather than a
+shape to design around — see `docs/platform-facts.md`.
+
+The ticked buckets are per-section state like the selection and the query, and they are cleared on
+leaving the section through `resetOnLeave` on `useBrowseSection`.
+
+**Narrowing and ordering are the section's, not the framework's.** `useBrowseSection` takes `visible` —
+the rows to show, in the order to show them — rather than a `filter(items, query)` callback: a section
+with a bucket filter needs the searched items anyway, to count them, and a hook owning the search would
+either run it twice or be handed a function ignoring both of its arguments.
+
+Sorting also has a backend constraint. `findPrincipals` has no server-side sort — its translator
+builds the node query with no order at all — so a section that pages cannot sort through it.
+`findUsers` is the exception and takes both a query and a sort expression, which is what Users will
+use; Applications, Roles, Groups and ID Providers load whole and sort client-side.
 
 ### 3.4 Details panel
 
@@ -393,7 +429,8 @@ export type DetailsSectionProps = {
   count?: number;
   /** Rendered at the end of the section, e.g. the Edit button. */
   action?: ReactNode;
-  children: ReactNode;
+  /** Optional: a counted section whose rows were not fetched is a heading and a number on its own. */
+  children?: ReactNode;
 };
 
 export type DetailsSubsectionProps = {
@@ -468,14 +505,15 @@ export function createSelectionStore<K extends string = string>(): SelectionStor
 ```
 
 One instance per section, created in `pages/<section>/model/`, next to a `createSearchStore()` for the
-search box. Both are cleared on leaving the section, and the selection on refresh as well. A section
-writes neither by hand: `useBrowseSection` takes the two stores and does the clearing.
+search box. Both are cleared on leaving the section, along with anything passed as `resetOnLeave` — a bucket filter
+belongs there — and the selection on refresh as well. A section writes none of it by hand:
+`useBrowseSection` takes the stores and does the clearing.
 
 **There is no app-wide read-only flag.** The tool is already gated on `role:system.admin`, so whoever
 is inside may act; a `$readOnly` atom would only be a second, weaker gate that every section has to
 remember to thread through. Where an action must be refused, the refusal belongs in that action's
-`enabled` next to the rule that motivates it — `isSystemRole` keeps Delete off the platform's own
-roles — and anything the server must guarantee is guarded server-side, not by a UI flag.
+`enabled` next to the rule that motivates it — `isReservedRole` keeps Delete off the platform's own
+roles and off every project's five — and anything the server must guarantee is guarded server-side, not by a UI flag.
 
 ## 4. Data contract
 
@@ -505,39 +543,49 @@ their template-literal form (`role:${string}`, `user:${string}:${string}`). Only
 does not model is added locally: `Role` gains the `members` list that `getMembers` returns separately,
 `Group` its members and roles, `User` its roles and groups plus the `description` and `createdTime` the
 mockups ask for and `lib/xp/auth` does not carry; and `principal.keys.ts` holds the key helpers the UI
-needs — `isSystemRole`, `isSystemUser`, `principalName`, `idProviderOf`. A key coming from a route stays a plain `string` until a principal answers to it, so
+needs — `isPlatformRole`, `isReservedRole`, `projectRoleIdOf`, `isSystemUser`, `principalName`, `idProviderOf`. A key coming from a route stays a plain `string` until a principal answers to it, so
 lookups like `useRole(id)` take `string`, never a cast to `PrincipalKey`.
 
 - All I/O returns `ResultAsync<T, AppError>` through `shared/api`. Nothing else calls `fetch`.
-- **An api function takes an `AbortSignal` and the store owns the cancelling.** `Refresh`, search and
-  paging all retrigger a load, so the store aborts the previous one and drops its answer — otherwise
-  the slower of two requests decides what the list shows. `roles.store.ts` is the shape to copy;
-  `roles.api.ts` threads the signal even while it answers from fixtures.
-- **The first load is mount-driven and the result is cached.** `onMount($applications, …)` in
-  `applications.store.ts` loads only when the store holds no ready list, so a section fetches on its
-  first visit and reuses what it has on every later one; the page subscribes with `useStore` and the
-  slice exports a `refresh<Domain>()` for the Refresh button. The four fixture-backed principal slices
-  still load from a hook (`useRoles`) — they answer synchronously, so nothing is wasted, and #8 rewrites
-  their api segment anyway. Anything beyond the first load — reloading on server events, paging orchestration
-  — goes in a sibling `model/<name>.service.ts` with `start()`/`stop()` per `.claude/rules/stores.md`,
-  never in a component effect.
-- **A details panel takes its item from the route, not from a selection store.** The id comes from
-  `useParams`, and the panel asks a `use<Thing>(key)` hook in the entity slice for it —
-  `useApplication(key)` reads it out of the loaded list, `useApplicationInfo(key)` loads what the list
-  does not hold and caches an entry per key. An `entities/` store that subscribed to "the selected key"
-  would put per-section UI state in the domain slice and hide the load behind a second store; per
-  `.claude/rules/stores.md` a store never derives from another store that way.
+- **An api function takes an `AbortSignal`, and whoever owns the load owns the cancelling.** `Refresh`
+  and search retrigger it, so the previous one is aborted and its answer dropped — otherwise the slower of
+  two requests decides what the list shows. The transport drops a request whose signal aborted before it
+  reached the network, so an abandoned load costs the server nothing.
+- **Who owns the load depends on how many domains the section reads.** A section reading one domain leaves
+  it to that slice — `loadIdProviders` in `id-providers.store.ts`, started from `useIdProviders`, and
+  `onMount($applications, …)` in `applications.store.ts`, which loads only when the store holds no ready
+  list, so a first visit fetches and every later one reuses what it has. A section reading several asks for
+  them in one request and owns the load itself: `pages/<section>/model/<section>.screen.ts` fetches, fans
+  the answer out into the stores through their `receive…` commands, and cancels; those stores then hold no
+  request of their own and their hooks are plain reads. Roles reads three domains, Groups two.
+- A reload the user did not ask for must not blank a list that is already on screen: `refreshApplications`
+  reports `loading` only while it has nothing to show, so a server event or a reconnect never replaces the
+  rows with a skeleton.
+- Anything beyond a first load — reloading on `/identity` or `application` server events, paging
+  orchestration — goes in a sibling `model/<name>.service.ts` with `start()`/`stop()` per
+  `.claude/rules/stores.md`, never in a component effect.
+- **A details panel takes its item from the route, never from a selection store in `entities/`.** The id
+  comes from `useParams` and the panel asks a `use<Thing>(key)` hook for it. Where a section loads whole
+  that hook is a lookup in the list the section already has — `useRole(id)`, `useApplication(id)` — so
+  selecting a row costs nothing. A panel needing more than the list holds loads by key and caches per key,
+  as `useApplicationInfo(key)` does for an application's descriptors. An `entities/` store that subscribed
+  to "the selected key" instead would put per-section UI state in the domain slice and hide the load behind
+  a second store; per `.claude/rules/stores.md` a store never derives from another store that way.
+- **Loading, failed and gone are three states in that panel, not one.** The first section that pages makes
+  them unavoidable: a selected item may not be among the loaded rows at all, so the panel needs its own
+  load by key and — since the arrow keys move the active row and therefore the route — a debounce plus a
+  small key cache, or holding an arrow down fires a request per row through the single-flight queue. Users
+  will force it; see the Roles list-query entry under Phase 4 in `docs/unified-api.md` for the same problem
+  arriving from the other direction.
 - Mapping a domain object to `BrowseRow` or to details fields happens in `pages/<section>/`.
 - An api file runs in the browser and therefore always calls an HTTP endpoint. `lib/xp/auth`
   and every other `/lib/xp/*` module is server-side only — it belongs behind that endpoint, never in
-  an api file. Until issue #8 settles the backend shape (GraphQL vs REST behind a common request
-  layer), a section can back its api segment with fixtures; switching to the real transport then
-  costs one file per domain. `api/roles.api.ts` is that fixture today — a `fetchRoles()` returning
-  `okAsync`, with the store, the hook and the page above it already in their final shape. All four
-  subdomains share one `api/fixtures.ts`, and they **spread** its constants rather than retyping a
-  principal (`{ ...SU, roles, groups }` is a `User`): a section that only references a principal
-  cannot then disagree with the section that owns it, which is a fixture-only nuisance today and a
-  real bug the moment a real backend has to agree with itself.
+  an api file. Issue #8 settled that shape as GraphQL, and Roles, Groups and ID Providers now call it
+  through `requestGraphQl` — the store, the hook and the page above each api file did not change when
+  the fixture was swapped out, which was the point of the arrangement. `api/users.api.ts` is the last
+  fixture, until #37. It **spreads** the constants in `api/fixtures.ts` rather than retyping a principal
+  (`{ ...SU, roles, groups }` is a `User`), so a section that only references a principal cannot
+  disagree with the section that owns it.
 - The page turns keys into domain objects for `ActionContext`: `selected` is
   `rows.filter(r => selectedKeys.has(r.key))` mapped back through the entity list, `active` is the
   same lookup for the route's `$id`. The widgets never hold domain objects, and no separate key→item

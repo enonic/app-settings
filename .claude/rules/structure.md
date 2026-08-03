@@ -17,14 +17,14 @@ for it — `SectionRail` owns `SectionRailItem` and `AppShell` passes `SECTIONS`
 widget reaching up into `app/navigation`. Same rule for domain data: pass a view model, never import
 from `entities/`.
 
-| Layer                | Holds                                                                     | Never                                 |
-| -------------------- | ------------------------------------------------------------------------- | ------------------------------------- |
-| `app/`               | shell, router, navigation registry, bootstrap                             | domain logic                          |
-| `pages/<section>/`   | composition, entity → view-model mapping, route glue                      | reusable logic                        |
-| `widgets/`           | section-agnostic composite blocks                                         | domain words, `entities/` imports     |
-| `features/<action>/` | one user action: dialog, wizard, command                                  | being imported by `widgets/`          |
-| `entities/<domain>/` | one domain slice: `api/`, `model/`, sometimes `ui/`                       | UI beyond a domain-specific row/badge |
-| `shared/`            | api client, config, i18n, server events, notifications, selection, format | importing anything above              |
+| Layer                | Holds                                                                        | Never                                 |
+| -------------------- | ---------------------------------------------------------------------------- | ------------------------------------- |
+| `app/`               | shell, router, navigation registry, bootstrap                                | domain logic                          |
+| `pages/<section>/`   | composition, entity → view-model mapping, route glue, the screen's own query | reusable logic                        |
+| `widgets/`           | section-agnostic composite blocks                                            | domain words, `entities/` imports     |
+| `features/<action>/` | one user action: dialog, wizard, command                                     | being imported by `widgets/`          |
+| `entities/<domain>/` | one domain slice: `api/`, `model/`, sometimes `ui/`                          | UI beyond a domain-specific row/badge |
+| `shared/`            | api client, config, i18n, server events, notifications, selection, format    | importing anything above              |
 
 ## File names
 
@@ -37,6 +37,12 @@ from `entities/`.
 | Hook         | `use<Thing>.ts`                          |
 | Pure helpers | `<name>.ts`, named exports only          |
 | Test         | `<file>.test.ts(x)` next to its subject  |
+
+A page slice may hold `api/` and `model/` segments of its own: `api/<section>-screen.api.ts` for the one
+query a screen spanning several domains needs — slices on one layer may not import each other, so the page
+is the lowest layer where those domains meet — and `model/<section>.screen.ts` for the loader that fans its
+answer out. It composes what the entities export and names no field of its own; wire shapes stay in the
+domain that owns them.
 
 Folders are `kebab-case`. `shared/` and `entities/` slices are consumed through an `index.ts` barrel;
 components under `widgets/` and `pages/` are imported by file path — no barrels there. A barrel never
@@ -85,7 +91,7 @@ with banner comments, and phrases stay sentence-case even where the UI uppercase
 
 Existing keys: `nav.<section>` for the rail, `section.<section>.title` for the section heading,
 `browse.*` for the section-agnostic browse widgets, app-shell keys ungrouped (`app.displayName`,
-`item.id`, `serverEvents.connected`), and `admin.tool.*`, which XP resolves from `main.yaml` rather
+`serverEvents.connected`), and `admin.tool.*`, which XP resolves from `main.yaml` rather
 than the UI. New section keys extend that scheme as `<section>.<area>.<name>` — `users.details.roles`,
 `applications.action.install`. A widget resolves the `labelKey` it is handed; it never builds a key
 from a section id.

@@ -1,9 +1,9 @@
 import { Button } from '@enonic/ui';
-import { CircleUserRound, UserPen, UserShield, Users } from 'lucide-react';
+import { CircleUserRound, UserShield, Users } from 'lucide-react';
 
 import { type IdProvider, principalName } from '../../entities/principal';
 import { useI18n } from '../../shared/i18n';
-import { filledSections } from '../../widgets/details-panel/details-panel';
+import { countedSections } from '../../widgets/details-panel/details-panel';
 import { DetailsPanel } from '../../widgets/details-panel/DetailsPanel';
 
 export type IdProviderDetailsProps = {
@@ -12,13 +12,14 @@ export type IdProviderDetailsProps = {
 
 export function IdProviderDetails({ provider }: IdProviderDetailsProps) {
   const t = useI18n();
-  const { key, displayName, description, idProviderConfig, users, groups, roles } = provider;
+  const { key, displayName, description, application, users, groups } = provider;
 
-  // Users and groups belong to the provider; the roles are the ones its principals hold.
-  const sections = filledSections([
-    { labelKey: 'idProviders.details.users', icon: CircleUserRound, items: users },
-    { labelKey: 'idProviders.details.groups', icon: Users, items: groups },
-    { labelKey: 'idProviders.details.roles', icon: UserPen, items: roles },
+  // Counted, not enumerated: a section appears because the provider holds principals, and its rows
+  // arrive only if something asked for them. A provider may hold a whole directory, so the list
+  // query takes the totals alone — see #23.
+  const sections = countedSections([
+    { labelKey: 'idProviders.details.users', icon: CircleUserRound, set: users },
+    { labelKey: 'idProviders.details.groups', icon: Users, set: groups },
   ]);
 
   return (
@@ -42,22 +43,26 @@ export function IdProviderDetails({ provider }: IdProviderDetailsProps) {
           </DetailsPanel.Field>
         )}
         <DetailsPanel.Field labelKey="idProviders.details.application">
-          {idProviderConfig?.applicationKey ?? t('idProviders.details.noApplication')}
+          {application?.displayName ?? t('idProviders.details.noApplication')}
         </DetailsPanel.Field>
       </DetailsPanel.Section>
 
-      {sections.map(({ labelKey, icon: Icon, items }) => (
-        <DetailsPanel.Section key={labelKey} labelKey={labelKey} count={items.length}>
-          <DetailsPanel.List>
-            {items.map((principal) => (
-              <DetailsPanel.ListItem
-                key={principal.key}
-                icon={<Icon size={24} strokeWidth={1.5} aria-hidden />}
-                title={principal.displayName}
-                subtitle={principalName(principal.key)}
-              />
-            ))}
-          </DetailsPanel.List>
+      {sections.map(({ labelKey, icon: Icon, set }) => (
+        <DetailsPanel.Section key={labelKey} labelKey={labelKey} count={set.total}>
+          {/* Absent rows are "not fetched", not "none", so the heading and its count stand alone
+              rather than over an empty list. */}
+          {set.items !== undefined && (
+            <DetailsPanel.List>
+              {set.items.map((principal) => (
+                <DetailsPanel.ListItem
+                  key={principal.key}
+                  icon={<Icon size={24} strokeWidth={1.5} aria-hidden />}
+                  title={principal.displayName}
+                  subtitle={principalName(principal.key)}
+                />
+              ))}
+            </DetailsPanel.List>
+          )}
         </DetailsPanel.Section>
       ))}
     </DetailsPanel>

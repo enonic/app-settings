@@ -28,7 +28,7 @@ Settled — do not relitigate without a reason:
 3. **Do not port app-applications' Java.** It is Jackson/JAX-RS serialization code
    (`ApplicationJson implements ItemJson`) with **zero** `MapSerializable` classes — 43 `*Json` classes
    / 2,506 LOC built to be written to an HTTP response, not handed to a script engine. Reusing it means
-   rewriting all 43 or stringify-then-`JSON.parse`. Most of what it does is now free (see _Forms_).
+   rewriting all 43 or stringify-then-`JSON.parse`. Most of what it does is now free (see _Forms_ in `platform-facts.md`).
 4. **Do bring app-users' `lib/auth/**`** (19 files) as-is. Already `MapSerializable`, already tested
    through `ScriptTestSupport` with golden JS fixtures — and those fixtures are the only thing pinning
    the `PropertyTree` wire format.
@@ -43,201 +43,13 @@ Java is not against the grain here: `src/main/java/.gitkeep` was already in the 
 
 ## Verified platform facts
 
-All checked against the local XP checkout at `../xp` (`8.1.0-SNAPSHOT`). These are load-bearing —
-re-verify before contradicting one, don't re-derive it.
+Moved to [`platform-facts.md`](platform-facts.md) — what XP actually does, as opposed to what its
+types and documentation say, each entry naming the class that proves it. It was extracted because it
+outlives this issue: the phases below age as they are finished, those facts do not until XP changes.
 
-### `lib-schema` reaches static descriptors in a normal app jar
-
-The obvious reading — "dynamic/virtual apps only, so it can't see a compiled jar" — is **wrong**:
-
-```
-DynamicSchemaServiceImpl.listComponents (:211)
-  → DynamicResourceManager.listResources
-  → resourceService.findFiles(appKey, "cms/parts/.+/.+\.yaml")   ← ResourceService, not NodeService
-  → ResourceServiceImpl.findApplicationUrlResolver               ← resourceSource attribute is null
-  → ApplicationFactoryServiceImpl.findResolver(key, null) (:94)  ← ACTIVE bundle wins
-```
-
-`VirtualAppContext.createContext()` sets only `repositoryId`/`branch`, never `resourceSource`, so the
-app's own bundle resolves. And the node paths `createComponentRootPath` builds (`/<appKey>/cms/parts`,
-stripped to `cms/parts`) are exactly where XP 8 puts static descriptors:
-
-```java
-PartDescriptor.java:24         ResourceKey.from( key.getApplicationKey(), "cms/parts/" + key.getName() )
-ContentTypeLoader.java:18      super( resourceService, "/cms/content-types" );
-MixinDescriptorLoader.java:18  super( resourceService, "/cms/mixins" );
-CmsFormFragmentLoader.java:18  super( resourceService, "/cms/form-fragments" );
-```
-
-Requires `ADMIN` or `SCHEMA_ADMIN` (`DynamicSchemaServiceImpl.requireAdminRole`, `:425`) — this tool is
-admin-only, so that is free.
-
-**Confirmed live.** `applicationInfo(key) { contentTypes { name } parts { name } }` against an installed
-Content Studio returns its static descriptors. The whole Site section is reachable with no Java.
-
-### Forms come back typed, already deserialized
-
-`lib-schema` returns `form: FormItem[]` from `@enonic-types/core`:
-
-```ts
-export type FormItem = FormItemSet | FormItemLayout | FormItemOptionSet | FormItemInput | FormItemFormFragment;
-export interface FormItemInput {
-  formItemType: 'Input'; name: string; label: string; helpText: string;
-  inputType: InputType; occurrences: { maximum: number; minimum: number };
-  default: { value: string; type: ValueType }; config: Record<string, ...>;
-}
-```
-
-That is app-applications' whole `FormJson`/`InputJson`/`FormItemSetJson`/`FormOptionSetJson`/
-`OccurrencesJson`/`PropertyValueJson` tree, handed over by the platform. No section renders a form, so
-no form mapper was ever written — but **any Java one must emit this exact shape**, so the schema never
-grows a second form type.
-
-### `@enonic-types` lies about nullability — a null field is _absent_, not null
-
-The most expensive hour so far went here, so it is worth stating flatly: **a text field an XP lib
-declares as non-null `string` may not arrive at all.**
-
-```java
-// ScriptMapGenerator.putInMap — the key is dropped entirely, not set to null
-protected void putInMap( final Object map, final String key, final Object value ) {
-    if ( value != null ) {
-        NashornHelper.addToNativeObject( map, key, value );
-    }
-}
-```
-
-Both `SchemaMapper` and `DescriptorMapper` in lib-schema write `title` and `description` straight from
-nullable Java getters, so a part with no title reaches JS with no `title` property — while
-`@enonic-types/lib-schema` types it `title: string`. `value.length` on it throws
-`TypeError: Cannot read property 'length' of undefined`, surfacing as a GraphQL `DataFetchingException`
-wrapped in a `ResourceProblemException`.
-
-**Rule for every `*.source.ts`: treat text read from an XP lib as absent-capable regardless of its
-declared type**, and comment the guard — against the declared type a null check looks redundant and
-invites deletion. `application-info.source.ts` has `nonEmpty()` and `MaybeText` for this. Fields only
-passed through (never measured or indexed) are safe either way.
-
-### Lifecycle is core's, and `mount=management` is a non-issue
-
-```java
-// ApplicationApiHandler.java:40
-@Component(property = {"key=server:app", "title=Applications API",
-                       "mount=management", "allowedPrincipals=role:system.admin"})
-// POST /install /installUrl /start /stop /uninstall  ·  GET /events (SSE)
-```
-
-`mount` is only checked for bare `/api/` connector requests. For an admin tool the check is
-`adminToolDescriptor.getApiMounts().contains(descriptorKey)` (`SlashApiHandler.java:228`) — listing
-`server:app` under `apis:` in `main.yaml` is what authorizes it.
-
-Request shapes: `installUrl` takes `{"URL": "...", "sha512": "..."}`; `start`/`stop`/`uninstall` take
-`{"key": ["..."]}` (single value accepted); `install` is multipart, field name `file`.
-
-### Our existing websocket already carries application events
-
-`server:app/events` SSE is **redundant for us**. `admin:event` forwards _every_ event unfiltered
-(`EventApiHandler.onEvent` → `sendToGroup`), and XP publishes app lifecycle as
-`EVENT_TYPE = "application"` with `eventType ∈ { INSTALLED, STARTED, STOPPED, UNINSTALLED }`
-(`ApplicationEvents.java`) — which is what `shared/server-events/server-events.ts` already filters on.
-
-### Coverage: what JS can and cannot reach
-
-| Data                                                                    | Source                                                                 |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| key, version, min/max system version, state, `modifiedTime`, system     | `lib-app.get` / `.list`                                                |
-| title, description, vendor, url                                         | `lib-app.getDescriptor`                                                |
-| pages, parts, layouts, content types, mixins, form fragments, site form | `lib-schema`                                                           |
-| id providers _using_ an app                                             | `lib-auth.getIdProviders`, filter on `idProviderConfig.applicationKey` |
-| install / start / stop / uninstall                                      | `server:app`                                                           |
-| lifecycle events                                                        | existing `admin:event` websocket                                       |
-| available version                                                       | Market GraphQL                                                         |
-| icon                                                                    | ✅ Java — our `/lib/icon`; base64, because GraalJS cannot serve bytes  |
-| task descriptors                                                        | ✅ Java — our `/lib/task`; `taskLib.list()` is _running_ instances     |
-| admin tools                                                             | ✅ Java — our `/lib/admin-tool`; the url comes from `lib-admin`        |
-| admin extensions / widgets                                              | ✅ Java — our `/lib/admin-extension`                                   |
-| macros                                                                  | ✅ Java — our `/lib/macro`; no `lib-macro` exists                      |
-| api descriptors                                                         | ✅ Java — our `/lib/api`                                               |
-| id-provider descriptor (mode + config form)                             | ✅ Java — our `/lib/idprovider`; `IdProviderDescriptorService`         |
-| webapp deployment url                                                   | ✅ Java — our `/lib/webapp`; JS cannot read another app's resources    |
-
-Grepped all 25 XP libs for all 13 descriptor services: only `lib-content` (ContentTypeService,
-MixinService, CmsService) and `lib-schema` (DynamicSchemaService) reference any. The
-parse-the-YAML-ourselves escape hatch is closed — `ResourceKey.resolve()` never changes the app key
-(`ResourceKey.java:62`), so `io.getResource()` cannot read another app's files.
-
-`modifiedTime` is the only install-date XP has. There is no separate `installedTime` anywhere.
-
-### GraalJS serves no bytes, and gives an app one JS thread
-
-`build.gradle` pins `scriptEngine = 'GraalJS'`. Two consequences, both found the hard way building the
-icon endpoint, and both applying to **any** app-owned api here.
-
-**A response body cannot be a Java object.** `PortalResponseSerializer.populateBody` asks
-`ScriptValue.isObject()` before `getValue()`, and `GraalScriptValueFactory.newValue` wraps every host
-object in `GraalObjectScriptValue`, whose `isObject()` is hardcoded `true`
-(`GraalObjectScriptValue.java:31`) — so a `ByteSource` body reaches the serializer as
-`GraalObjectConverter.toMap` of the host object, a map of its own method names, and is JSON-stringified.
-Nashorn sent any non-`JSObject` to `ScalarScriptValue` and streamed the real thing, which is why XP's own
-documented idiom (`lib-content/.../examples/content/getType.js:104`, `body: icon.data`) works only on the
-engine XP is leaving. A string body is no escape for images either: `ResponseSerializer:105` re-encodes
-with `Charset.forName(response.getCharacterEncoding())` and Jetty assigns no encoding to a mime type it
-treats as binary, so `image/*` dies on `IllegalArgumentException: Null charset name` even with
-`; charset=` spelled out. **Binary has to be encoded in Java and travel as a string.** A `Map` under
-`application/json` — what the GraphQL controller returns — is fine.
-
-**One single-threaded JS context per application.** `GraalJSContextFactory.create()` builds one `Context`
-per app (`ScriptRuntimeFactoryImpl.java:173`). XP guards the entry points it owns with
-`synchronized(context)` (`GraalScriptExports.executeMethod:56`), so overlapping requests usually just
-serialize — but where a raw polyglot value escapes that monitor
-(`GraalObjectScriptValue.getValue:78`, `GraalObjectConverter.toObject`) one dies on
-`IllegalStateException: Multi threaded access requested by thread …`. Measured: ~12 parallel `<img>`
-requests to an app-owned api produced 4 such failures. `shared/api/graphql.ts` holds a single-flight
-queue, so the throwing path is unreachable — but that buys no speed: the app's JS is serial either way,
-and a slow query holds the lock against every other request into this app, the tool's own page
-controller included. **Batching root fields into one document is the only way to make a screen cheaper.**
-
-### `lib-graphql` constraints
-
-- **No `@enonic-types/lib-graphql` exists, at any version.** Hand-write
-  `src/main/resources/types/graphql.d.ts` and add a `paths` entry — the pattern `mustache.d.ts`
-  already establishes. The jar is stuck at `3.0.0`.
-- **No dataloader, no batching primitive.** `execute(schema, query, variables, context)` — the
-  `context` arg is the only per-request memoization hook, and app-users never uses it.
-  `GraphQL.newGraphQL(schema).build()` runs per request inside the lib.
-- Type builders come from a generator that **must be a module singleton**: object types created by two
-  different generators cannot be composed.
-- `graphQl.reference('TypeName')` is the only way to express a circular reference.
-- Errors: `{ errorType, message, locations, validationErrorType?, exception: { name, message } }`,
-  always HTTP 200.
-
-### Pin every `@enonic-types` dependency
-
-npm's `latest` tag is **7.16.7** for all of them even though 8.0.3 exists. Unpinned means 7.x types
-(where `lib-schema` still has `XDATA`, and `displayName` instead of `title`) against an 8.x runtime.
-
-The types also lag the runtime, and this app builds against 8.1.0-SNAPSHOT. `lib-auth` is the case:
-`getIdProviders()` and `createIdProvider()` exist in the 8.1 lib but are declared in no stable types
-release, so `@enonic-types/lib-auth` is pinned to **`8.0.4-B1`** — exact, no caret, because it is a
-prerelease. **Read the lib's own `.ts` in `../xp/modules/lib/`, not `node_modules`, before concluding a
-function does not exist.** Doing the reverse produced a wrong "this needs Java" call once already.
-
-### Adding Java to this repo is nearly free
-
-`com.enonic.xp.app` already applies both `JavaPlugin` and `BndBuilderPlugin`, so `src/main/java`
-compiles and bnd derives `Import-Package` with no extra plugin and no manifest work. All it took:
-
-- `implementation xplibs.api.script` — `ScriptBean` and `MapSerializable` live in `script-api`, not
-  `core-api`. Most descriptor services (`com.enonic.xp.macro`, `.task`, `.api`) are in `core-api`, which
-  was already declared; `xplibs.api.admin` was added for the two admin-descriptor services.
-- `java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }`. Without it the build inherits
-  whatever JDK runs Gradle; 25 is what XP builds with (`xp/gradle/java.gradle:40`).
-- Nothing in CI — the workflow already sets up temurin 25 and runs `./gradlew build`.
-
-Two consequences: `pnpm check` no longer covers the whole server, so `./gradlew compileJava` is the fast
-check for a bean; and IDE Java support shadow-compiles the whole resources tree into `bin/`, which is
-gitignored and excluded from `lint`/`fmt` — without that, oxlint type-checks the copy and reports every
-error twice.
+Read it before contradicting anything here about `lib-schema`, nullability of text from an XP lib,
+what `findPrincipals` and `findUsers` can do, what GraalJS refuses to carry, or why `@enonic-types`
+versions are pinned.
 
 ## Server layout
 
@@ -334,16 +146,72 @@ JUnit the first time a Java class needs a conditional that is not that.
 
 ```ts
 // shared/api/graphql.ts — builds on requestJson, does not replace it.
+// One root field. Fails when that field did not arrive.
 export function requestGraphQl<T>(
+  root: GraphQlRoot,
+  signal?: AbortSignal,
+): ResultAsync<T, AppError>;
+
+// Several root fields in one document — a screen's whole read. Decides nothing about a null field.
+export function requestGraphQlRoots<T>(
+  roots: readonly GraphQlRoot[],
+  name: string,
+  signal?: AbortSignal,
+): ResultAsync<{ data: T; message?: string }, AppError>;
+
+// The escape hatch: a whole document. Arguments, variables, aliases, mutations.
+export function requestGraphQlDocument<T>(
   query: string,
-  variables?: object,
+  variables?: GraphQlVariables,
   signal?: AbortSignal,
 ): ResultAsync<T, AppError>;
 ```
 
 It posts the standard `{ query, variables }` envelope, maps a non-empty `errors[]` to an `AppError` so
-failures stay values, and serializes calls through a single-flight queue (see _GraalJS_). "Do not add a
-second http helper" is respected: one transport, one error type, one front door.
+failures stay values, and keeps one request in flight at a time (see _GraalJS_ in
+`platform-facts.md`). "Do not add a second http helper" is respected: one transport, one error type, one
+front door.
+
+**A screen asks for everything it needs in one document.** One request is in flight at a time, so
+several requests are several round trips, and batching root fields is the only thing that makes a screen
+cheaper on a single-threaded engine. The Roles screen reads `roles`, `idProviders` and `projects`; it asks
+for all three at once.
+
+- **A read hands over a root field and a selection, not a finished document.** The transport names the
+  operation after the field and builds `query Roles { roles … }`, so no api file writes query boilerplate
+  and nothing has to parse query text back.
+- **`requestGraphQlRoots` is the screen's entry point**: several roots, one document,
+  `query RolesScreen { roles … idProviders … projects … }`. It hands back `data` as it arrived, with
+  `null` where a field failed, plus whatever `message` the response carried — and decides nothing. What a
+  failed field means is the screen's business, because the screen knows which fields it asked for and what
+  each one feeds.
+- **Where that composition lives is the point.** Entity slices may not import each other, so the lowest
+  layer where three domains can be asked for together is the page — `pages/roles/api/roles-screen.api.ts`
+  composes the roots each entity exports (`ROLES_ROOT`, `ID_PROVIDERS_ROOT`, `PROJECTS_ROOT`) and names no
+  field of its own. Every selection and wire shape stays with the domain that owns it. FSD's own guidance
+  is the same: compose slices on the layer above rather than reaching sideways.
+- **`pages/<section>/model/<section>.screen.ts` fans the answer out** into the stores that own the parts,
+  one verdict per domain, and owns the cancelling for the whole screen. That is why those stores hold no
+  request: they expose `begin…Load` and `receive…` and nothing else.
+- **Root fields are nullable so a failure stays in its own field**, which is what makes per-domain
+  verdicts possible at all: § 6 of the spec propagates a resolver error up through non-null positions, so a
+  non-null root field would nullify the whole `data` entry and take every other domain on the screen with
+  it — a failing `projects` blanking the Roles list rather than only the filter that needs it.
+  `serializeData` makes that total, since it omits `data` instead of sending `data: null`. The rationale
+  sits on `QueryType` in `schema/query.ts`, where someone would otherwise tidy it back.
+- The shared `message` is as far as attribution goes: lib-graphql drops the error `path` graphql-java
+  attaches (`ExecutionResultMapper.serializeError`), so which message belongs to which field is unknowable.
+  A screen gives it only to the domains that came back null.
+- **`requestGraphQl` is for a root field that always resolves when it succeeds.** It fails when its own
+  field is absent or null, which is what keeps the wire types in the api segment non-nullable — no mapper
+  is ever handed a null. A field whose `null` is a legitimate answer — `applicationInfo` for an unknown key
+  — reads as failure under that rule and belongs on `requestGraphQlDocument`, where `toData` hands null
+  through untouched.
+- **`requestGraphQlDocument`** takes a whole document, for arguments, variables, aliases and mutations.
+  Any error fails it, since it cannot know which field the caller needed.
+- A request still queued when its signal aborts is dropped before it reaches the network; one in flight is
+  cancelled through the signal the transport forwarded. Every store guards on `signal.aborted` before
+  writing regardless.
 
 The endpoint url is **not** a parameter. It comes from the `$config` fact store in
 `shared/config/config.store.ts`, set once at bootstrap in `main.ts` exactly as `setPhrases` populates
@@ -353,8 +221,9 @@ come from the tool config, never hardcoded".
 
 **One operation per request.** `GraphQLHandler.execute` builds its `ExecutionInput` from `query`,
 `context` and `variables` only — **`operationName` is ignored**, so a document holding several named
-operations silently runs the wrong one rather than failing. `requestGraphQl` therefore does not send the
-field; keep one operation per document and the constraint never bites.
+operations silently runs the wrong one rather than failing. The transport never sends the field, and
+composing documents itself is what guarantees there is only ever one operation in them; a hand-written
+document must hold to the same rule.
 
 Response types are hand-written next to the query in the api segment, and stay that way (decision 7).
 `graphql-codegen` was evaluated and rejected: the schema is code-first, so it exists only at runtime, and
@@ -372,37 +241,37 @@ operation, string interpolation into query text, and `GraphQlRequest`'s error ha
 
 ### Writing queries
 
-Query text, wire type, mapper and the `requestGraphQl` call all live in the same
-`api/<subdomain>.api.ts`. A query string is a wire concern, so it never leaves the api segment.
+Selection text, wire type, mapper and the `requestGraphQl` call all live in the same
+`api/<subdomain>.api.ts`. Query text is a wire concern, so it never leaves the api segment.
 
 ```ts
 // Shared between list rows and the detail header — compose, don't duplicate the field list.
-const APPLICATION_ROW = `
-  fragment ApplicationRow on Application {
-    key
-    displayName
-    version
-    state
-  }
+const APPLICATION_FIELDS = `
+  key
+  displayName
+  version
+  state
 `;
 
-const APPLICATIONS_QUERY = `
-  ${APPLICATION_ROW}
-  query Applications {
-    applications {
-      ...ApplicationRow
-    }
-  }
-`;
+const APPLICATIONS_SELECTION = `{ ${APPLICATION_FIELDS} }`;
 
 type ApplicationsResult = { applications: ApplicationRowDto[] };
 
 export function fetchApplications(signal?: AbortSignal): ResultAsync<Application[], AppError> {
-  return requestGraphQl<ApplicationsResult>(APPLICATIONS_QUERY, undefined, signal).map(
-    ({ applications }) => applications.map(toApplication),
-  );
+  return requestGraphQl<ApplicationsResult>(
+    { field: 'applications', selection: APPLICATIONS_SELECTION },
+    signal,
+  ).map(({ applications }) => applications.map(toApplication));
 }
 ```
+
+Note what replaced the GraphQL fragment: a plain template literal spliced into the selection. A real
+fragment would be a second definition in the document, which the transport does not compose — and reuse
+across selections is all the fragment was ever for here.
+
+A domain whose rows a screen needs beside another domain's exports its root and its mapper —
+`ROLES_ROOT` and `toRoles` — so the screen's api file composes them without learning anything about the
+wire. `fetchX` stays only where a section reads that domain alone, as ID Providers does.
 
 The boundary either side of the api file is hard: **the api file never touches store state, and a store
 never calls `requestGraphQl`.** The store command is where the `ResultAsync` is matched and
@@ -417,15 +286,18 @@ Conventions:
 - **Plain template literals, `UPPER_SNAKE` module consts.** Not separate `.graphql` files — Vite would
   serve those through `?raw`, but it splits the query from its type and its mapper, needs a `.d.ts`
   shim, and oxfmt/oxlint would not touch them.
-- **Name every operation** (`query Applications`). The server ignores the name, but it shows up in
-  Altair history and error messages. Fragments are not operations, so composing them keeps the
-  one-operation-per-document rule intact.
+- **A selection, not a document.** `requestGraphQl` names the operation after the root field, so
+  `query Applications { … }` still shows up in the network panel and in Altair history without anyone
+  writing it. (Not in errors: `ExecutionResultMapper.serializeError` emits no operation name.) Reach for
+  `requestGraphQlDocument` only for what a root and a selection cannot express, knowing it forfeits
+  merging.
 - **Variables, never interpolation.** `query Application($key: String!)` with `{ key }` passed as
-  variables — never `${key}` inside the query text.
+  variables — never `${key}` inside the query text. A selection interpolating a shared field list is a
+  different thing and is fine: it is our own constant, not input.
 - **Two queries per domain, not one.** A thin list query and a fat detail query. This is the actual gain
   over the REST version, where `/application/list` returned all 19 fields per app — config forms
   included — for a list that renders four of them.
-- **The wire type mirrors the selection set exactly**, named `<Operation>Result`, `type` not `interface`.
+- **The wire type mirrors the selection set exactly**, named `<RootField>Result`, `type` not `interface`.
   Nullability comes from the schema via Altair's docs panel, not from guessing. Domain types live in
   `model/<domain>.types.ts` and never carry a DTO shape.
 - **Test the mapper, not the request** — stub `fetch`, assert mapped domain values and the error result,
@@ -507,7 +379,7 @@ produce, and `FormMapper` was never needed — no section renders a form.
   lib-graphql's builder has no inheritance, and widening the shared type would leak those fields into the
   other eight lists.
 - **Icons are a `data:` uri on `Application.icon`.** An `apis/icon/` endpoint was abandoned and cannot be
-  revived while the app runs on GraalJS (see _GraalJS_), so `lib/icon` base64-encodes on the Java side.
+  revived while the app runs on GraalJS (see _GraalJS_ in `platform-facts.md`), so `lib/icon` base64-encodes on the Java side.
   Cost: no HTTP caching, and every query selecting the field re-reads and re-encodes every icon (~93 KB
   base64 on a stock install, 90% of it one app). app-applications avoids this only by serving icons from a
   JAX-RS resource, i.e. no JS at all — reconsider if the payload ever bites.
@@ -545,9 +417,35 @@ deep-links (free to add — multiple roots in one document cost no extra request
 "available version" is the one data gap left, and it is a Phase 4 item because where it runs is still
 open.
 
-### Phase 3 — app-users on GraphQL
+### Phase 3 — app-users on GraphQL — **in progress**
 
-The base exists, so this is mostly moving known-good code.
+**Landed so far: Roles, Groups and ID Providers, end to end. Users is all that still reads fixtures**,
+and it is carved out as its own issue (#37) because it is the only section that cannot load whole.
+
+`apis/graphql/principal/` contributes three root fields on `lib-auth`:
+
+- `roles` and `groups` on `findPrincipals` with `count: -1`, which is `NodeSearchService.GET_ALL_SIZE_FLAG`
+  — the default is 10 and truncates silently without it. `Role.members`, `Group.members` and
+  `Group.roles` resolve through `getMembers` / `getMemberships`.
+- `idProviders` on `getIdProviders`, with `IdProvider.application` naming the bound application from its
+  own descriptor, and `users` / `groups` as a `PrincipalSet` whose `total` costs a `count: 0` search and
+  whose `items` is deliberately never selected by the list query — a provider may hold a whole corporate
+  directory. No `roles` field: that aggregate has no cheap query behind it, see #23.
+
+A second domain came with them: `apis/graphql/project/` contributes `projects` on `lib-project`, which
+the Roles filter needs because a role key carries the project id
+(`role:cms.project.<id>.<projectRole>`) while the filter shows display names. `include xplibs.project`
+is in `build.gradle`.
+
+No Java was needed for any of the three, and `graphql.d.ts` was not extended — none of them needs an
+interface type. Users almost certainly will.
+
+Type names are global to a schema and lib-graphql only rejects a duplicate when the schema is
+assembled, i.e. at module load, so one clash 500s every query rather than the new one. The `idProviders`
+root field forced `applicationInfo`'s own `IdProvider` to become `ApplicationIdProvider`, and the
+`lib-graphql` double in `src/test/mocks/` now throws on a repeat name so any schema test is the check.
+
+The rest of this section is unchanged:
 
 - Bring `lib/auth/**` (19 files) + `KidGeneratorHandler`, package renamed to `com.enonic.xp.app.settings`.
   Bring their `src/test/resources/**/*-test.js` fixtures — they pin the `PropertyTree` wire format and
@@ -582,6 +480,25 @@ patterns are visible. None of them blocks Phase 3.
   directly are invasive to change later. Irrelevant for ~50 applications; material for
   `principalsConnection { permissions { principal } }`, which is one `getPrincipal` per ACE per row.
   Sketch it at the start of Phase 3 even if it lands here.
+- **A thin list query for Roles and Groups.** Both list queries select the member lists of every row, so
+  a list that renders only names pays for the membership of the whole instance: `ROLES_SELECTION` costs one
+  `getMembers` per role — roughly 113 sequential calls on an install with twenty projects, since each
+  contributes five — and `GROUPS_SELECTION` costs two per group, `getMembers` plus `getMemberships`. All of it
+  inside the app's single JS thread. Exactly the waste the two-queries-per-domain rule exists to prevent,
+  and both object types keep those fields lazy for a laziness nothing uses.
+
+  **Groups is the worse half and the reason this cannot wait indefinitely: roles are bounded, groups are
+  not.** ID Providers already shows the shape that fixes it — `PrincipalSet` hands over `total` from a
+  `count: 0` search and leaves `items` unfetched — and Applications shows the other half: split the object
+  type so the member lists are unreachable from the list field, add `role(key)` / `group(key)` root
+  fields, and load the detail on selection.
+
+  Deferred because the cost is not the schema, it is the details panel: `useRole` and `useGroup` are
+  lookups in the loaded list today, and making either a request turns arrow-key navigation into one
+  request per row, needing a debounce and a small key cache. Users (#37) forces that machinery
+  regardless, which is the natural moment to build it. **Measure first** — under a couple of hundred
+  milliseconds Roles can keep waiting.
+
 - **Connections and cursors.** app-users hand-rolls offset-int cursors; `/lib/graphql-connection` ships
   base64 ones. For a few hundred principals, plain `start`/`count`/`total` may be enough. Decide with
   batching — the two share a shape.

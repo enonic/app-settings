@@ -1,5 +1,7 @@
-import { map } from 'nanostores';
+import { computed, map, type ReadableAtom } from 'nanostores';
+import { err, ok, type Result } from 'neverthrow';
 
+import type { AppError } from '../../../shared/api';
 import { fetchIdProviders } from '../api/id-providers.api';
 import type { IdProvider } from './principal.types';
 
@@ -11,8 +13,39 @@ export type IdProvidersState = {
 
 export const $idProviders = map<IdProvidersState>({ status: 'loading', items: [] });
 
-// ! Refresh and search can retrigger a load, so the previous one is cancelled and its answer
-// ! dropped: without this the slower of two requests decides what the list shows.
+/**
+ * Provider name to display name, for the sections that show where a principal comes from.
+ *
+ * A principal key carries its provider's *name* (`group:ldap:developers`), and every screen wants
+ * the name an administrator recognises. The providers are few and already loaded as their own
+ * section, so the lookup is a projection rather than a request — nothing here asks the server for
+ * something it can read off a key plus this list.
+ */
+export const $idProviderNames: ReadableAtom<ReadonlyMap<string, string>> = computed(
+  $idProviders,
+  ({ items }) => new Map(items.map(({ key, displayName }) => [key, displayName])),
+);
+
+export function beginIdProvidersLoad(): void {
+  $idProviders.setKey('status', 'loading');
+}
+
+export function receiveIdProviders(result: Result<IdProvider[], AppError>): void {
+  result.match(
+    (items) => $idProviders.set({ status: 'ready', items }),
+    (error) => $idProviders.set({ status: 'error', items: [], error: error.message }),
+  );
+}
+
+/**
+ * The providers on their own, for the section that shows them and needs nothing else.
+ *
+ * Groups and Roles do not use this: they need the providers beside their own domain, so those screens
+ * ask for both in one document and hand the outcome to `receiveIdProviders`.
+ *
+ * ! Refresh can retrigger the load, so the previous one is cancelled and its answer dropped: without
+ * ! this the slower of two requests decides what the list shows.
+ */
 let pending: AbortController | undefined;
 
 export function loadIdProviders(): Promise<void> {
@@ -21,17 +54,17 @@ export function loadIdProviders(): Promise<void> {
   pending = controller;
   const { signal } = controller;
 
-  $idProviders.setKey('status', 'loading');
+  beginIdProvidersLoad();
 
   return fetchIdProviders(signal).match(
     (items) => {
       if (!signal.aborted) {
-        $idProviders.set({ status: 'ready', items });
+        receiveIdProviders(ok(items));
       }
     },
     (error) => {
       if (!signal.aborted) {
-        $idProviders.set({ status: 'error', items: [], error: error.message });
+        receiveIdProviders(err(error));
       }
     },
   );
