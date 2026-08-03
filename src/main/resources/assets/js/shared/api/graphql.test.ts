@@ -231,6 +231,132 @@ describe('requestGraphQlRoots', () => {
   });
 });
 
+describe('roots with arguments', () => {
+  // ! Values travel as JSON variables, never as document text — nothing a user typed is ever parsed as
+  // ! part of the query.
+  it('declares each variable once and sends its value separately', async () => {
+    respondWith({ data: { users: { total: 0, hits: [] } } });
+
+    await requestGraphQlRoots(
+      [
+        {
+          field: 'users',
+          args: '(start: $start, search: $search)',
+          variables: { start: 'Int', search: 'String' },
+          selection: '{ total }',
+        },
+      ],
+      'UsersScreen',
+      { values: { start: 50, search: 'say "hi"' } },
+    );
+
+    const [, options] = vi.mocked(globalThis.fetch).mock.calls[0] as [string, { body?: string }];
+    expect(JSON.parse(options.body ?? '')).toEqual({
+      query:
+        'query UsersScreen($start: Int, $search: String) { users(start: $start, search: $search) { total } }',
+      variables: { start: 50, search: 'say "hi"' },
+    });
+  });
+
+  // ! Two roots meaning different things by one name would produce a document the server rejects, and the
+  // ! error would read as ours rather than as the mistake it is.
+  it('refuses roots that disagree on a variable type', async () => {
+    respondWith({ data: {} });
+
+    globalThis.fetch = vi.fn();
+
+    const result = await requestGraphQlRoots(
+      [
+        { field: 'a', args: '(x: $x)', variables: { x: 'Int' }, selection: '{ y }' },
+        { field: 'b', args: '(x: $x)', variables: { x: 'String' }, selection: '{ y }' },
+      ],
+      'Clash',
+    );
+
+    expect(result.isErr() && result.error.message).toContain('disagree on the type of $x');
+    expect(vi.mocked(globalThis.fetch)).not.toHaveBeenCalled();
+  });
+
+  it('declares a variable two roots share exactly once', async () => {
+    respondWith({ data: { a: { y: 1 }, b: { y: 2 } } });
+
+    await requestGraphQlRoots(
+      [
+        { field: 'a', args: '(x: $x)', variables: { x: 'Int' }, selection: '{ y }' },
+        { field: 'b', args: '(x: $x)', variables: { x: 'Int' }, selection: '{ y }' },
+      ],
+      'Shared',
+      { values: { x: 1 } },
+    );
+
+    const [, options] = vi.mocked(globalThis.fetch).mock.calls[0] as [string, { body?: string }];
+    const { query } = JSON.parse(options.body ?? '') as { query: string };
+    expect(query).toBe('query Shared($x: Int) { a(x: $x) { y } b(x: $x) { y } }');
+  });
+
+  // ! Co-locating a declaration with the arguments makes them easy to keep in step; comparing them makes
+  // ! it impossible to get wrong. Both halves of a mismatch are GraphQL validation errors, and both would
+  // ! surface as a failed screen rather than as the typo they are.
+  it('refuses a root that uses a variable it did not declare', async () => {
+    globalThis.fetch = vi.fn();
+
+    const result = await requestGraphQl({
+      field: 'users',
+      args: '(start: $start)',
+      variables: { count: 'Int' },
+      selection: '{ total }',
+    });
+
+    expect(result.isErr()).toBe(true);
+    expect(vi.mocked(globalThis.fetch)).not.toHaveBeenCalled();
+  });
+
+  it('refuses a root that declares a variable it does not use', async () => {
+    globalThis.fetch = vi.fn();
+
+    const result = await requestGraphQl({
+      field: 'users',
+      args: '(start: $start)',
+      variables: { start: 'Int', count: 'Int' },
+      selection: '{ total }',
+    });
+
+    expect(result.isErr()).toBe(true);
+    expect(vi.mocked(globalThis.fetch)).not.toHaveBeenCalled();
+  });
+
+  it('writes no header and sends no variables when a screen declares none', async () => {
+    respondWith({ data: { roles: [] } });
+
+    await requestGraphQlRoots([ROLES], 'RolesScreen');
+
+    const [, options] = vi.mocked(globalThis.fetch).mock.calls[0] as [string, { body?: string }];
+    expect(JSON.parse(options.body ?? '')).toEqual({
+      query: 'query RolesScreen { roles { key } }',
+    });
+  });
+
+  it('carries arguments on a single root too', async () => {
+    respondWith({ data: { users: { total: 0, hits: [] } } });
+
+    await requestGraphQl(
+      {
+        field: 'users',
+        args: '(count: $count)',
+        variables: { count: 'Int' },
+        selection: '{ total }',
+      },
+      { values: { count: 10 } },
+    );
+
+    const [, options] = vi.mocked(globalThis.fetch).mock.calls[0] as [string, { body?: string }];
+    expect(JSON.parse(options.body ?? '')).toEqual({
+      query: 'query Users($count: Int) { users(count: $count) { total } }',
+      variables: { count: 10 },
+    });
+  });
+});
+
 describe('requestGraphQlDocument', () => {
   it('sends the document and its variables untouched', async () => {
     respondWith({ data: { x: 1 } });
@@ -315,7 +441,7 @@ describe('the request queue', () => {
     const requests = captureRequests();
 
     const aborted = new AbortController();
-    const dropped = requestGraphQl(ROLES, aborted.signal);
+    const dropped = requestGraphQl(ROLES, { signal: aborted.signal });
     const kept = requestGraphQl<{ projects: string[] }>(PROJECTS);
     aborted.abort();
 
@@ -336,7 +462,7 @@ describe('the request queue', () => {
     }) as unknown as typeof globalThis.fetch;
 
     const controller = new AbortController();
-    await requestGraphQl(ROLES, controller.signal);
+    await requestGraphQl(ROLES, { signal: controller.signal });
 
     expect(signals[0]).toBe(controller.signal);
   });

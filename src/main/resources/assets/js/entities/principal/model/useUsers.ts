@@ -1,14 +1,8 @@
 import { useStore } from '@nanostores/preact';
-import { useEffect } from 'preact/hooks';
 
-import { $users, type UsersState, loadUsers } from './users.store';
+import { $users, type UsersState } from './users.store';
 
+/** A read. The Users screen owns the load, since the server does the narrowing and the paging. */
 export function useUsers(): UsersState {
-  const state = useStore($users);
-
-  useEffect(() => {
-    void loadUsers();
-  }, []);
-
-  return state;
+  return useStore($users);
 }

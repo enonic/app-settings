@@ -59,7 +59,7 @@ type ApplicationsResult = { applications: ApplicationRowDto[] };
 type ApplicationResult = { application: ApplicationRowDto | null };
 
 export function fetchApplications(signal?: AbortSignal): ResultAsync<Application[], AppError> {
-  return requestGraphQl<ApplicationsResult>(APPLICATIONS_ROOT, signal).map(({ applications }) =>
+  return requestGraphQl<ApplicationsResult>(APPLICATIONS_ROOT, { signal }).map(({ applications }) =>
     applications.map(toApplication),
   );
 }

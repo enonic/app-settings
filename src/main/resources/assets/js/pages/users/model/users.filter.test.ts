@@ -1,56 +1,33 @@
 import { describe, expect, it } from 'vitest';
 
-import type { User } from '../../../entities/principal';
-import { filterUsers } from './users.filter';
+import type { IdProvider } from '../../../entities/principal';
+import { visibleEntries } from '../../../widgets/browse-list/browse-filter';
+import { providerEntries } from './users.filter';
 
-function user(login: string, displayName: string, email?: string): User {
-  return {
-    type: 'user',
-    key: `user:system:${login}`,
-    displayName,
-    login,
-    email,
-    idProvider: 'system',
-    hasPassword: true,
-    roles: [],
-    groups: [],
-  };
+function provider(key: string, displayName: string): IdProvider {
+  return { key, displayName, users: { total: 0 }, groups: { total: 0 } };
 }
 
-const jane = user('jane', 'Jane Doe', 'jane.doe@example.com');
-const bob = user('bob', 'Bob Lang');
-const users = [jane, bob];
+const providers = [provider('system', 'System'), provider('ldap', 'Company directory')];
 
-describe('filterUsers', () => {
-  it('returns every user for an empty or blank query', () => {
-    expect(filterUsers(users, '')).toEqual(users);
-    expect(filterUsers(users, '   ')).toEqual(users);
+describe('providerEntries', () => {
+  it('offers one entry per provider, named as the rows name it', () => {
+    expect(providerEntries(providers)).toEqual([
+      { id: 'system', label: 'System' },
+      { id: 'ldap', label: 'Company directory' },
+    ]);
   });
 
-  it('matches the display name whatever the case', () => {
-    expect(filterUsers(users, 'JANE DOE')).toEqual([jane]);
+  // ! No count, and that is what keeps every provider offered: the rows are one page of a server-side
+  // ! search, so a provider absent from this page must still be selectable.
+  it('carries no count, so nothing is dropped as empty', () => {
+    const entries = providerEntries(providers);
+
+    expect(entries.every(({ count }) => count === undefined)).toBe(true);
+    expect(visibleEntries(entries, new Set())).toEqual(entries);
   });
 
-  it('matches the user name', () => {
-    expect(filterUsers(users, 'bob')).toEqual([bob]);
-  });
-
-  it('matches the email', () => {
-    expect(filterUsers(users, 'example.com')).toEqual([jane]);
-  });
-
-  it('survives a user without an email', () => {
-    expect(filterUsers(users, 'lang')).toEqual([bob]);
-  });
-
-  it('ignores the user key', () => {
-    expect(filterUsers(users, 'user:system')).toEqual([]);
-  });
-
-  it('leaves the users it was given alone', () => {
-    const original = [...users];
-    filterUsers(users, 'jane');
-
-    expect(users).toEqual(original);
+  it('offers nothing on an instance with no providers', () => {
+    expect(providerEntries([])).toEqual([]);
   });
 });

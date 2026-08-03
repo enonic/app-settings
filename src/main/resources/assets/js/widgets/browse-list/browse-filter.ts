@@ -1,7 +1,14 @@
 export type BrowseFilterEntry = {
   id: string;
   label: string;
-  count: number;
+  /**
+   * How many rows fall into this entry, where that is knowable.
+   *
+   * ! Absent, not zero, when the section narrows on the server: one page of rows cannot be counted per
+   * ! entry, and `findUsers` reports a single total for the whole query. An entry without a count is
+   * ! always offered — there is nothing to tell it apart from an empty one.
+   */
+  count?: number;
 };
 
 /**
@@ -15,5 +22,5 @@ export function visibleEntries(
   entries: readonly BrowseFilterEntry[],
   selected: ReadonlySet<string>,
 ): BrowseFilterEntry[] {
-  return entries.filter(({ id, count }) => count > 0 || selected.has(id));
+  return entries.filter(({ id, count }) => count === undefined || count > 0 || selected.has(id));
 }

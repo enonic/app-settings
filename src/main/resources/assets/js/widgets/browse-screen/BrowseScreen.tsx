@@ -35,6 +35,8 @@ export type BrowseScreenProps<T> = {
   sort?: ReactNode;
   hasMore?: boolean;
   onLoadMore?: () => void;
+  loadingMore?: boolean;
+  loadMoreError?: string;
 };
 
 /**
@@ -61,6 +63,8 @@ export function BrowseScreen<T>({
   sort,
   hasMore,
   onLoadMore,
+  loadingMore,
+  loadMoreError,
 }: BrowseScreenProps<T>) {
   const t = useI18n();
 
@@ -94,6 +98,8 @@ export function BrowseScreen<T>({
               emptyLabel={query.trim() ? t('browse.list.noMatches') : emptyLabel}
               hasMore={hasMore}
               onLoadMore={onLoadMore}
+              loadingMore={loadingMore}
+              loadMoreError={loadMoreError}
             />
           </BrowseListContextMenu>
         </>

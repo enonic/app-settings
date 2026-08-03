@@ -1,9 +1,12 @@
 import type {
   FindPrincipalsParams,
   FindPrincipalsResult,
+  FindUsersParams,
   Group,
   GroupKey,
   IdProvider,
+  PrincipalKey,
+  Principal,
   Role,
   RoleKey,
   User,
@@ -21,3 +24,7 @@ export const getMembers = vi.fn<(principalKey: GroupKey | RoleKey) => (User | Gr
 
 export const getMemberships =
   vi.fn<(principalKey: GroupKey | UserKey, transitive?: boolean) => (Group | Role)[]>();
+
+export const findUsers = vi.fn<(params: FindUsersParams) => FindPrincipalsResult<User>>();
+
+export const getPrincipal = vi.fn<(key: PrincipalKey) => Principal | null>();

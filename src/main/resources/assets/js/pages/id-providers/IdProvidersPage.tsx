@@ -22,10 +22,12 @@ import { toIdProviderRow } from './model/id-providers.rows';
 import { idProvidersSearch } from './model/search.store';
 import { idProvidersSelection } from './model/selection.store';
 import { $idProvidersSort, setIdProvidersSort } from './model/sort.store';
+import { useIdProvidersScreen } from './model/useIdProvidersScreen';
 
 export function IdProvidersPage() {
   const t = useI18n();
   const navigate = useNavigate();
+  useIdProvidersScreen();
   const { status, items } = useIdProviders();
   const query = useStore(idProvidersSearch.$query);
   const selectedApplications = useStore(idProvidersFilter.$selected);

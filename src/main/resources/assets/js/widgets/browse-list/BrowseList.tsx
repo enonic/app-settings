@@ -30,6 +30,10 @@ export type BrowseListProps = {
   /** Paging is the entity store's job; the list only reports it hit the end. */
   hasMore?: boolean;
   onLoadMore?: () => void;
+  /** A page is on its way: the control says so and refuses a second click. */
+  loadingMore?: boolean;
+  /** Why the last page did not arrive. Shown beside the control, since the rows are still valid. */
+  loadMoreError?: string;
 };
 
 export function BrowseList({
@@ -42,6 +46,8 @@ export function BrowseList({
   emptyLabel,
   hasMore,
   onLoadMore,
+  loadingMore,
+  loadMoreError,
 }: BrowseListProps) {
   const t = useI18n();
   // ! The cursor is the row the user last pointed at — a click, an arrow, a tick, an untick — and
@@ -51,7 +57,11 @@ export function BrowseList({
   // ! details panel is the separate, derived currentItem.
   const [pointedKey, setPointedKey] = useState(activeKey);
 
-  if (status === 'loading') {
+  // ! Only with nothing to show. A section that narrows on the server reloads on every debounced
+  // ! keystroke, and swapping the rows for a skeleton each time would throw away the scroll position and
+  // ! any focus inside the list several times a second. Rows already on screen stay until the new ones
+  // ! arrive; they are the best answer available until then.
+  if (status === 'loading' && rows.length === 0) {
     return <BrowseListSkeleton />;
   }
 
@@ -118,37 +128,59 @@ export function BrowseList({
     }
   };
 
+  /*
+   * ! Outside the listbox, though inside the scroller. A `role="listbox"` may only hold options, so a
+   * ! button among the rows is invisible to anything navigating by option — and when the last page
+   * ! arrives `hasMore` goes false, the button unmounts under the keyboard, and the focus falls to the
+   * ! document body.
+   */
   const loadMore =
     hasMore && onLoadMore ? (
-      <div className="flex justify-center p-2.5">
-        <Button variant="filled" size="sm" label={t('browse.list.loadMore')} onClick={onLoadMore} />
+      <div className="flex flex-col items-center gap-1.5 p-2.5">
+        {/* ! Not disabled while a page is on its way, though it says so. A browser blurs a disabled
+            ! element, so a keyboard user who activates this would lose their place on every click — and
+            ! the section already refuses a second request while one is in flight, which is the guard that
+            ! matters. The label is the feedback; the state is not a gate. */}
+        <Button
+          variant="filled"
+          size="sm"
+          label={t(loadingMore === true ? 'browse.list.loadingMore' : 'browse.list.loadMore')}
+          onClick={onLoadMore}
+        />
+        {loadMoreError !== undefined && (
+          <p role="status" className="text-error text-xs">
+            {loadMoreError}
+          </p>
+        )}
       </div>
     ) : undefined;
 
   return (
-    <div
-      role="listbox"
-      aria-multiselectable
-      aria-label={t('browse.list.label')}
-      onKeyDown={handleKeyDown}
-      className="flex min-h-0 flex-1 flex-col gap-y-1.5 overflow-y-auto"
-    >
-      {rows.map((row) => (
-        <BrowseListRow
-          key={row.key}
-          row={row}
-          selected={selectedKeys.has(row.key)}
-          focused={row.key === cursorKey}
-          highlighted={
-            selectedKeys.has(row.key) || (row.key === activeKey && selectedKeys.size === 0)
-          }
-          onSelectedChange={handleSelectedChange}
-          onClick={(key) => applyRowTarget(key, rowClickTarget(key, selectedKeys, activeKey))}
-          onContextMenu={(key) =>
-            applyRowTarget(key, contextMenuTarget(key, selectedKeys, activeKey))
-          }
-        />
-      ))}
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div
+        role="listbox"
+        aria-multiselectable
+        aria-label={t('browse.list.label')}
+        onKeyDown={handleKeyDown}
+        className="flex flex-col gap-y-1.5"
+      >
+        {rows.map((row) => (
+          <BrowseListRow
+            key={row.key}
+            row={row}
+            selected={selectedKeys.has(row.key)}
+            focused={row.key === cursorKey}
+            highlighted={
+              selectedKeys.has(row.key) || (row.key === activeKey && selectedKeys.size === 0)
+            }
+            onSelectedChange={handleSelectedChange}
+            onClick={(key) => applyRowTarget(key, rowClickTarget(key, selectedKeys, activeKey))}
+            onContextMenu={(key) =>
+              applyRowTarget(key, contextMenuTarget(key, selectedKeys, activeKey))
+            }
+          />
+        ))}
+      </div>
 
       {loadMore}
     </div>

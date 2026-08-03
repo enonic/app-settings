@@ -4,9 +4,8 @@ Every section of this app — Applications, Users, Groups, Roles, ID Providers �
 with different data. This document is the contract for that screen: what the shared widgets are,
 what they accept, and where the boundary between shared and section-specific code runs.
 
-**Status: implemented as the day-0 skeleton (#17).** Every signature below exists in `widgets/`. Roles,
-Groups and ID Providers are wired to all of it on live data through the GraphQL layer, Users still on
-fixtures (#37), and no mutation is wired anywhere yet. Sections are built against
+**Status: implemented as the day-0 skeleton (#17).** Every signature below exists in `widgets/`, and all
+five sections are wired to it on live data through the GraphQL layer. No mutation is wired anywhere yet. Sections are built against
 these signatures, so that one list, toolbar and details panel serve every section instead of being
 written once per section. The current five are not the final set — further admin applications are expected to move
 into this app, so nothing here may enumerate sections or assume how many there are.
@@ -371,8 +370,15 @@ supplied them, and render as an inert button where it has not:
 
 A section supplies both through the slots in `BrowseListHeaderProps`, and the widgets behind them —
 `BrowseFilter` and `BrowseSort` — stay section-agnostic: an entry is `{ id, label, count }` and an
-option is `{ id, label }`. Supply nothing and the header renders its inert button, which is what Users
-still does. Applications has no browse screen at all yet — `ApplicationsPage` is a bare `SectionPage`.
+option is `{ id, label }`. Supply nothing and the header renders its inert button — Applications has no
+browse screen at all yet, `ApplicationsPage` being a bare `SectionPage`.
+
+**A section that narrows on the server supplies entries without a count**, and `count` is optional for
+that reason. Users takes its entries from the loaded provider list rather than from the rows — the rows
+are one page, so a provider absent from it must still be offered — and there is no count to give: a
+`findUsers` query reports one total for the whole match and nothing per provider, so each count would be
+a request of its own. An entry with no count is always offered, since nothing tells it apart from an
+empty one.
 
 Roles settled the shape, and Groups and ID Providers follow it with entries of their own — one per ID
 provider, and one per bound application with the unbound collected last. The filter is a multi-select:
@@ -564,28 +570,38 @@ lookups like `useRole(id)` take `string`, never a cast to `PrincipalKey`.
 - Anything beyond a first load — reloading on `/identity` or `application` server events, paging
   orchestration — goes in a sibling `model/<name>.service.ts` with `start()`/`stop()` per
   `.claude/rules/stores.md`, never in a component effect.
+- **A section that pages appends, and the differences are the contract.** `hasMore` comes from comparing
+  the loaded rows against the total the search reported, never from a page arriving short. A reload keeps
+  the rows on screen and replaces them when the answer lands — clearing them would swap the list for a
+  skeleton on every debounced keystroke — while a first-page failure does clear them and a later-page
+  failure does not, because the rows are what the user is reading. A duplicate key is dropped: offset
+  paging over a set someone else is editing can hand back a row already loaded. And **the ticks go with the
+  query**: a server-side query change clears the selection, because an action reaches only the rows on
+  screen and ticks made on a page the new query does not return would silently shrink what `Delete`
+  applies to. The client-side sections keep them, since there the hidden rows come back when the query
+  clears.
 - **A details panel takes its item from the route, never from a selection store in `entities/`.** The id
   comes from `useParams` and the panel asks a `use<Thing>(key)` hook for it. Where a section loads whole
   that hook is a lookup in the list the section already has — `useRole(id)`, `useApplication(id)` — so
-  selecting a row costs nothing. A panel needing more than the list holds loads by key and caches per key,
-  as `useApplicationInfo(key)` does for an application's descriptors. An `entities/` store that subscribed
-  to "the selected key" instead would put per-section UI state in the domain slice and hide the load behind
-  a second store; per `.claude/rules/stores.md` a store never derives from another store that way.
-- **Loading, failed and gone are three states in that panel, not one.** The first section that pages makes
-  them unavoidable: a selected item may not be among the loaded rows at all, so the panel needs its own
-  load by key and — since the arrow keys move the active row and therefore the route — a debounce plus a
-  small key cache, or holding an arrow down fires a request per row through the single-flight queue. Users
-  will force it; see the Roles list-query entry under Phase 4 in `docs/unified-api.md` for the same problem
-  arriving from the other direction.
+  selecting a row costs nothing. A panel needing more than the list holds loads by key and caches per key:
+  `useApplicationInfo(key)` for an application's descriptors, `useUser(key)` for a paged section, whose
+  selected row may not be among the loaded ones at all. An `entities/` store that subscribed to "the
+  selected key" instead would put per-section UI state in the domain slice and hide the load behind a
+  second store; per `.claude/rules/stores.md` a store never derives from another store that way.
+- **Loading, failed and gone are three states in that panel, not one**, and conflating any pair of them
+  lies to the reader. A panel that loads keeps the item it has while the next is on its way, says
+  `browse.details.loading` while it has none, and drops the item on failure rather than describing someone
+  other than the selected row. Its load is debounced with a small key cache, because the arrow keys move
+  the active row and therefore the route: holding one down would otherwise fire a request per row through
+  the single-flight queue. A panel reading a whole list only has to tell a list that has not arrived from a
+  key nothing answers to. See the Roles list-query entry under Phase 4 in `docs/unified-api.md` for the
+  same problem arriving from the other direction.
 - Mapping a domain object to `BrowseRow` or to details fields happens in `pages/<section>/`.
 - An api file runs in the browser and therefore always calls an HTTP endpoint. `lib/xp/auth`
   and every other `/lib/xp/*` module is server-side only — it belongs behind that endpoint, never in
-  an api file. Issue #8 settled that shape as GraphQL, and Roles, Groups and ID Providers now call it
-  through `requestGraphQl` — the store, the hook and the page above each api file did not change when
-  the fixture was swapped out, which was the point of the arrangement. `api/users.api.ts` is the last
-  fixture, until #37. It **spreads** the constants in `api/fixtures.ts` rather than retyping a principal
-  (`{ ...SU, roles, groups }` is a `User`), so a section that only references a principal cannot
-  disagree with the section that owns it.
+  an api file. Issue #8 settled that shape as GraphQL, and all five sections now call it: the store, the
+  hook and the page above each api file did not change when the fixtures were swapped out, which was the
+  point of the arrangement. Nothing in the tree reads a fixture any more.
 - The page turns keys into domain objects for `ActionContext`: `selected` is
   `rows.filter(r => selectedKeys.has(r.key))` mapped back through the entity list, `active` is the
   same lookup for the route's `$id`. The widgets never hold domain objects, and no separate key→item

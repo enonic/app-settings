@@ -19,9 +19,7 @@ export type GroupsScreenData = GroupsData & IdProvidersData;
 export function fetchGroupsScreen(
   signal?: AbortSignal,
 ): ResultAsync<GraphQlRootsAnswer<GroupsScreenData>, AppError> {
-  return requestGraphQlRoots<GroupsScreenData>(
-    [GROUPS_ROOT, ID_PROVIDERS_ROOT],
-    'GroupsScreen',
+  return requestGraphQlRoots<GroupsScreenData>([GROUPS_ROOT, ID_PROVIDERS_ROOT], 'GroupsScreen', {
     signal,
-  );
+  });
 }

@@ -201,6 +201,56 @@ nothing in its panel would show it.
 
 Reaching it today means going around lib-auth to the node in `system-repo`, which is a bean, not a fix.
 
+## Ordering a principal query: only `_path` gives a total order
+
+`findUsers` takes a sort expression, and a partial order makes `start`/`count` paging unsound — two rows
+sharing the sort value can swap between requests, so one appears on two pages and another on none. The
+obvious tie-break candidates both fail, and neither failure is loud:
+
+- **`principalKey` is declared but never written.** `PrincipalIndexConfigFactory:19` gives it
+  `IndexConfig.MINIMAL`, which reads as "indexed" — but `PrincipalNodeTranslator.toCreateNodeParams`
+  stores only `displayName`, `principalType`, `userStoreKey` and the type-specific fields.
+  `IndexItemFactory.createItems` writes index items **per property present**, so a config for an absent
+  property produces nothing. `SortQueryBuilderFactory` then sets `unmappedType`, so sorting by it is
+  silently ignored rather than an error. **Index config is not evidence that a property exists.**
+- **`_name` is written and orderable but not unique.** `NodeStoreDocumentFactory:113` indexes it
+  `IndexConfig.FULLTEXT`; the node name is the principal's name, unique only within its provider, so two
+  providers each holding an `alice` leave the order partial.
+- **`_path` is written `IndexConfig.PATH` and is unique repo-wide** — `PrincipalKey.toPath` builds
+  `/identity/<provider>/users/<id>`, with the type folder in the middle — which
+  is what makes `displayName ASC, _path ASC` a total order.
+
+Ordering by a string is case-insensitive for free: `OrderByValueResolver.getOrderbyValueForString`
+lowercases what it writes to `_orderby`, truncating at 1024 characters.
+
+## Paging stops at the result window
+
+Elasticsearch refuses a query whose `from + size` passes `index.max_result_window` — 10 000 by default,
+and XP's `search-settings.json` carries only shards, replicas and analysis, so the default stands. The
+`QueryPhaseExecutionException` is **not** caught by `SecurityServiceImpl.query`, which catches only
+`NodeNotFoundException`, so the field errors and the screen blanks rather than the paging ending. Clamp
+the offset server-side; 200 `Load more` clicks reach it.
+
+## `getMemberships` is direct-only unless asked
+
+`getMemberships(key)` leaves `transitive` at `false` (`GetMembershipsHandler:31`), which means
+`queryDirectMemberships` — a plain `member = <key>` filter. The transitive walk is `getAllMemberships`,
+reachable only with the second argument `true`. It matters for any "what does this user have" screen: an
+administrator is normally an administrator _through_ `system:administrators`, so a direct-only read shows
+no roles at all. `getAllMemberships` returns groups as well, so filtering by type still works.
+
+## A user node stores almost nothing
+
+`populateUserData` writes `email`, `login`, `authenticationHash` and `profile`; the generic part adds
+`displayName`, `principalType` and `userStoreKey`. Consequences for any user screen:
+
+- **no `description`** — the property name exists in `PrincipalPropertyNames` but only
+  `populateGroupData`/`populateRoleData` write it, and `PrincipalMapper:46` emits it in the non-User branch;
+- **no `createdTime`**, and `modifiedTime` never arrives for the reason above;
+- **`disabled` is always `false`** — `PrincipalMapper:37` serializes `user.isDisabled()`, but nothing
+  persists it and `createUserFromNode` never reads one, so it is the builder default. The `Active`/`Inactive`
+  cell the mockups draw has no source.
+
 ## `findUsers` sorts; `findPrincipals` cannot
 
 The two go through different code entirely, and the asymmetry decides how the Users section is built.

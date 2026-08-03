@@ -22,9 +22,14 @@ export function beginProjectsLoad(): void {
   $projects.setKey('status', 'loading');
 }
 
+/**
+ * ! Keeps the projects it has when a read fails, for the reason `receiveIdProviders` gives: this list only
+ * ! names things — the Roles filter labels its project buckets from it — so dropping it on a failed refresh
+ * ! turns labels into raw ids for no gain. The failure is reported and the screen says so in a notice.
+ */
 export function receiveProjects(result: Result<Project[], AppError>): void {
   result.match(
     (items) => $projects.set({ status: 'ready', items }),
-    (error) => $projects.set({ status: 'error', items: [], error: error.message }),
+    (error) => $projects.set({ ...$projects.get(), status: 'error', error: error.message }),
   );
 }
