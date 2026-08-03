@@ -48,7 +48,7 @@ export function toIdProviders(dtos: readonly IdProviderDto[]): IdProvider[] {
 
 /** For the ID Providers section, which needs nothing else. */
 export function fetchIdProviders(signal?: AbortSignal): ResultAsync<IdProvider[], AppError> {
-  return requestGraphQl<{ idProviders: IdProviderDto[] }>(ID_PROVIDERS_ROOT, signal).map(
+  return requestGraphQl<{ idProviders: IdProviderDto[] }>(ID_PROVIDERS_ROOT, { signal }).map(
     ({ idProviders }) => toIdProviders(idProviders),
   );
 }

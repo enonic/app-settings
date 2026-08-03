@@ -12,8 +12,6 @@ function user(idProvider: string, login: string): User {
     login,
     idProvider,
     hasPassword: true,
-    roles: [],
-    groups: [],
   };
 }
 

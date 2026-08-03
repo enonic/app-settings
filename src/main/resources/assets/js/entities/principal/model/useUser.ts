@@ -1,18 +1,19 @@
 import { useStore } from '@nanostores/preact';
+import { useEffect } from 'preact/hooks';
 
-import type { User } from './principal.types';
-import { $users } from './users.store';
+import { $userDetail, showUser, type UserDetailState } from './user-detail.store';
 
 /**
- * Reads what is already loaded — the section page owns the loading. The key is a plain string
- * because it arrives from the route: it is a `PrincipalKey` only once a user answers to it.
+ * The one details panel that loads: the Users list is paged, so the selected user need not be among the
+ * loaded rows. The key is a plain string because it arrives from the route — it is a `UserKey` only once
+ * a user answers to it.
  */
-export function useUser(key: string | undefined): User | undefined {
-  const { items } = useStore($users);
+export function useUser(key: string | undefined): UserDetailState {
+  const state = useStore($userDetail);
 
-  if (key === undefined) {
-    return undefined;
-  }
+  useEffect(() => {
+    showUser(key);
+  }, [key]);
 
-  return items.find((user) => user.key === key);
+  return state;
 }

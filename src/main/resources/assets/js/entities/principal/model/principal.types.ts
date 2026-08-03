@@ -1,6 +1,5 @@
 import type {
   Group as XpGroup,
-  Principal,
   PrincipalKey,
   PrincipalType,
   Role as XpRole,
@@ -58,19 +57,28 @@ export type Group = Omit<XpGroup, 'modifiedTime'> & {
 };
 
 /**
- * A user with the roles and groups it belongs to, which the platform returns from
+ * A user as a list row: what the server returns a page of.
+ *
+ * ! No `description`, no `createdTime`, no `disabled`. XP stores none of them for a user —
+ * ! `populateUserData` writes email, login, the authentication hash and the profile, and nothing else —
+ * ! so the description and the created/modified pair the mockups draw have no source, and `disabled`
+ * ! arrives from `PrincipalMapper` always `false` because nothing ever persists it. See the `disabled`
+ * ! and `modifiedTime` entries in `docs/platform-facts.md`.
+ *
+ * `modifiedTime` is dropped from the platform's type for the same reason it is optional on `Role`.
+ */
+export type User = Omit<XpUser, 'modifiedTime'>;
+
+/**
+ * A user with the roles and groups it holds, which the platform answers separately through
  * `getMemberships`.
  *
- * `description` and `createdTime` are **not** in `lib/xp/auth`'s user: the mockups show a
- * description under the display name and a created/modified pair in the details, and both will have
- * to come from the node behind the principal. Until #8 they come from fixtures, and they stay
- * optional so a section renders without them.
+ * Only the details panel needs them, and the list is paged, so they are fetched by key for one user
+ * rather than carried on every row.
  */
-export type User = XpUser & {
-  description?: string;
-  createdTime?: string;
-  roles: readonly Principal[];
-  groups: readonly Principal[];
+export type UserDetail = User & {
+  roles: readonly PrincipalRef[];
+  groups: readonly PrincipalRef[];
 };
 
 /**

@@ -20,7 +20,7 @@ server-side code alone, so an api file talks to an endpoint, never to an XP lib.
 
 ```ts
 export function fetchApplications(signal?: AbortSignal): ResultAsync<Application[], AppError> {
-  return requestGraphQl<ApplicationsResult>(APPLICATIONS_ROOT, signal).map(({ applications }) =>
+  return requestGraphQl<ApplicationsResult>(APPLICATIONS_ROOT, { signal }).map(({ applications }) =>
     applications.map(toApplication),
   );
 }

@@ -30,10 +30,18 @@ export function beginIdProvidersLoad(): void {
   $idProviders.setKey('status', 'loading');
 }
 
+/**
+ * ! Keeps the providers it has when a read fails, unlike a section's own list store.
+ *
+ * ! This list is a reference the other sections name principals by: Groups and Users show it in a filter
+ * ! and in every row's provenance cell. Dropping it on a failed refresh emptied the filter menu while a
+ * ! ticked provider went on narrowing the query — a narrowing with no entry left to untick. The failure is
+ * ! still reported, so a screen can say the list may be short; what it must not do is silently shrink.
+ */
 export function receiveIdProviders(result: Result<IdProvider[], AppError>): void {
   result.match(
     (items) => $idProviders.set({ status: 'ready', items }),
-    (error) => $idProviders.set({ status: 'error', items: [], error: error.message }),
+    (error) => $idProviders.set({ ...$idProviders.get(), status: 'error', error: error.message }),
   );
 }
 

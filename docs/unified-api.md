@@ -419,8 +419,8 @@ open.
 
 ### Phase 3 — app-users on GraphQL — **in progress**
 
-**Landed so far: Roles, Groups and ID Providers, end to end. Users is all that still reads fixtures**,
-and it is carved out as its own issue (#37) because it is the only section that cannot load whole.
+**All five principal sections read through the schema; no fixture is left in the tree.** Users came last
+and as its own issue (#37), because it is the only section that cannot load whole.
 
 `apis/graphql/principal/` contributes three root fields on `lib-auth`:
 
@@ -432,8 +432,16 @@ and it is carved out as its own issue (#37) because it is the only section that 
   whose `items` is deliberately never selected by the list query — a provider may hold a whole corporate
   directory. No `roles` field: that aggregate has no cheap query behind it, see #23.
 
-A second domain came with them: `apis/graphql/project/` contributes `projects` on `lib-project`, which
-the Roles filter needs because a role key carries the project id
+`users` and `user(key)` came with Users, and they are the only fields the server narrows: `findUsers`
+takes a constraint expression and a sort expression, so search, provider filter, ordering and paging all
+happen there. Three things about that are load-bearing and written down in `platform-facts.md`: the sort
+needs `_path` as a tie-break (`principalKey` is declared in the index config but never written to a node,
+so ordering by it is silently ignored), the offset is clamped to the Elasticsearch result window, and
+`getMemberships` needs `transitive: true` or an administrator's roles read as empty. The one place that
+interpolates a value into a query string escapes it, and it is the only such place.
+
+A second domain came with the earlier three: `apis/graphql/project/` contributes `projects` on
+`lib-project`, which the Roles filter needs because a role key carries the project id
 (`role:cms.project.<id>.<projectRole>`) while the filter shows display names. `include xplibs.project`
 is in `build.gradle`.
 

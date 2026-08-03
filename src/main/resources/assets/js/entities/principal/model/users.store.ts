@@ -1,38 +1,118 @@
 import { map } from 'nanostores';
+import type { Result } from 'neverthrow';
 
-import { fetchUsers } from '../api/users.api';
+import type { AppError } from '../../../shared/api';
+import type { UsersPage } from '../api/users.api';
 import type { User } from './principal.types';
 
 export type UsersState = {
   status: 'loading' | 'ready' | 'error';
   items: readonly User[];
+  /**
+   * How many users the current search matches, not how many are loaded.
+   *
+   * The two differ for this one section: `items` is what has been paged in so far, and the difference
+   * between them is what makes `Load more` appear.
+   */
+  total: number;
+  /** A page is on its way while the loaded rows stay on screen. */
+  appending: boolean;
+  /**
+   * Every page there is has been loaded, whatever `total` says.
+   *
+   * ! `total` and the rows can disagree for two honest reasons: the server clamps the offset at the
+   * ! Elasticsearch result window, and a page can come back short because `SecurityServiceImpl` re-fetches
+   * ! the hits by id. Comparing `items.length` with `total` alone would then leave `Load more` on screen
+   * ! forever, appending nothing on every click. A page that adds no row is the end of the list.
+   */
+  exhausted: boolean;
   error?: string;
 };
 
-export const $users = map<UsersState>({ status: 'loading', items: [] });
+const EMPTY: UsersState = {
+  status: 'loading',
+  items: [],
+  total: 0,
+  appending: false,
+  exhausted: false,
+};
 
-// ! Refresh and search can retrigger a load, so the previous one is cancelled and its answer
-// ! dropped: without this the slower of two requests decides what the list shows.
-let pending: AbortController | undefined;
+/**
+ * The store holds users and nothing else — no request, no cancelling, and no notion of a query.
+ *
+ * Users is the only section whose narrowing lives on the server, so what to ask for belongs to the screen:
+ * `pages/users/model/users.screen.ts` owns the query, the paging and the cancelling, and hands outcomes
+ * here. Two ways in, because a first page replaces and a later page appends.
+ */
+export const $users = map<UsersState>(EMPTY);
 
-export function loadUsers(): Promise<void> {
-  pending?.abort();
-  const controller = new AbortController();
-  pending = controller;
-  const { signal } = controller;
+/**
+ * ! Keeps the rows on screen. Clearing them would replace the list with a skeleton on every debounced
+ * ! keystroke — the search runs on the server here — losing the scroll position and any focus inside the
+ * ! list several times a second. The rows are replaced when the answer lands, which is the only moment
+ * ! the new query is actually known.
+ */
+export function beginUsersLoad(): void {
+  $users.set({ ...$users.get(), status: 'loading', exhausted: false, error: undefined });
+}
 
-  $users.setKey('status', 'loading');
+export function beginUsersAppend(): void {
+  $users.set({ ...$users.get(), appending: true, error: undefined });
+}
 
-  return fetchUsers(signal).match(
-    (items) => {
-      if (!signal.aborted) {
-        $users.set({ status: 'ready', items });
-      }
+/**
+ * Where the next page starts, or `undefined` when there is no next page to ask for.
+ *
+ * The screen owns the paging but not the rows, so it asks the store where it has got to rather than
+ * reading `items` through the barrel — which would make the slice's internals part of its public surface.
+ * Undefined while a first page is still loading and while one is already on its way, which is what makes
+ * two clicks on `Load more` one page.
+ */
+/**
+ * ! Offset paging over a set someone else may be editing can return a row already loaded — a user created
+ * ! above the offset shifts everything down by one. A duplicate key would render twice and the two rows
+ * ! would tick as one, so the page keeps only what is new.
+ */
+function withoutLoaded(page: readonly User[], loaded: readonly User[]): User[] {
+  const keys = new Set(loaded.map(({ key }) => key));
+  return page.filter(({ key }) => !keys.has(key));
+}
+
+export function usersAppendStart(): number | undefined {
+  const { status, appending, exhausted, items, total } = $users.get();
+  return status !== 'ready' || appending || exhausted || items.length >= total
+    ? undefined
+    : items.length;
+}
+
+export function receiveUsers(result: Result<UsersPage, AppError>): void {
+  result.match(
+    ({ items, total }) =>
+      $users.set({ status: 'ready', items, total, appending: false, exhausted: false }),
+    (error) => $users.set({ ...EMPTY, status: 'error', error: error.message }),
+  );
+}
+
+/**
+ * ! Appends, and keeps what is on screen when the page fails: a failed `Load more` must not take the
+ * ! rows the user is already reading with it. `total` is taken from the new answer, since a user created
+ * ! or deleted meanwhile changes it.
+ */
+export function appendUsers(result: Result<UsersPage, AppError>): void {
+  const current = $users.get();
+
+  result.match(
+    ({ items, total }) => {
+      const fresh = withoutLoaded(items, current.items);
+
+      $users.set({
+        status: 'ready',
+        items: [...current.items, ...fresh],
+        total,
+        appending: false,
+        exhausted: fresh.length === 0,
+      });
     },
-    (error) => {
-      if (!signal.aborted) {
-        $users.set({ status: 'error', items: [], error: error.message });
-      }
-    },
+    (error) => $users.set({ ...current, appending: false, error: error.message }),
   );
 }

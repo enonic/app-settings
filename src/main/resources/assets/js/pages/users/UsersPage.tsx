@@ -3,24 +3,50 @@ import { Outlet, useNavigate } from '@tanstack/react-router';
 import { CircleUserRound } from 'lucide-react';
 import { useMemo } from 'preact/hooks';
 
-import { loadUsers, useUsers } from '../../entities/principal';
+import { useIdProviderName, useIdProviders, useUsers } from '../../entities/principal';
 import { useI18n } from '../../shared/i18n';
+import { type SortDirection } from '../../widgets/browse-list/browse-sort';
+import { BrowseFilter } from '../../widgets/browse-list/BrowseFilter';
+import { BrowseSort } from '../../widgets/browse-list/BrowseSort';
 import { BrowseScreen } from '../../widgets/browse-screen/BrowseScreen';
 import { useBrowseSection } from '../../widgets/browse-screen/useBrowseSection';
+import {
+  $usersQuery,
+  clearUsersQuery,
+  setUsersIdProvider,
+  setUsersSort,
+  sortDirectionOf,
+} from './model/query.store';
 import { usersSearch } from './model/search.store';
 import { usersSelection } from './model/selection.store';
 import { USER_ACTIONS } from './model/users.actions';
-import { filterUsers } from './model/users.filter';
+import { providerEntries } from './model/users.filter';
 import { toUserRow } from './model/users.rows';
+import { loadMoreUsers, reloadUsersScreen } from './model/users.screen';
+import { useUsersScreen } from './model/useUsersScreen';
 
 export function UsersPage() {
   const t = useI18n();
   const navigate = useNavigate();
-  const { status, items } = useUsers();
-  const query = useStore(usersSearch.$query);
+  // One request for a page of users and the providers that name them.
+  useUsersScreen();
+  const { status, items, total, appending, error } = useUsers();
+  const { items: providers, status: providersStatus } = useIdProviders();
+  const providerName = useIdProviderName();
+  const { idProvider, sort } = useStore($usersQuery);
 
-  // No filter or sort control here yet, so the search is all there is to narrow by.
-  const visible = useMemo(() => filterUsers(items, query), [items, query]);
+  const sortOptions = useMemo(
+    () => [
+      { id: 'asc', label: t('users.sort.nameAsc') },
+      { id: 'desc', label: t('users.sort.nameDesc') },
+    ],
+    [t],
+  ) satisfies readonly { id: SortDirection; label: string }[];
+
+  // ! Entries come from the provider list, never from the rows: the rows are one page, so a provider the
+  // ! page happens not to contain would disappear from the menu while still narrowing the query. They
+  // ! carry no count either — `findUsers` reports one total for the whole query and nothing per provider.
+  const entries = useMemo(() => providerEntries(providers), [providers]);
 
   const section = useBrowseSection({
     openItem: (key) => void navigate({ to: '/users/$id', params: { id: key }, replace: true }),
@@ -29,10 +55,13 @@ export function UsersPage() {
     status,
     selection: usersSelection,
     search: usersSearch,
-    visible,
+    resetOnLeave: [{ clear: clearUsersQuery }],
+    // The server narrowed and ordered this page; the client adds nothing.
+    visible: items,
     // A fresh icon element per row: Preact writes into a vnode as it renders it.
-    toRow: (user) => toUserRow(user, <CircleUserRound size={24} strokeWidth={1.5} aria-hidden />),
-    reload: () => void loadUsers(),
+    toRow: (user) =>
+      toUserRow(user, <CircleUserRound size={24} strokeWidth={1.5} aria-hidden />, providerName),
+    reload: () => void reloadUsersScreen(),
   });
 
   return (
@@ -41,6 +70,35 @@ export function UsersPage() {
       actions={USER_ACTIONS}
       emptyLabel={t('users.list.empty')}
       details={<Outlet />}
+      // `total` is the size of the whole match, `items` what has been paged in so far.
+      hasMore={items.length < total}
+      onLoadMore={() => void loadMoreUsers()}
+      loadingMore={appending}
+      // A page that did not arrive leaves the rows valid, so it is reported beside the control rather
+      // than as a list error. Only a first page can put the list itself into an error state.
+      loadMoreError={
+        status === 'ready' && error !== undefined ? t('browse.list.loadMoreFailed') : undefined
+      }
+      filter={
+        <BrowseFilter
+          entries={entries}
+          // One provider at a time: `findUsers` takes a single `userStoreKey`, and the control says so
+          // rather than announcing checkboxes and silently unticking the previous choice.
+          mode="single"
+          selected={new Set(idProvider === undefined ? [] : [idProvider])}
+          onToggle={(id) => setUsersIdProvider(id === idProvider ? undefined : id)}
+          // A provider list that failed to load leaves the menu short while the ticked provider goes on
+          // narrowing the query; saying so beats a menu that looks complete.
+          notice={providersStatus === 'error' ? t('users.filter.providersFailed') : undefined}
+        />
+      }
+      sort={
+        <BrowseSort
+          options={sortOptions}
+          value={sortDirectionOf({ sort })}
+          onChange={setUsersSort}
+        />
+      }
     />
   );
 }

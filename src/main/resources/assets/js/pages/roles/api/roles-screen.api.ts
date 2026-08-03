@@ -29,6 +29,6 @@ export function fetchRolesScreen(
   return requestGraphQlRoots<RolesScreenData>(
     [ROLES_ROOT, ID_PROVIDERS_ROOT, PROJECTS_ROOT],
     'RolesScreen',
-    signal,
+    { signal },
   );
 }

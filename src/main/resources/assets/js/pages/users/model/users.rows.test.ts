@@ -11,8 +11,6 @@ const user: User = {
   email: 'alice.ward@example.com',
   idProvider: 'ldap',
   hasPassword: false,
-  roles: [],
-  groups: [],
 };
 
 describe('toUserRow', () => {
@@ -27,8 +25,14 @@ describe('toUserRow', () => {
     expect(subtitle).toBe('alice');
   });
 
-  it('carries the provider as its only meta cell', () => {
-    expect(toUserRow(user).meta).toEqual(['ldap']);
+  it('names the provider in its only meta cell', () => {
+    expect(toUserRow(user, undefined, () => 'Company directory').meta).toEqual([
+      'Company directory',
+    ]);
+  });
+
+  it('leaves the cell out while the providers have not arrived', () => {
+    expect(toUserRow(user).meta).toBeUndefined();
   });
 
   it('carries the icon the page hands it', () => {

@@ -19,8 +19,31 @@ export type GraphQlVariables = Record<string, unknown>;
 export type GraphQlRoot = {
   /** The root field to ask for. Its answer arrives under this same name. */
   field: string;
+  /**
+   * Its arguments, **referencing variables by name** — `(start: $start, count: $count)`.
+   *
+   * ! Never a value spliced in. Values travel as JSON variables, so nothing a user typed is ever part of
+   * ! the document text; declare them in `options.variables` and the transport writes both the header and
+   * ! the payload from the same place.
+   */
+  args?: string;
   /** Its selection, braces included — `{ key displayName }`. Omitted for a scalar field. */
   selection?: string;
+  /**
+   * The variables its `args` use, as name → GraphQL type: `{ start: 'Int', sort: 'UserSort' }`.
+   *
+   * ! Declared by the root rather than by the caller, and that is what keeps the document valid. GraphQL
+   * ! rejects a document using a variable it never declared *and* one declaring a variable it never uses,
+   * ! so the two lists must agree — putting the declaration next to the `args` that reference it means
+   * ! there is only one list. A caller supplies values, not types, and cannot forget a declaration.
+   */
+  variables?: Record<string, string>;
+};
+
+export type GraphQlOptions = {
+  /** Values for the variables the roots declare, by name. */
+  values?: GraphQlVariables;
+  signal?: AbortSignal;
 };
 
 /**
@@ -217,12 +240,54 @@ function enqueue<T>(call: Omit<Call, 'settle'>): ResultAsync<T, AppError> {
   return new ResultAsync(settled);
 }
 
-function selectionLine({ field, selection }: GraphQlRoot): string {
-  return selection === undefined ? field : `${field} ${selection}`;
+function selectionLine({ field, args, selection }: GraphQlRoot): string {
+  // No space before the arguments, so the document reads the way it would be written by hand.
+  return [`${field}${args ?? ''}`, selection].filter((part) => part !== undefined).join(' ');
 }
 
-function documentFor(roots: readonly GraphQlRoot[], name: string): string {
-  return `query ${name} { ${roots.map(selectionLine).join(' ')} }`;
+/**
+ * ! The header is derived from the roots, so it declares exactly the variables they use — a caller cannot
+ * ! forget a declaration or leave a stale one behind, both of which GraphQL rejects. Two roots naming the
+ * ! same variable are fine while they agree on its type; disagreeing is a mistake in our own code, and it
+ * ! is reported as a value like every other failure rather than thrown into a component effect.
+ */
+function documentFor(roots: readonly GraphQlRoot[], name: string): Result<string, AppError> {
+  const declared = new Map<string, string>();
+  for (const root of roots) {
+    const { args, variables } = root;
+
+    for (const [key, type] of Object.entries(variables ?? {})) {
+      const seen = declared.get(key);
+      if (seen !== undefined && seen !== type) {
+        return err(new AppError(`Roots disagree on the type of $${key}: ${seen} and ${type}`));
+      }
+      declared.set(key, type);
+    }
+
+    // ! Co-locating the declaration with the arguments makes them easy to keep in step; only comparing
+    // ! them makes it impossible to get wrong. Both halves of the mismatch are GraphQL validation errors,
+    // ! and both would surface as a failed screen rather than as the typo they are.
+    const used = new Set([...(args ?? '').matchAll(/\$(\w+)/g)].map(([, key]) => key));
+    const names = new Set(Object.keys(variables ?? {}));
+
+    for (const key of used) {
+      if (!names.has(key)) {
+        return err(new AppError(`\`${root.field}\` uses $${key} without declaring it`));
+      }
+    }
+    for (const key of names) {
+      if (!used.has(key)) {
+        return err(new AppError(`\`${root.field}\` declares $${key} without using it`));
+      }
+    }
+  }
+
+  const header =
+    declared.size === 0
+      ? ''
+      : `(${[...declared].map(([key, type]) => `$${key}: ${type}`).join(', ')})`;
+
+  return ok(`query ${name}${header} { ${roots.map(selectionLine).join(' ')} }`);
 }
 
 function operationName(field: string): string {
@@ -238,11 +303,17 @@ function operationName(field: string): string {
  */
 export function requestGraphQl<T>(
   root: GraphQlRoot,
-  signal?: AbortSignal,
+  options: GraphQlOptions = {},
 ): ResultAsync<T, AppError> {
+  const document = documentFor([root], operationName(root.field));
+  if (document.isErr()) {
+    return errAsync(document.error);
+  }
+
   return enqueue<T>({
-    document: documentFor([root], operationName(root.field)),
-    signal,
+    document: document.value,
+    variables: options.values,
+    signal: options.signal,
     read: (body) => rootData(body, root.field),
   });
 }
@@ -258,11 +329,17 @@ export function requestGraphQl<T>(
 export function requestGraphQlRoots<T>(
   roots: readonly GraphQlRoot[],
   name: string,
-  signal?: AbortSignal,
+  options: GraphQlOptions = {},
 ): ResultAsync<GraphQlRootsAnswer<T>, AppError> {
+  const document = documentFor(roots, name);
+  if (document.isErr()) {
+    return errAsync(document.error);
+  }
+
   return enqueue<GraphQlRootsAnswer<T>>({
-    document: documentFor(roots, name),
-    signal,
+    document: document.value,
+    variables: options.values,
+    signal: options.signal,
     read: (body) =>
       body.data == null
         ? err(

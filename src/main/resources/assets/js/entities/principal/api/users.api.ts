@@ -1,92 +1,163 @@
-import { errAsync, okAsync, type ResultAsync } from 'neverthrow';
+import type { GraphQlRoot } from '../../../shared/api';
+import type {
+  PrincipalKey,
+  PrincipalRef,
+  User,
+  UserDetail,
+  UserKey,
+} from '../model/principal.types';
 
-import { AppError } from '../../../shared/api';
-import type { User } from '../model/principal.types';
-import {
-  ADMIN_LOGIN_ROLE,
-  ADMIN_ROLE,
-  ADMINISTRATORS,
-  ALICE,
-  BOB,
-  CAROL,
-  CMS_ADMIN_ROLE,
-  CMS_EXPERT_ROLE,
-  CONTRIBUTORS,
-  DEVELOPERS,
-  EDITORS,
-  ERIK,
-  JANE,
-  JOHN,
-  MAJA,
-  MARKETING,
-  SU,
-  SUPPORT,
-} from './fixtures';
+const USER_FIELDS = `
+  key
+  displayName
+  login
+  email
+  idProvider
+  hasPassword
+`;
 
-// TODO: [#37] Fixtures until Users moves onto the schema — the other three subdomains already call
-// `requestGraphQl`, and this one waits because it is the only section that cannot load whole: it needs
-// server-side search, filter, sort and paging through `findUsers`. `description` and `createdTime` have
-// no home in `lib/xp/auth`'s user either and will have to come off the node behind the principal.
-const USERS: readonly User[] = [
-  {
-    ...SU,
-    description: 'The account the installation was bootstrapped with',
-    createdTime: '2025-07-20T15:42:00Z',
-    roles: [ADMIN_ROLE, ADMIN_LOGIN_ROLE, CMS_ADMIN_ROLE],
-    groups: [ADMINISTRATORS],
+/**
+ * The user list, one page at a time.
+ *
+ * ! Users is the only section the server narrows: search, provider filter, order and paging all happen
+ * ! in `findUsers`, because a directory-backed install holds more users than a screen can load whole —
+ * ! see the `findUsers` entry in `docs/platform-facts.md`. Every argument therefore rides as a variable;
+ * ! nothing typed into the search box becomes part of the document.
+ */
+export const USERS_ROOT: GraphQlRoot = {
+  field: 'users',
+  args: '(start: $start, count: $count, search: $search, idProvider: $idProvider, sort: $sort)',
+  variables: {
+    start: 'Int',
+    count: 'Int',
+    search: 'String',
+    idProvider: 'String',
+    sort: 'UserSort',
   },
-  {
-    ...JANE,
-    description: 'Edits and publishes the public site',
-    createdTime: '2026-02-11T10:05:00Z',
-    roles: [ADMIN_LOGIN_ROLE, CMS_ADMIN_ROLE],
-    groups: [EDITORS],
-  },
-  {
-    ...JOHN,
-    createdTime: '2026-03-04T08:20:00Z',
-    roles: [CMS_EXPERT_ROLE],
-    groups: [CONTRIBUTORS],
-  },
-  {
-    ...ALICE,
-    description: 'Runs the deployment pipeline',
-    createdTime: '2026-05-30T13:15:00Z',
-    roles: [ADMIN_LOGIN_ROLE],
-    groups: [DEVELOPERS],
-  },
-  {
-    ...BOB,
-    createdTime: '2026-05-30T13:15:00Z',
-    roles: [],
-    groups: [DEVELOPERS],
-  },
-  {
-    ...CAROL,
-    description: 'On leave, account disabled',
-    createdTime: '2026-06-15T09:00:00Z',
-    roles: [],
-    groups: [SUPPORT],
-  },
-  {
-    ...ERIK,
-    description: 'Runs the campaign site',
-    createdTime: '2026-06-01T09:00:00Z',
-    roles: [CMS_ADMIN_ROLE],
-    groups: [MARKETING],
-  },
-  {
-    ...MAJA,
-    createdTime: '2026-06-01T09:00:00Z',
-    roles: [CMS_EXPERT_ROLE],
-    groups: [MARKETING],
-  },
-];
+  selection: `{
+  total
+  hits {${USER_FIELDS}}
+}`,
+};
 
-export function fetchUsers(signal?: AbortSignal): ResultAsync<User[], AppError> {
-  if (signal?.aborted === true) {
-    return errAsync(new AppError('Loading users was cancelled'));
+const MEMBERSHIP_FIELDS = `
+  roles {
+    key
+    type
+    displayName
   }
+  groups {
+    key
+    type
+    displayName
+  }
+`;
 
-  return okAsync([...USERS]);
+/**
+ * What the details panel is missing when it already has the row: the memberships and nothing else.
+ *
+ * A row carries every scalar the panel shows — the list selected them — so asking for them again would
+ * be re-reading what is on screen. Only the roles and groups are absent from a row, because they are a
+ * `getMemberships` call per user and no list can afford one per row.
+ */
+export const USER_MEMBERSHIPS_DOCUMENT = `
+  query UserMemberships($key: String!) {
+    user(key: $key) {${MEMBERSHIP_FIELDS}}
+  }
+`;
+
+/**
+ * The whole user, for when the panel has no row to build on: a link opened straight at
+ * `/users/<key>`, or a search that has since narrowed the loaded page away from it.
+ *
+ * Null is a legitimate answer to both documents — the key may name nobody — which is why they travel as
+ * documents rather than as roots.
+ */
+export const USER_DOCUMENT = `
+  query User($key: String!) {
+    user(key: $key) {${USER_FIELDS}${MEMBERSHIP_FIELDS}}
+  }
+`;
+
+type UserDto = {
+  key: string;
+  displayName: string;
+  login: string;
+  email: string | null;
+  idProvider: string;
+  hasPassword: boolean;
+};
+
+export type UsersPageDto = {
+  total: number;
+  hits: UserDto[];
+};
+
+export type UsersData = { users: UsersPageDto | null };
+
+type PrincipalRefDto = {
+  key: string;
+  type: PrincipalRef['type'];
+  displayName: string;
+};
+
+type UserDetailDto = UserDto & {
+  roles: PrincipalRefDto[];
+  groups: PrincipalRefDto[];
+};
+
+type MembershipsDto = {
+  roles: PrincipalRefDto[];
+  groups: PrincipalRefDto[];
+};
+
+/** `user` is null for a key nothing answers to, which is an answer rather than a failure. */
+export type UserDetailData = { user: UserDetailDto | null };
+
+export type UserMembershipsData = { user: MembershipsDto | null };
+
+export function toUserDetail(dto: UserDetailDto): UserDetail {
+  return { ...toUser(dto), ...toMemberships(dto) };
+}
+
+/** The row the list already holds, completed with what only a by-key read can answer. */
+export function withMemberships(user: User, dto: MembershipsDto): UserDetail {
+  return { ...user, ...toMemberships(dto) };
+}
+
+export type UsersPage = {
+  total: number;
+  items: User[];
+};
+
+export function toUsersPage({ total, hits }: UsersPageDto): UsersPage {
+  return { total, items: hits.map(toUser) };
+}
+
+//
+// * Helpers
+//
+
+function toMemberships(dto: MembershipsDto): Pick<UserDetail, 'roles' | 'groups'> {
+  return { roles: dto.roles.map(toPrincipalRef), groups: dto.groups.map(toPrincipalRef) };
+}
+
+function toPrincipalRef(dto: PrincipalRefDto): PrincipalRef {
+  return {
+    key: dto.key as PrincipalKey,
+    type: dto.type,
+    displayName: dto.displayName,
+  };
+}
+
+function toUser(dto: UserDto): User {
+  return {
+    type: 'user',
+    key: dto.key as UserKey,
+    displayName: dto.displayName,
+    login: dto.login,
+    email: dto.email ?? undefined,
+    idProvider: dto.idProvider,
+    hasPassword: dto.hasPassword,
+  };
 }

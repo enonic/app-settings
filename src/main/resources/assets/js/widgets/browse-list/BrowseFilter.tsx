@@ -1,5 +1,5 @@
 import { Button, FilledSquareCheck, Menu } from '@enonic/ui';
-import { Filter, Square } from 'lucide-react';
+import { Circle, CircleDot, Filter, Square } from 'lucide-react';
 
 import { useI18n } from '../../shared/i18n';
 import type { BrowseFilterEntry } from './browse-filter';
@@ -8,16 +8,31 @@ export type BrowseFilterProps = {
   entries: readonly BrowseFilterEntry[];
   selected: ReadonlySet<string>;
   onToggle: (id: string) => void;
+  /**
+   * How many entries may hold at once. `multiple` is the default and the reading every client-side filter
+   * takes; `single` is for a section whose server takes one value — Users filters on one `userStoreKey`.
+   *
+   * ! It changes what the row *is*, not only how it looks: a radio announces "one of these" where a
+   * ! checkbox announces "any of these", and a user told they can tick several would find the first one
+   * ! silently unticked.
+   */
+  mode?: 'single' | 'multiple';
   /** Shown under the entries when some of them could not be loaded, so a short list reads as such. */
   notice?: string;
 };
 
 /**
- * The `Filter list` control: a multi-select over entries a section supplies, each with a count.
- * Section-agnostic by construction — an entry is a label and a number, and what it stands for is the
- * page's business.
+ * The `Filter list` control: the entries a section supplies, each optionally with a count.
+ * Section-agnostic by construction — an entry is a label and maybe a number, and what it stands for is
+ * the page's business.
  */
-export function BrowseFilter({ entries, selected, onToggle, notice }: BrowseFilterProps) {
+export function BrowseFilter({
+  entries,
+  selected,
+  onToggle,
+  mode = 'multiple',
+  notice,
+}: BrowseFilterProps) {
   const t = useI18n();
 
   if (entries.length === 0 && notice === undefined) {
@@ -41,28 +56,36 @@ export function BrowseFilter({ entries, selected, onToggle, notice }: BrowseFilt
         <Menu.Content align="end" className="min-w-56">
           {entries.map(({ id, label, count }) => {
             const ticked = selected.has(id);
-            const Indicator = ticked ? FilledSquareCheck : Square;
+            const Indicator = indicatorFor(mode, ticked);
 
             return (
               <Menu.Item
                 key={id}
-                // The row itself is the control, so it carries the state a checkbox would.
-                role="menuitemcheckbox"
+                // The row itself is the control, so it carries the state its indicator draws.
+                role={mode === 'single' ? 'menuitemradio' : 'menuitemcheckbox'}
                 aria-checked={ticked}
-                // ! Without preventDefault the menu closes on every tick — Menu.Item calls setOpen(false)
-                // ! unless the select event is cancelled, and a multi-select has to survive several.
+                /*
+                 * ! `Menu.Item` closes the menu unless the select event is cancelled, and which of those
+                 * ! is right depends on the mode. A multi-select has to survive several ticks, so it
+                 * ! cancels. A single-select pick is terminal — the role announces "one of these" — so it
+                 * ! lets the menu close, which is what the convention behind a radio leads a user to
+                 * ! expect.
+                 */
                 onSelect={(event) => {
-                  event.preventDefault();
+                  if (mode === 'multiple') {
+                    event.preventDefault();
+                  }
                   onToggle(id);
                 }}
               >
                 <span className="flex w-full items-center gap-2">
-                  {/* ! The box is drawn, not composed: `Checkbox` renders `readOnly` as `disabled`
+                  {/* ! The indicator is drawn, not composed: `Checkbox` renders `readOnly` as `disabled`
                       ! plus `opacity-30`, so every entry would read as unavailable, and its label
                       ! wraps an input whose click would reach `onSelect` a second time. */}
                   <Indicator className="text-main size-4 shrink-0 rounded-sm" aria-hidden />
                   <span className="grow truncate">{label}</span>
-                  <span className="text-subtle tabular-nums">{count}</span>
+                  {/* Absent where the section narrows on the server and per-entry counts are unknowable. */}
+                  {count !== undefined && <span className="text-subtle tabular-nums">{count}</span>}
                 </span>
               </Menu.Item>
             );
@@ -72,4 +95,12 @@ export function BrowseFilter({ entries, selected, onToggle, notice }: BrowseFilt
       </Menu.Portal>
     </Menu>
   );
+}
+
+function indicatorFor(mode: 'single' | 'multiple', ticked: boolean) {
+  if (mode === 'single') {
+    return ticked ? CircleDot : Circle;
+  }
+
+  return ticked ? FilledSquareCheck : Square;
 }
