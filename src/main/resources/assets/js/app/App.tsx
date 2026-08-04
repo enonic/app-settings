@@ -1,6 +1,7 @@
 import { RouterProvider } from '@tanstack/react-router';
 import { useEffect } from 'preact/hooks';
 
+import { startApplicationsService, stopApplicationsService } from '../entities/application';
 import { useTheme } from '../shared/app-state';
 import type { ToolConfig } from '../shared/config';
 import { useMenuPanel } from '../shared/menu';
@@ -17,6 +18,11 @@ export function App({ config }: AppProps) {
 
   const eventsUrl = config.apis.events;
   useEffect(() => connectToServerEvents(eventsUrl), [eventsUrl]);
+
+  useEffect(() => {
+    startApplicationsService();
+    return stopApplicationsService;
+  }, []);
 
   return <RouterProvider router={router} />;
 }

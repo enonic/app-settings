@@ -25,7 +25,7 @@ type ListAdminExtensionsHandler = {
 
 export function listAdminExtensions(params: ListAdminExtensionsParams): AdminExtensionDescriptor[] {
   const bean = __.newBean<ListAdminExtensionsHandler>(
-    'com.enonic.app.settings.lib.adminextension.ListAdminExtensionsHandler',
+    'com.enonic.xp.app.settings.lib.adminextension.ListAdminExtensionsHandler',
   );
   bean.setApplication(params.application);
   return __.toNativeObject(bean.execute());

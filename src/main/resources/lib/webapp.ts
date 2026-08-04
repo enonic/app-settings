@@ -15,7 +15,9 @@ type HasWebappHandler = {
 };
 
 export function hasWebapp(params: HasWebappParams): boolean {
-  const bean = __.newBean<HasWebappHandler>('com.enonic.app.settings.lib.webapp.HasWebappHandler');
+  const bean = __.newBean<HasWebappHandler>(
+    'com.enonic.xp.app.settings.lib.webapp.HasWebappHandler',
+  );
   bean.setApplication(params.application);
   return bean.execute();
 }

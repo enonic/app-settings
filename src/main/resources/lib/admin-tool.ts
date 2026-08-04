@@ -24,7 +24,7 @@ type ListAdminToolsHandler = {
 
 export function listAdminTools(params: ListAdminToolsParams): AdminToolDescriptor[] {
   const bean = __.newBean<ListAdminToolsHandler>(
-    'com.enonic.app.settings.lib.admintool.ListAdminToolsHandler',
+    'com.enonic.xp.app.settings.lib.admintool.ListAdminToolsHandler',
   );
   bean.setApplication(params.application);
   return __.toNativeObject(bean.execute());

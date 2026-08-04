@@ -148,9 +148,12 @@ while a child (item) route is matched and `DetailsEmpty` otherwise — but the c
 come and go, so the list never jumps sideways on a click. A page passes `details={<Outlet />}`
 unconditionally.
 
-An item page renders that same `DetailsEmpty` when its id resolves to nothing — an unknown id, or a
-section that has not loaded yet. The column then reads exactly as it does with no item route at all;
-what it must never do is render nothing, leaving a blank column while the url claims a selection.
+An item page renders that same `DetailsEmpty` when its id resolves to nothing — but not with the same
+phrase every time. **Loading, failed and gone are three states, and conflating any pair of them lies to
+the reader:** a section that has not loaded yet says `browse.details.loading`, one whose load failed
+says `<section>.details.failed`, an id nothing answers to says the item is gone, and only the absence of
+an item route reads as `browse.details.empty`. What the column must never do is render nothing, leaving
+it blank while the url claims a selection.
 
 A parent route component cannot read a child route's params without `from:`, so the check is
 `useChildMatches()`, not `useParams`. That is also what `useActiveKey()` beside the layout does: it
@@ -510,10 +513,20 @@ lookups like `useRole(id)` take `string`, never a cast to `PrincipalKey`.
   paging all retrigger a load, so the store aborts the previous one and drops its answer — otherwise
   the slower of two requests decides what the list shows. `roles.store.ts` is the shape to copy;
   `roles.api.ts` threads the signal even while it answers from fixtures.
-- The first load belongs in the slice's hook (`useRoles`), which is all a section needs to start.
-  Anything beyond it — reloading on `/identity` server events, paging orchestration — goes in a
-  sibling `model/<name>.service.ts` with `start()`/`stop()` per `.claude/rules/stores.md`, never in a
-  component effect.
+- **The first load is mount-driven and the result is cached.** `onMount($applications, …)` in
+  `applications.store.ts` loads only when the store holds no ready list, so a section fetches on its
+  first visit and reuses what it has on every later one; the page subscribes with `useStore` and the
+  slice exports a `refresh<Domain>()` for the Refresh button. The four fixture-backed principal slices
+  still load from a hook (`useRoles`) — they answer synchronously, so nothing is wasted, and #8 rewrites
+  their api segment anyway. Anything beyond the first load — reloading on server events, paging orchestration
+  — goes in a sibling `model/<name>.service.ts` with `start()`/`stop()` per `.claude/rules/stores.md`,
+  never in a component effect.
+- **A details panel takes its item from the route, not from a selection store.** The id comes from
+  `useParams`, and the panel asks a `use<Thing>(key)` hook in the entity slice for it —
+  `useApplication(key)` reads it out of the loaded list, `useApplicationInfo(key)` loads what the list
+  does not hold and caches an entry per key. An `entities/` store that subscribed to "the selected key"
+  would put per-section UI state in the domain slice and hide the load behind a second store; per
+  `.claude/rules/stores.md` a store never derives from another store that way.
 - Mapping a domain object to `BrowseRow` or to details fields happens in `pages/<section>/`.
 - An api file runs in the browser and therefore always calls an HTTP endpoint. `lib/xp/auth`
   and every other `/lib/xp/*` module is server-side only — it belongs behind that endpoint, never in

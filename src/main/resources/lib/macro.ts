@@ -24,7 +24,9 @@ type ListMacrosHandler = {
 };
 
 export function listMacros(params: ListMacrosParams): MacroDescriptor[] {
-  const bean = __.newBean<ListMacrosHandler>('com.enonic.app.settings.lib.macro.ListMacrosHandler');
+  const bean = __.newBean<ListMacrosHandler>(
+    'com.enonic.xp.app.settings.lib.macro.ListMacrosHandler',
+  );
   bean.setApplication(params.application);
   return __.toNativeObject(bean.execute());
 }

@@ -6,28 +6,33 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getConfig, serializeConfig, type ToolConfig } from './config';
 
 const config: ToolConfig = {
-  appId: 'com.enonic.app.settings',
+  appId: 'com.enonic.xp.app.settings',
   appVersion: '1.0.0',
   locale: 'en',
-  assetsUrl: '/admin/tool/_/asset/com.enonic.app.settings',
+  assetsUrl: '/admin/tool/_/asset/com.enonic.xp.app.settings',
   menuLoaderUrl: '/admin/tool/_/admin:extension/com.enonic.xp.app.main:menu-loader',
   phrases: { 'nav.users': 'Users' },
   apis: {
-    events: '/admin/tool/com.enonic.app.settings/main/_/com.enonic.app.settings:events',
-    graphql: '/admin/tool/com.enonic.app.settings/main/_/com.enonic.app.settings:graphql',
+    events: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:events',
+    graphql: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:graphql',
+    serverApp: {
+      start: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/start',
+      stop: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/stop',
+    },
   },
 };
 
 describe('getConfig', () => {
   beforeEach(() => {
-    vi.stubGlobal('app', { name: 'com.enonic.app.settings', version: '1.0.0' });
+    vi.stubGlobal('app', { name: 'com.enonic.xp.app.settings', version: '1.0.0' });
     vi.mocked(getPhrases).mockReturnValue({ 'nav.users': 'Users' });
     vi.mocked(assetUrl).mockReturnValue('/assets');
     vi.mocked(extensionUrl).mockImplementation(
       ({ application, extension }) => `/_/admin:extension/${application}:${extension}`,
     );
     vi.mocked(apiUrl).mockImplementation(
-      ({ api, type }) => `${type === 'websocket' ? 'ws:' : ''}/_/${api}`,
+      ({ api, type, path }) =>
+        `${type === 'websocket' ? 'ws:' : ''}/_/${api}${path == null ? '' : `/${String(path)}`}`,
     );
   });
 
@@ -60,8 +65,15 @@ describe('getConfig', () => {
   });
 
   it('addresses the app-owned graphql api by its qualified key', () => {
-    expect(getConfig(['en']).apis.graphql).toBe('/_/com.enonic.app.settings:graphql');
-    expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'com.enonic.app.settings:graphql' });
+    expect(getConfig(['en']).apis.graphql).toBe('/_/com.enonic.xp.app.settings:graphql');
+    expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'com.enonic.xp.app.settings:graphql' });
+  });
+
+  it('points at the lifecycle endpoints of the built-in server:app api', () => {
+    expect(getConfig(['en']).apis.serverApp).toEqual({
+      start: '/_/server:app/start',
+      stop: '/_/server:app/stop',
+    });
   });
 });
 

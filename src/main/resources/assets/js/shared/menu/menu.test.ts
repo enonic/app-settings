@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MENU_LOADER_SCRIPT_ID, menuLoaderSrc, syncMenuPanel } from './menu';
 
 const LOADER_URL = '/admin/tool/_/admin:extension/com.enonic.xp.app.main:menu-loader';
-const BASE_URL = 'https://localhost:8080/admin/tool/com.enonic.app.settings/main';
-const APP = 'com.enonic.app.settings';
+const BASE_URL = 'https://localhost:8080/admin/tool/com.enonic.xp.app.settings/main';
+const APP = 'com.enonic.xp.app.settings';
 
 type Script = HTMLScriptElement & { src?: string };
 

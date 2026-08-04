@@ -3,6 +3,10 @@ import { AppError } from '../api';
 export type ApiUrls = {
   events: string;
   graphql: string;
+  serverApp: {
+    start: string;
+    stop: string;
+  };
 };
 
 export type ToolConfig = {
@@ -27,7 +31,10 @@ function isToolConfig(value: unknown): value is ToolConfig {
     typeof phrases === 'object' &&
     apis != null &&
     typeof apis.events === 'string' &&
-    typeof apis.graphql === 'string'
+    typeof apis.graphql === 'string' &&
+    apis.serverApp != null &&
+    typeof apis.serverApp.start === 'string' &&
+    typeof apis.serverApp.stop === 'string'
   );
 }
 

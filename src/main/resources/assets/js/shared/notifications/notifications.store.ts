@@ -96,9 +96,9 @@ export function resumeNotification(id: number): void {
   startTimer(id);
 }
 
-//
+// *
 // * Internal
-//
+// *
 
 type ToneOptions = Omit<NotificationOptions, 'text' | 'tone'>;
 

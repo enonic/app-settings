@@ -549,7 +549,7 @@ open.
 
 The base exists, so this is mostly moving known-good code.
 
-- Bring `lib/auth/**` (19 files) + `KidGeneratorHandler`, package renamed to `com.enonic.app.settings`.
+- Bring `lib/auth/**` (19 files) + `KidGeneratorHandler`, package renamed to `com.enonic.xp.app.settings`.
   Bring their `src/test/resources/**/*-test.js` fixtures — they pin the `PropertyTree` wire format and
   nothing else does.
 - The JS wrapper is `lib/idprovider.ts`, **not** `lib/auth.ts` — that name is the `adminOnly` guard.

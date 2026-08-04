@@ -1,9 +1,16 @@
 import { encodeApplicationIcon } from '/lib/icon';
-import { getDescriptor, list, type Application, type ApplicationDescriptor } from '/lib/xp/app';
+import {
+  get,
+  getDescriptor,
+  list,
+  type Application,
+  type ApplicationDescriptor,
+} from '/lib/xp/app';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   displayNameOf,
+  getApplication,
   iconDataUriOf,
   listApplications,
   type ApplicationSource,
@@ -91,6 +98,32 @@ describe('displayNameOf', () => {
     const withEmptyTitle = { ...source('com.example.blank', ''), descriptor: descriptor('x', '') };
 
     expect(displayNameOf(withEmptyTitle)).toBe('com.example.blank');
+  });
+});
+
+describe('getApplication', () => {
+  it('attaches the descriptor to the application', () => {
+    vi.mocked(get).mockReturnValue(application('com.example.a'));
+    vi.mocked(getDescriptor).mockReturnValue(descriptor('com.example.a', 'Alpha'));
+
+    const found = getApplication('com.example.a');
+
+    expect(found?.key).toBe('com.example.a');
+    expect(found?.descriptor?.title).toBe('Alpha');
+  });
+
+  it('keeps a null descriptor rather than dropping the application', () => {
+    vi.mocked(get).mockReturnValue(application('com.example.bare'));
+    vi.mocked(getDescriptor).mockReturnValue(null);
+
+    expect(getApplication('com.example.bare')?.descriptor).toBeNull();
+  });
+
+  it('reports null when no such application is installed', () => {
+    vi.mocked(get).mockReturnValue(null);
+
+    expect(getApplication('com.example.gone')).toBeNull();
+    expect(vi.mocked(getDescriptor)).not.toHaveBeenCalled();
   });
 });
 

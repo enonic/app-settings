@@ -25,7 +25,7 @@ export function getIdProviderDescriptor(
   params: GetIdProviderDescriptorParams,
 ): IdProviderDescriptor | null {
   const bean = __.newBean<GetIdProviderDescriptorHandler>(
-    'com.enonic.app.settings.lib.idprovider.GetIdProviderDescriptorHandler',
+    'com.enonic.xp.app.settings.lib.idprovider.GetIdProviderDescriptorHandler',
   );
   bean.setApplication(params.application);
   return __.toNativeObject(bean.execute());

@@ -6,8 +6,9 @@
 .AppleDouble
 .LSOverride
 
-# Icon must end with two \r
-Icon
+# Finder's icon file is literally "Icon\r"; the bare name would also catch icon/ directories on this
+# case-insensitive filesystem, and `Icon?` would catch `Icons` — so match the control char itself.
+Icon[[:cntrl:]]
 
 
 # Thumbnails
