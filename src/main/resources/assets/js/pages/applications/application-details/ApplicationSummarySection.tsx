@@ -2,7 +2,7 @@ import { Link } from '@enonic/ui';
 
 import type { Application } from '../../../entities/application';
 import { formatDateTime } from '../../../shared/format';
-import { useI18n } from '../../../shared/i18n';
+import { i18n } from '../../../shared/i18n';
 import { DetailsPanel } from '../../../widgets/details-panel/DetailsPanel';
 import { systemVersionPhrase } from '../model/application-details';
 
@@ -13,8 +13,6 @@ export type ApplicationSummarySectionProps = {
 // TODO: [#3] The available version and its update button need the market call — § 5.8 of
 // docs/browse-framework.md.
 export function ApplicationSummarySection({ application }: ApplicationSummarySectionProps) {
-  const t = useI18n();
-
   const { key, version, modifiedTime, minSystemVersion, maxSystemVersion, vendorName, vendorUrl } =
     application;
   const systemVersion = systemVersionPhrase(minSystemVersion, maxSystemVersion);
@@ -47,7 +45,7 @@ export function ApplicationSummarySection({ application }: ApplicationSummarySec
 
       {systemVersion !== undefined && (
         <DetailsPanel.Field labelKey="applications.details.systemRequired">
-          {t(systemVersion.labelKey, ...systemVersion.args)}
+          {i18n(systemVersion.labelKey, ...systemVersion.args)}
         </DetailsPanel.Field>
       )}
     </DetailsPanel.Section>

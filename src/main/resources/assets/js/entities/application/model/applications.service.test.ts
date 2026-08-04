@@ -6,13 +6,9 @@ import {
   type ServerEventListener,
 } from '../../../shared/server-events';
 import { invalidateApplicationInfo } from './application-info.store';
+import { loadApplication, loadApplications } from './applications.load';
 import { start, stop, toApplicationChange } from './applications.service';
-import {
-  $applications,
-  refreshApplication,
-  refreshApplications,
-  removeApplication,
-} from './applications.store';
+import { $applications, removeApplication } from './applications.store';
 
 const subscribed = vi.hoisted(() => ({ listeners: [] as unknown[] }));
 
@@ -28,10 +24,13 @@ vi.mock('../../../shared/server-events', async (importOriginal) => ({
 
 vi.mock('./application-info.store', () => ({ invalidateApplicationInfo: vi.fn() }));
 
+vi.mock('./applications.load', () => ({
+  loadApplication: vi.fn(),
+  loadApplications: vi.fn(),
+}));
+
 vi.mock('./applications.store', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./applications.store')>()),
-  refreshApplication: vi.fn(),
-  refreshApplications: vi.fn(),
   removeApplication: vi.fn(),
 }));
 
@@ -85,8 +84,8 @@ describe('toApplicationChange', () => {
 describe('the applications service', () => {
   beforeEach(() => {
     subscribed.listeners = [];
-    vi.mocked(refreshApplication).mockReset();
-    vi.mocked(refreshApplications).mockReset();
+    vi.mocked(loadApplication).mockReset();
+    vi.mocked(loadApplications).mockReset();
     vi.mocked(removeApplication).mockReset();
     vi.mocked(invalidateApplicationInfo).mockReset();
     $applications.set({ status: 'ready', items: [] });
@@ -107,22 +106,22 @@ describe('the applications service', () => {
   it('refetches the one application a state change names', () => {
     emit(applicationEvent('STOPPED', 'com.enonic.app.booster'));
 
-    expect(refreshApplication).toHaveBeenCalledWith('com.enonic.app.booster');
-    expect(refreshApplications).not.toHaveBeenCalled();
+    expect(loadApplication).toHaveBeenCalledWith('com.enonic.app.booster');
+    expect(loadApplications).not.toHaveBeenCalled();
   });
 
   it('reloads the whole list for an application that was not there before', () => {
     emit(applicationEvent('INSTALLED', 'com.enonic.app.fathom'));
 
-    expect(refreshApplications).toHaveBeenCalledTimes(1);
+    expect(loadApplications).toHaveBeenCalledTimes(1);
   });
 
   it('drops an uninstalled application without asking the server', () => {
     emit(applicationEvent('UNINSTALLED', 'com.enonic.app.fathom'));
 
     expect(removeApplication).toHaveBeenCalledWith('com.enonic.app.fathom');
-    expect(refreshApplications).not.toHaveBeenCalled();
-    expect(refreshApplication).not.toHaveBeenCalled();
+    expect(loadApplications).not.toHaveBeenCalled();
+    expect(loadApplication).not.toHaveBeenCalled();
   });
 
   it('forgets what the application provides, whatever the change was', () => {
@@ -135,17 +134,17 @@ describe('the applications service', () => {
     emit(applicationEvent('PROGRESS', 'com.enonic.app.booster'));
 
     expect(invalidateApplicationInfo).not.toHaveBeenCalled();
-    expect(refreshApplication).not.toHaveBeenCalled();
+    expect(loadApplication).not.toHaveBeenCalled();
   });
 
   it('reloads the list after a reconnect, which may have missed events', () => {
     $serverEventsConnected.set(true);
-    expect(refreshApplications).not.toHaveBeenCalled();
+    expect(loadApplications).not.toHaveBeenCalled();
 
     $serverEventsConnected.set(false);
     $serverEventsConnected.set(true);
 
-    expect(refreshApplications).toHaveBeenCalledTimes(1);
+    expect(loadApplications).toHaveBeenCalledTimes(1);
   });
 
   it('leaves a list it never loaded alone, on a reconnect and on an install alike', () => {
@@ -156,7 +155,7 @@ describe('the applications service', () => {
     $serverEventsConnected.set(true);
     emit(applicationEvent('INSTALLED', 'com.enonic.app.fathom'));
 
-    expect(refreshApplications).not.toHaveBeenCalled();
+    expect(loadApplications).not.toHaveBeenCalled();
   });
 
   it('stops listening once it is stopped', () => {
@@ -164,6 +163,6 @@ describe('the applications service', () => {
     emit(applicationEvent('STOPPED', 'com.enonic.app.booster'));
 
     expect(subscribed.listeners).toHaveLength(0);
-    expect(refreshApplication).not.toHaveBeenCalled();
+    expect(loadApplication).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,4 @@
-import { map } from 'nanostores';
+import { computed, map, type ReadableAtom } from 'nanostores';
 import type { Result } from 'neverthrow';
 
 import type { AppError } from '../../../shared/api';
@@ -61,14 +61,6 @@ export function beginUsersAppend(): void {
 }
 
 /**
- * Where the next page starts, or `undefined` when there is no next page to ask for.
- *
- * The screen owns the paging but not the rows, so it asks the store where it has got to rather than
- * reading `items` through the barrel — which would make the slice's internals part of its public surface.
- * Undefined while a first page is still loading and while one is already on its way, which is what makes
- * two clicks on `Load more` one page.
- */
-/**
  * ! Offset paging over a set someone else may be editing can return a row already loaded — a user created
  * ! above the offset shifts everything down by one. A duplicate key would render twice and the two rows
  * ! would tick as one, so the page keeps only what is new.
@@ -78,11 +70,32 @@ function withoutLoaded(page: readonly User[], loaded: readonly User[]): User[] {
   return page.filter(({ key }) => !keys.has(key));
 }
 
+/**
+ * Whether there is another page to ask for.
+ *
+ * ! The one answer to that question. `Load more` used to decide its own visibility from `items.length <
+ * ! total` while this decided whether to send anything, and the two disagreed the moment a page came back
+ * ! adding nothing: the control stayed on screen and every click did nothing at all, silently.
+ */
+export const $usersHasMore: ReadableAtom<boolean> = computed($users, hasMore);
+
+/**
+ * Where the next page starts, or `undefined` when there is no next page to ask for.
+ *
+ * The screen owns the paging but not the rows, so it asks the store where it has got to rather than
+ * reading `items` through the barrel — which would make the slice's internals part of its public surface.
+ * Undefined while a first page is still loading and while one is already on its way, which is what makes
+ * two clicks on `Load more` one page.
+ */
 export function usersAppendStart(): number | undefined {
-  const { status, appending, exhausted, items, total } = $users.get();
-  return status !== 'ready' || appending || exhausted || items.length >= total
+  const state = $users.get();
+  return state.status !== 'ready' || state.appending || !hasMore(state)
     ? undefined
-    : items.length;
+    : state.items.length;
+}
+
+function hasMore({ items, total, exhausted }: UsersState): boolean {
+  return !exhausted && items.length < total;
 }
 
 export function receiveUsers(result: Result<UsersPage, AppError>): void {

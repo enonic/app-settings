@@ -1,12 +1,11 @@
 import { ContextMenu } from '@enonic/ui';
 import type { ReactNode } from 'react';
 
-import { useI18n } from '../../shared/i18n';
-import type { ActionContext, SectionAction } from '../browse-toolbar/actions';
+import type { ActionContext, LabelledAction } from '../browse-toolbar/actions';
 
 export type BrowseListContextMenuProps<T> = {
   /** The section's toolbar actions — the row menu never gets a list of its own. */
-  actions: readonly SectionAction<T>[];
+  actions: readonly LabelledAction<T>[];
   context: ActionContext<T>;
   children: ReactNode;
 };
@@ -16,8 +15,6 @@ export function BrowseListContextMenu<T>({
   context,
   children,
 }: BrowseListContextMenuProps<T>) {
-  const t = useI18n();
-
   if (actions.length === 0) {
     return <>{children}</>;
   }
@@ -33,7 +30,7 @@ export function BrowseListContextMenu<T>({
               disabled={!action.enabled(context)}
               onSelect={() => void action.run(context)}
             >
-              {t(action.labelKey)}
+              {action.label}
             </ContextMenu.Item>
           ))}
         </ContextMenu.Content>

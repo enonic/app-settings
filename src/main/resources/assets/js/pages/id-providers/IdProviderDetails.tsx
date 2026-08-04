@@ -11,7 +11,9 @@ export type IdProviderDetailsProps = {
 };
 
 export function IdProviderDetails({ provider }: IdProviderDetailsProps) {
-  const t = useI18n();
+  const editLabel = useI18n('idProviders.details.edit');
+  const noApplicationLabel = useI18n('idProviders.details.noApplication');
+
   const { key, displayName, description, application, users, groups } = provider;
 
   // Counted, not enumerated: a section appears because the provider holds principals, and its rows
@@ -34,7 +36,7 @@ export function IdProviderDetails({ provider }: IdProviderDetailsProps) {
         labelKey="idProviders.details.info"
         action={
           // TODO: [#4] Opens the provider wizard once it exists.
-          <Button variant="outline" size="sm" label={t('idProviders.details.edit')} />
+          <Button variant="outline" size="sm" label={editLabel} />
         }
       >
         {description !== undefined && (
@@ -43,7 +45,7 @@ export function IdProviderDetails({ provider }: IdProviderDetailsProps) {
           </DetailsPanel.Field>
         )}
         <DetailsPanel.Field labelKey="idProviders.details.application">
-          {application?.displayName ?? t('idProviders.details.noApplication')}
+          {application?.displayName ?? noApplicationLabel}
         </DetailsPanel.Field>
       </DetailsPanel.Section>
 

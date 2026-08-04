@@ -1,7 +1,8 @@
 import { useStore } from '@nanostores/preact';
 import { useEffect } from 'preact/hooks';
 
-import { $userDetail, showUser, type UserDetailState } from './user-detail.store';
+import { showUser } from './user-detail.load';
+import { $userDetail, type UserDetailState } from './user-detail.store';
 
 /**
  * The one details panel that loads: the Users list is paged, so the selected user need not be among the

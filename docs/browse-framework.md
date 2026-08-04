@@ -97,7 +97,7 @@ widgets/browse-screen/useBrowseSection.ts   rows, action context and handlers fr
 widgets/browse-layout/BrowseLayout.tsx      the columns: toolbar, list column, details column
 widgets/browse-layout/browse-layout.ts      column minimums, clampDetailsWidth, the stored width
 widgets/browse-layout/useActiveKey.ts       the item route's $id, for `activeKey`
-widgets/browse-toolbar/actions.ts           SectionAction<T>, ActionContext<T>, actionTargets
+widgets/browse-toolbar/actions.ts           SectionAction<T>, LabelledAction<T>, ActionContext<T>
 widgets/browse-toolbar/BrowseToolbar.tsx    the full-width action toolbar
 widgets/browse-list/browse-list.ts          BrowseRow and the pure list logic: selectableKeys,
                                             selectAllState, toggledSelection, contextMenuTarget,
@@ -181,6 +181,7 @@ export type ActionContext<T> = {
 /** Ticked rows, or the active row when none are ticked. */
 export function actionTargets<T>(ctx: ActionContext<T>): readonly T[];
 
+/** What a section declares: a key, because the list is a module constant. */
 export type SectionAction<T> = {
   id: string;
   labelKey: string;
@@ -189,14 +190,17 @@ export type SectionAction<T> = {
   run: (ctx: ActionContext<T>) => void | Promise<void>;
 };
 
+/** What renders: `BrowseScreen` resolves the labels once with `useLabelled` and hands these down. */
+export type LabelledAction<T> = SectionAction<T> & { label: string };
+
 export type BrowseToolbarProps<T> = {
-  actions: readonly SectionAction<T>[];
+  actions: readonly LabelledAction<T>[];
   context: ActionContext<T>;
 };
 
 // widgets/browse-list/BrowseListContextMenu.tsx — the same list, on right-click
 export type BrowseListContextMenuProps<T> = {
-  actions: readonly SectionAction<T>[];
+  actions: readonly LabelledAction<T>[];
   context: ActionContext<T>;
   children: ReactNode;
 };
@@ -558,15 +562,18 @@ lookups like `useRole(id)` take `string`, never a cast to `PrincipalKey`.
   two requests decides what the list shows. The transport drops a request whose signal aborted before it
   reached the network, so an abandoned load costs the server nothing.
 - **Who owns the load depends on how many domains the section reads.** A section reading one domain leaves
-  it to that slice — `loadIdProviders` in `id-providers.store.ts`, started from `useIdProviders`, and
-  `onMount($applications, …)` in `applications.store.ts`, which loads only when the store holds no ready
-  list, so a first visit fetches and every later one reuses what it has. A section reading several asks for
-  them in one request and owns the load itself: `pages/<section>/model/<section>.screen.ts` fetches, fans
-  the answer out into the stores through their `receive…` commands, and cancels; those stores then hold no
-  request of their own and their hooks are plain reads. Roles reads three domains, Groups two.
-- A reload the user did not ask for must not blank a list that is already on screen: `refreshApplications`
-  reports `loading` only while it has nothing to show, so a server event or a reconnect never replaces the
-  rows with a skeleton.
+  it to that slice — `loadIdProviders` in `id-providers.load.ts`, `ensureApplications` in
+  `applications.load.ts` — started from `pages/<section>/model/use<Section>Screen.ts`. A section reading
+  several asks for them in one request and owns the load itself: `pages/<section>/model/<section>.screen.ts`
+  fetches, fans the answer out into the stores through their `receive…` commands, and cancels. Either way
+  the store itself holds no request, its hooks are plain reads, and the full contract is in
+  `.claude/rules/stores.md` § Loading.
+- **Caching is a line, not an accident.** `ensure<Domain>()` loads on a first visit and serves what it has
+  on a later one; `load<Domain>()` always goes to the server. Applications caches, the principal sections
+  do not, and both say so at their one call site.
+- A reload the user did not ask for must not blank a list that is already on screen:
+  `beginApplicationsLoad` reports `loading` only while it has nothing to show, so a server event or a
+  reconnect never replaces the rows with a skeleton.
 - Anything beyond a first load — reloading on `/identity` or `application` server events, paging
   orchestration — goes in a sibling `model/<name>.service.ts` with `start()`/`stop()` per
   `.claude/rules/stores.md`, never in a component effect.

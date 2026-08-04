@@ -49,7 +49,13 @@ export function BrowseList({
   loadingMore,
   loadMoreError,
 }: BrowseListProps) {
-  const t = useI18n();
+  const loadMoreLabel = useI18n(
+    loadingMore === true ? 'browse.list.loadingMore' : 'browse.list.loadMore',
+  );
+  const errorMessage = useI18n('browse.list.error');
+  const emptyMessage = useI18n('browse.list.empty');
+  const listLabel = useI18n('browse.list.label');
+  // ! Above the early returns below, where a hook cannot go.
   // ! The cursor is the row the user last pointed at — a click, an arrow, a tick, an untick — and
   // ! nothing else moves it. It starts on the row a deep link opened, and it deliberately does not
   // ! follow the details column: unticking a row moves the column to the row ticked before it, and
@@ -66,11 +72,11 @@ export function BrowseList({
   }
 
   if (status === 'error') {
-    return <BrowseListMessage tone="error">{t('browse.list.error')}</BrowseListMessage>;
+    return <BrowseListMessage tone="error">{errorMessage}</BrowseListMessage>;
   }
 
   if (rows.length === 0) {
-    return <BrowseListMessage>{emptyLabel ?? t('browse.list.empty')}</BrowseListMessage>;
+    return <BrowseListMessage>{emptyLabel ?? emptyMessage}</BrowseListMessage>;
   }
 
   // ! Resolved against the rows on screen, never the stored key alone: a query can filter the
@@ -141,12 +147,7 @@ export function BrowseList({
             ! element, so a keyboard user who activates this would lose their place on every click — and
             ! the section already refuses a second request while one is in flight, which is the guard that
             ! matters. The label is the feedback; the state is not a gate. */}
-        <Button
-          variant="filled"
-          size="sm"
-          label={t(loadingMore === true ? 'browse.list.loadingMore' : 'browse.list.loadMore')}
-          onClick={onLoadMore}
-        />
+        <Button variant="filled" size="sm" label={loadMoreLabel} onClick={onLoadMore} />
         {loadMoreError !== undefined && (
           <p role="status" className="text-error text-xs">
             {loadMoreError}
@@ -160,7 +161,7 @@ export function BrowseList({
       <div
         role="listbox"
         aria-multiselectable
-        aria-label={t('browse.list.label')}
+        aria-label={listLabel}
         onKeyDown={handleKeyDown}
         className="flex flex-col gap-y-1.5"
       >

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { i18n } from './i18n';
 import { $locale, $phrases, localize, setPhrases } from './i18n.store';
 
 describe('localize', () => {
@@ -26,6 +27,20 @@ describe('localize', () => {
 
   it('leaves a placeholder untouched when no value was supplied', () => {
     expect(localize(phrases, 'multiple', 'only')).toBe('only of {1}');
+  });
+});
+
+describe('i18n', () => {
+  it('resolves against the phrases the shell published, at call time', () => {
+    setPhrases({ greeting: 'Hei {0}' }, 'no');
+
+    expect(i18n('greeting', 'Bruno')).toBe('Hei Bruno');
+  });
+
+  it('marks a key the phrases do not carry', () => {
+    setPhrases({}, 'en');
+
+    expect(i18n('nope')).toBe('#nope#');
   });
 });
 

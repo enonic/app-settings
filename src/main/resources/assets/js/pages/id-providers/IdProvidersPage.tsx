@@ -25,7 +25,6 @@ import { $idProvidersSort, setIdProvidersSort } from './model/sort.store';
 import { useIdProvidersScreen } from './model/useIdProvidersScreen';
 
 export function IdProvidersPage() {
-  const t = useI18n();
   const navigate = useNavigate();
   useIdProvidersScreen();
   const { status, items } = useIdProviders();
@@ -33,12 +32,17 @@ export function IdProvidersPage() {
   const selectedApplications = useStore(idProvidersFilter.$selected);
   const sort = useStore($idProvidersSort);
 
+  const sortAscLabel = useI18n('idProviders.sort.nameAsc');
+  const sortDescLabel = useI18n('idProviders.sort.nameDesc');
+  const unboundLabel = useI18n('idProviders.filter.unbound');
+  const emptyLabel = useI18n('idProviders.list.empty');
+
   const sortOptions = useMemo(
     () => [
-      { id: 'asc', label: t('idProviders.sort.nameAsc') },
-      { id: 'desc', label: t('idProviders.sort.nameDesc') },
+      { id: 'asc', label: sortAscLabel },
+      { id: 'desc', label: sortDescLabel },
     ],
-    [t],
+    [],
   ) satisfies readonly { id: SortDirection; label: string }[];
 
   // Shared with the filter entries below, so the query runs once per render rather than twice.
@@ -53,12 +57,8 @@ export function IdProvidersPage() {
   // Entries follow the query but not the ticked applications, so the filter shrinks with the
   // search rather than restating the current narrowing.
   const entries = useMemo(
-    () =>
-      visibleEntries(
-        applicationEntries(items, searched, t('idProviders.filter.unbound')),
-        selectedApplications,
-      ),
-    [items, searched, selectedApplications, t],
+    () => visibleEntries(applicationEntries(items, searched, unboundLabel), selectedApplications),
+    [items, searched, selectedApplications],
   );
 
   const section = useBrowseSection({
@@ -81,7 +81,7 @@ export function IdProvidersPage() {
     <BrowseScreen
       {...section}
       actions={ID_PROVIDER_ACTIONS}
-      emptyLabel={t('idProviders.list.empty')}
+      emptyLabel={emptyLabel}
       details={<Outlet />}
       filter={
         <BrowseFilter

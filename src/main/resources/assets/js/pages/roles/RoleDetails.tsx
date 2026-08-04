@@ -12,8 +12,11 @@ export type RoleDetailsProps = {
 };
 
 export function RoleDetails({ role }: RoleDetailsProps) {
-  const t = useI18n();
   const providerName = useIdProviderName();
+
+  const editLabel = useI18n('roles.details.edit');
+  const noDescriptionLabel = useI18n('roles.details.noDescription');
+
   const { key, displayName, description, modifiedTime, members } = role;
 
   // Users first, groups last, both flat: a group in a role is a row, not a branch.
@@ -34,11 +37,11 @@ export function RoleDetails({ role }: RoleDetailsProps) {
         labelKey="roles.details.role"
         action={
           // TODO: [#5] Opens the role wizard once it exists.
-          <Button variant="outline" size="sm" label={t('roles.details.edit')} />
+          <Button variant="outline" size="sm" label={editLabel} />
         }
       >
         <DetailsPanel.Field labelKey="roles.details.description">
-          {description ?? t('roles.details.noDescription')}
+          {description ?? noDescriptionLabel}
         </DetailsPanel.Field>
         {modifiedTime !== undefined && (
           <DetailsPanel.Field labelKey="roles.details.timestamps">

@@ -1,4 +1,4 @@
-import type { IdProvider } from '../../../entities/principal';
+import type { IdProviderName } from '../../../entities/principal';
 import type { BrowseFilterEntry } from '../../../widgets/browse-list/browse-filter';
 
 /**
@@ -12,6 +12,6 @@ import type { BrowseFilterEntry } from '../../../widgets/browse-list/browse-filt
  * There is no search helper beside this one: `findUsers` does the matching, so nothing filters on the
  * client. See `pages/users/model/query.store.ts` for what is asked of the server instead.
  */
-export function providerEntries(providers: readonly IdProvider[]): BrowseFilterEntry[] {
+export function providerEntries(providers: readonly IdProviderName[]): BrowseFilterEntry[] {
   return providers.map(({ key, displayName }) => ({ id: key, label: displayName }));
 }

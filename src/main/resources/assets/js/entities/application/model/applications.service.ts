@@ -5,12 +5,8 @@ import {
   type ServerEvent,
 } from '../../../shared/server-events';
 import { invalidateApplicationInfo } from './application-info.store';
-import {
-  $applications,
-  refreshApplication,
-  refreshApplications,
-  removeApplication,
-} from './applications.store';
+import { loadApplication, loadApplications } from './applications.load';
+import { isApplicationsCached, removeApplication } from './applications.store';
 
 export type ApplicationChange = {
   kind: 'installed' | 'uninstalled' | 'changed';
@@ -65,8 +61,8 @@ export function start(): void {
     }
     if (disconnected) {
       disconnected = false;
-      if (isListCached()) {
-        void refreshApplications();
+      if (isApplicationsCached()) {
+        void loadApplications();
       }
     }
   });
@@ -92,19 +88,15 @@ function handleServerEvent(event: ServerEvent): void {
 
   switch (change.kind) {
     case 'installed':
-      if (isListCached()) {
-        void refreshApplications();
+      if (isApplicationsCached()) {
+        void loadApplications();
       }
       return;
     case 'uninstalled':
       removeApplication(change.key);
       return;
     case 'changed':
-      void refreshApplication(change.key);
+      void loadApplication(change.key);
       return;
   }
-}
-
-function isListCached(): boolean {
-  return $applications.get().status === 'ready';
 }

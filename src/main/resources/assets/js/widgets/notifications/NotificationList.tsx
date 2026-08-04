@@ -18,11 +18,12 @@ const POSITION =
   'md:right-11.5 md:bottom-7.5 lg:right-15 lg:bottom-10 2xl:right-23 2xl:bottom-15';
 
 export function NotificationList() {
-  const i18n = useI18n();
   const notifications = useStore($notifications);
 
+  const regionLabel = useI18n('notifications.label');
+
   return (
-    <div className={POSITION} role="region" aria-label={i18n('notifications.label')}>
+    <div className={POSITION} role="region" aria-label={regionLabel}>
       {/* ? Announced reliably only if the region predates its content, so these stay mounted and
           the toasts are silenced with `aria-live="off"`. */}
       <div className="sr-only" aria-live="polite">

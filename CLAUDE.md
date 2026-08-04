@@ -110,8 +110,10 @@ keys beyond what its props carry — and is worth naming in review as a candidat
 - `.claude/rules/` holds them, scoped by file pattern: `structure.md`, `typescript.md`, `preact.md`,
   `stores.md`, `requests.md`, `enonic-ui.md`, `testing.md`, `comments.md`. Read the relevant rule
   before writing in that area.
-- Every user-visible string goes through `useI18n()`; phrases live in `i18n/phrases.properties`,
-  sentence-case, grouped by section. Existing keys are `nav.<section>`, `section.<section>.title`,
+- Every user-visible string goes through `shared/i18n`: a component names its strings at the top with the
+  `useI18n(key)` hook and renders them by name, and `i18n(key)` is the plain function for where a hook
+  cannot go — a key that varies per row, a store, an entity command. Phrases live in
+  `i18n/phrases.properties`, sentence-case, grouped by section. Existing keys are `nav.<section>`, `section.<section>.title`,
   `browse.*` for the browse widgets and ungrouped app-shell keys; new section keys extend that as
   `<section>.<area>.<name>`.
 - Tests sit next to the code as `*.test.ts(x)`. The vitest environment is `node` and no DOM library

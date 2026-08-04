@@ -23,13 +23,16 @@ export function BrowseListHeader({
   filter,
   sort,
 }: BrowseListHeaderProps) {
-  const t = useI18n();
+  const selectAllLabel = useI18n('browse.selectAll');
+  const refreshLabel = useI18n('browse.refresh');
+  const filterLabel = useI18n('browse.filter');
+  const sortLabel = useI18n('browse.sort');
 
   return (
     <div className="flex shrink-0 items-center justify-between gap-2">
       <Checkbox
         checked={allSelected}
-        label={t('browse.selectAll')}
+        label={selectAllLabel}
         onCheckedChange={(checked) => onSelectAllChange(checked === true)}
         // ? Checkbox exposes no hook for its label text, so the padding is aimed at the text
         // ? span from the label class: the box itself must not move.
@@ -42,7 +45,7 @@ export function BrowseListHeader({
         <Button
           variant="text"
           startIcon={RefreshCw}
-          label={t('browse.refresh')}
+          label={refreshLabel}
           onClick={onRefresh}
           className={BUTTON_CLASS}
         />
@@ -50,7 +53,7 @@ export function BrowseListHeader({
           <Button
             variant="text"
             startIcon={Filter}
-            label={t('browse.filter')}
+            label={filterLabel}
             disabled
             className={BUTTON_CLASS}
           />
@@ -59,7 +62,7 @@ export function BrowseListHeader({
           <Button
             variant="text"
             startIcon={ArrowDownUp}
-            label={t('browse.sort')}
+            label={sortLabel}
             disabled
             className={BUTTON_CLASS}
           />

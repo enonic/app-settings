@@ -75,11 +75,11 @@ export function DetailsHeader({ title, subtitle, icon, action }: DetailsHeaderPr
 }
 
 export function DetailsSection({ labelKey, count, action, children }: DetailsSectionProps) {
-  const t = useI18n();
+  const label = useI18n(labelKey);
 
   return (
     <section className="flex flex-col gap-2.5">
-      <Separator label={withCount(t(labelKey), count)} className="text-base" />
+      <Separator label={withCount(label, count)} className="text-base" />
       {children}
       {action && <div className="flex justify-end">{action}</div>}
     </section>
@@ -87,22 +87,22 @@ export function DetailsSection({ labelKey, count, action, children }: DetailsSec
 }
 
 export function DetailsSubsection({ labelKey, count, children }: DetailsSubsectionProps) {
-  const t = useI18n();
+  const label = useI18n(labelKey);
 
   return (
     <div className="flex flex-col gap-2.5">
-      <h4 className="text-sm font-semibold">{withCount(t(labelKey), count)}</h4>
+      <h4 className="text-sm font-semibold">{withCount(label, count)}</h4>
       {children}
     </div>
   );
 }
 
 export function DetailsField({ labelKey, children }: DetailsFieldProps) {
-  const t = useI18n();
+  const label = useI18n(labelKey);
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-xs font-semibold">{t(labelKey)}</span>
+      <span className="text-xs font-semibold">{label}</span>
       <span className="text-xs font-normal wrap-anywhere">{children}</span>
     </div>
   );

@@ -25,24 +25,38 @@ slot `ComponentChildren`; the two are not interchangeable in the library's props
 
 ## Components
 
-Hook order inside a component: refs and store hooks, then state and memos, then effects, then
-computed class names, then early returns, then JSX.
+Hook order inside a component reads as what it does: **what it starts, what it reads, what it says, what
+it derives.**
+
+1. the section's screen hook — `useUsersScreen()`, which starts the load and returns nothing
+2. refs, route and store reads — `useRef`, `useParams`, `useStore`, `use<Domain>()`
+3. labels — `useI18n`, `useLabelled`
+4. state and memos
+5. effects
+6. computed class names, then early returns, then JSX
 
 ```tsx
-export function BrowseList({ rows, className }: BrowseListProps) {
-  const listRef = useRef<HTMLDivElement>(null);
-  const selected = useStore($selected);
+export function UsersPage() {
+  useUsersScreen();
+  const { status, items } = useUsers();
 
-  if (rows.length === 0) return <BrowseListEmpty />;
+  const emptyLabel = useI18n('users.list.empty');
 
-  return <div ref={listRef} className={className} />;
+  const visible = useMemo(() => searchUsers(items, query), [items, query]);
+
+  if (status === 'error') return <BrowseListMessage tone="error" />;
 }
 ```
+
+Labels come before the memos because a memo is built from them — a page's filter entries are labels — and
+every hook comes before the early returns, since a hook cannot be called conditionally. A screen hook goes
+first even though it is an effect: it is why the component has anything to read.
 
 - Early return instead of `<>{ready && …}</>`.
 - Minimize `useEffect`: derive from stores and props first; an effect is for subscriptions and
   imperative DOM work. `useServerEvent` already wraps the subscribe/unsubscribe pattern.
-- `useCallback` / `useMemo` only where a dependency actually needs stability, as `useI18n` does.
+- `useCallback` / `useMemo` only where a dependency actually needs stability, as `useIdProviderName`
+  does — a fresh closure per render would kill the memo a page builds its filter entries with.
 
 ## Known type friction
 

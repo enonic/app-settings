@@ -33,24 +33,18 @@ export function BrowseFilter({
   mode = 'multiple',
   notice,
 }: BrowseFilterProps) {
-  const t = useI18n();
+  const filterLabel = useI18n('browse.filter');
 
   if (entries.length === 0 && notice === undefined) {
     return (
-      <Button
-        variant="text"
-        startIcon={Filter}
-        label={t('browse.filter')}
-        disabled
-        className="px-4.5"
-      />
+      <Button variant="text" startIcon={Filter} label={filterLabel} disabled className="px-4.5" />
     );
   }
 
   return (
     <Menu>
       <Menu.Trigger asChild>
-        <Button variant="text" startIcon={Filter} label={t('browse.filter')} className="px-4.5" />
+        <Button variant="text" startIcon={Filter} label={filterLabel} className="px-4.5" />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Content align="end" className="min-w-56">

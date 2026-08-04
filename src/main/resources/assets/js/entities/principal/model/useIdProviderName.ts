@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/preact';
 import { useCallback } from 'preact/hooks';
 
-import { $idProviderNames } from './id-providers.store';
+import { $idProviderNameByKey } from './id-providers.store';
 import { idProviderOf } from './principal.keys';
 import type { PrincipalKey } from './principal.types';
 
@@ -16,7 +16,7 @@ import type { PrincipalKey } from './principal.types';
  * and a fresh closure per render would make that memo dead.
  */
 export function useIdProviderName(): (key: PrincipalKey) => string | undefined {
-  const names = useStore($idProviderNames);
+  const names = useStore($idProviderNameByKey);
 
   return useCallback(
     (key: PrincipalKey) => {

@@ -19,10 +19,10 @@ export type ApplicationStateMenuProps = {
  * not stop — a platform one, or the tool's own — gets a plain label instead.
  */
 export function ApplicationStateMenu({ application }: ApplicationStateMenuProps) {
-  const t = useI18n();
+  const stateLabel = useI18n(applicationStateLabelKey(application.state));
 
-  const stateLabel = t(applicationStateLabelKey(application.state));
   const stoppable = isStoppable(application);
+  const actionLabel = useI18n(stoppable ? 'applications.action.stop' : 'applications.action.start');
 
   if (!stoppable && !isStartable(application)) {
     return <span className="text-subtle text-sm whitespace-nowrap">{stateLabel}</span>;
@@ -40,7 +40,7 @@ export function ApplicationStateMenu({ application }: ApplicationStateMenuProps)
               void (stoppable ? stopApplications([application]) : startApplications([application]))
             }
           >
-            {t(stoppable ? 'applications.action.stop' : 'applications.action.start')}
+            {actionLabel}
           </Menu.Item>
         </Menu.Content>
       </Menu.Portal>

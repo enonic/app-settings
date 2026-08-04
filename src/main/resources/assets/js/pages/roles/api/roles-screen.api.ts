@@ -1,9 +1,9 @@
 import type { ResultAsync } from 'neverthrow';
 
 import {
-  ID_PROVIDERS_ROOT,
+  ID_PROVIDER_NAMES_ROOT,
   ROLES_ROOT,
-  type IdProvidersData,
+  type IdProviderNamesData,
   type RolesData,
 } from '../../../entities/principal';
 import { PROJECTS_ROOT, type ProjectsData } from '../../../entities/project';
@@ -21,13 +21,13 @@ import { requestGraphQlRoots, type AppError, type GraphQlRootsAnswer } from '../
  * Only the composition lives here. Every selection and every wire shape stays in the api file of the
  * domain that owns it; this file names no field of its own.
  */
-export type RolesScreenData = RolesData & IdProvidersData & ProjectsData;
+export type RolesScreenData = RolesData & IdProviderNamesData & ProjectsData;
 
 export function fetchRolesScreen(
   signal?: AbortSignal,
 ): ResultAsync<GraphQlRootsAnswer<RolesScreenData>, AppError> {
   return requestGraphQlRoots<RolesScreenData>(
-    [ROLES_ROOT, ID_PROVIDERS_ROOT, PROJECTS_ROOT],
+    [ROLES_ROOT, ID_PROVIDER_NAMES_ROOT, PROJECTS_ROOT],
     'RolesScreen',
     { signal },
   );

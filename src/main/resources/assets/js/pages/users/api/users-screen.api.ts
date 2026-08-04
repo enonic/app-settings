@@ -1,9 +1,9 @@
 import type { ResultAsync } from 'neverthrow';
 
 import {
-  ID_PROVIDERS_ROOT,
+  ID_PROVIDER_NAMES_ROOT,
   USERS_ROOT,
-  type IdProvidersData,
+  type IdProviderNamesData,
   type UsersData,
 } from '../../../entities/principal';
 import {
@@ -20,7 +20,7 @@ import {
  * The providers are the whole list every time — there are a handful, and the filter must offer one the
  * current page happens not to contain. The users are one page, narrowed and ordered by the server.
  */
-export type UsersScreenData = UsersData & IdProvidersData;
+export type UsersScreenData = UsersData & IdProviderNamesData;
 
 export type UsersPageQuery = {
   start: number;
@@ -34,7 +34,7 @@ export function fetchUsersScreen(
   query: UsersPageQuery,
   signal?: AbortSignal,
 ): ResultAsync<GraphQlRootsAnswer<UsersScreenData>, AppError> {
-  return requestGraphQlRoots<UsersScreenData>([USERS_ROOT, ID_PROVIDERS_ROOT], 'UsersScreen', {
+  return requestGraphQlRoots<UsersScreenData>([USERS_ROOT, ID_PROVIDER_NAMES_ROOT], 'UsersScreen', {
     values: valuesFor(query),
     signal,
   });

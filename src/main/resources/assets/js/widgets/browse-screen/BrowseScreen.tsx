@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { useI18n } from '../../shared/i18n';
+import { useI18n, useLabelled } from '../../shared/i18n';
 import { BrowseLayout } from '../browse-layout/BrowseLayout';
 import {
   type BrowseListStatus,
@@ -66,7 +66,8 @@ export function BrowseScreen<T>({
   loadingMore,
   loadMoreError,
 }: BrowseScreenProps<T>) {
-  const t = useI18n();
+  const noMatchesLabel = useI18n('browse.list.noMatches');
+  const labelledActions = useLabelled(actions);
 
   const handleSelectAllChange = (checked: boolean): void => {
     onSelectionChange(checked ? new Set(selectableKeys(rows)) : new Set());
@@ -74,7 +75,7 @@ export function BrowseScreen<T>({
 
   return (
     <BrowseLayout
-      toolbar={<BrowseToolbar actions={actions} context={context} />}
+      toolbar={<BrowseToolbar actions={labelledActions} context={context} />}
       list={
         <>
           <BrowseSearch value={query} onChange={onQueryChange} />
@@ -87,7 +88,7 @@ export function BrowseScreen<T>({
             sort={sort}
           />
 
-          <BrowseListContextMenu actions={actions} context={context}>
+          <BrowseListContextMenu actions={labelledActions} context={context}>
             <BrowseList
               rows={rows}
               activeKey={activeKey}
@@ -95,7 +96,7 @@ export function BrowseScreen<T>({
               onSelectionChange={onSelectionChange}
               onActiveChange={onActiveChange}
               status={status}
-              emptyLabel={query.trim() ? t('browse.list.noMatches') : emptyLabel}
+              emptyLabel={query.trim() ? noMatchesLabel : emptyLabel}
               hasMore={hasMore}
               onLoadMore={onLoadMore}
               loadingMore={loadingMore}

@@ -1,8 +1,9 @@
 import { errAsync, okAsync } from 'neverthrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { $idProviders } from '../../../entities/principal/model/id-providers.store';
-import { $userDetail, showUser } from '../../../entities/principal/model/user-detail.store';
+import { $idProviderNames } from '../../../entities/principal/model/id-providers.store';
+import { showUser } from '../../../entities/principal/model/user-detail.load';
+import { $userDetail } from '../../../entities/principal/model/user-detail.store';
 import { $users } from '../../../entities/principal/model/users.store';
 import { AppError, requestGraphQlDocument } from '../../../shared/api';
 import { fetchUsersScreen } from '../api/users-screen.api';
@@ -31,14 +32,8 @@ function wireUser(login: string) {
   };
 }
 
-const PROVIDER = {
-  key: 'system',
-  displayName: 'System',
-  description: null,
-  application: null,
-  users: { total: 3 },
-  groups: { total: 1 },
-};
+// The lean root the screens use asks for these two fields and nothing else.
+const PROVIDER = { key: 'system', displayName: 'System' };
 
 function answered(logins: readonly string[], total: number, message?: string) {
   return okAsync({
@@ -62,7 +57,7 @@ beforeEach(() => {
 
 afterEach(() => {
   $users.set({ status: 'loading', items: [], total: 0, appending: false, exhausted: false });
-  $idProviders.set({ status: 'loading', items: [] });
+  $idProviderNames.set({ status: 'loading', items: [] });
   $usersQuery.set({ sort: 'displayNameAsc' });
 });
 
@@ -75,7 +70,7 @@ describe('reloadUsersScreen', () => {
     expect(askedOn()?.count).toBe(50);
     expect($users.get().items).toHaveLength(2);
     expect($users.get().total).toBe(137);
-    expect($idProviders.get().items).toHaveLength(1);
+    expect($idProviderNames.get().items).toHaveLength(1);
   });
 
   it('carries the search, the provider and the order the query store holds', async () => {
@@ -93,7 +88,7 @@ describe('reloadUsersScreen', () => {
   // ! providers a reload could not read stay on screen, so a ticked one keeps its entry in the menu.
   it('fails only the domain whose field came back null, without losing the loaded providers', async () => {
     await reloadUsersScreen();
-    expect($idProviders.get().items).toHaveLength(1);
+    expect($idProviderNames.get().items).toHaveLength(1);
 
     vi.mocked(fetchUsersScreen).mockReturnValue(
       okAsync({
@@ -105,9 +100,9 @@ describe('reloadUsersScreen', () => {
     await reloadUsersScreen();
 
     expect($users.get().status).toBe('ready');
-    expect($idProviders.get().items).toHaveLength(1);
-    expect($idProviders.get().status).toBe('error');
-    expect($idProviders.get().error).toBe('Providers are unreachable');
+    expect($idProviderNames.get().items).toHaveLength(1);
+    expect($idProviderNames.get().status).toBe('error');
+    expect($idProviderNames.get().error).toBe('Providers are unreachable');
   });
 
   /*
@@ -147,7 +142,7 @@ describe('reloadUsersScreen', () => {
     await reloadUsersScreen();
 
     expect($users.get().status).toBe('error');
-    expect($idProviders.get().status).toBe('error');
+    expect($idProviderNames.get().status).toBe('error');
   });
 });
 
@@ -242,7 +237,7 @@ describe('loadMoreUsers', () => {
   // ! so the screen can say the menu may be short — it just keeps what it has.
   it('keeps the provider list when a page arrives without it', async () => {
     await reloadUsersScreen();
-    expect($idProviders.get().items).toHaveLength(1);
+    expect($idProviderNames.get().items).toHaveLength(1);
 
     vi.mocked(fetchUsersScreen).mockReturnValue(
       okAsync({
@@ -254,9 +249,9 @@ describe('loadMoreUsers', () => {
     await loadMoreUsers();
 
     expect($users.get().items).toHaveLength(3);
-    expect($idProviders.get().items).toHaveLength(1);
-    expect($idProviders.get().status).toBe('error');
-    expect($idProviders.get().error).toBe('Providers are unreachable');
+    expect($idProviderNames.get().items).toHaveLength(1);
+    expect($idProviderNames.get().status).toBe('error');
+    expect($idProviderNames.get().error).toBe('Providers are unreachable');
   });
 
   // ! A failed `Load more` keeps what is on screen — the rows are what the user is reading.

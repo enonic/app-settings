@@ -5,6 +5,7 @@ import { AppError } from '../../../shared/api';
 import type { User } from './principal.types';
 import {
   $users,
+  $usersHasMore,
   appendUsers,
   beginUsersAppend,
   beginUsersLoad,
@@ -112,6 +113,21 @@ describe('users.store', () => {
   it('reports no next page once every match is loaded', () => {
     receiveUsers(page(['alice', 'bob'], 2));
 
+    expect(usersAppendStart()).toBeUndefined();
+    expect($usersHasMore.get()).toBe(false);
+  });
+
+  // ! The control's visibility and the request come from the same answer. They did not, and a page that
+  // ! added nothing then left `Load more` on screen doing nothing on every click, silently.
+  it('reports no next page once an appended page adds no row, whatever the total says', () => {
+    receiveUsers(page(['alice'], 137));
+    expect($usersHasMore.get()).toBe(true);
+
+    beginUsersAppend();
+    appendUsers(page(['alice'], 137));
+
+    expect($users.get().items).toHaveLength(1);
+    expect($usersHasMore.get()).toBe(false);
     expect(usersAppendStart()).toBeUndefined();
   });
 

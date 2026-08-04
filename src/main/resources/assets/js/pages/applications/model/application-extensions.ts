@@ -6,6 +6,12 @@ import type {
 } from '../../../entities/application';
 import { filledSections } from '../../../widgets/details-panel/details-panel';
 
+const TEXT = {
+  adminTools: 'applications.details.adminTools',
+  widgets: 'applications.details.widgets',
+  apis: 'applications.details.apis',
+} as const;
+
 export type ExtensionEntry = {
   key: string;
   label: string;
@@ -58,8 +64,8 @@ export function extensionGroups(info: ApplicationInfo | undefined): ExtensionGro
   }
 
   return filledSections([
-    { labelKey: 'applications.details.adminTools', items: adminToolEntries(info.adminTools) },
-    { labelKey: 'applications.details.widgets', items: widgetEntries(info.adminExtensions) },
-    { labelKey: 'applications.details.apis', items: apiEntries(info.apis) },
+    { labelKey: TEXT.adminTools, items: adminToolEntries(info.adminTools) },
+    { labelKey: TEXT.widgets, items: widgetEntries(info.adminExtensions) },
+    { labelKey: TEXT.apis, items: apiEntries(info.apis) },
   ]);
 }

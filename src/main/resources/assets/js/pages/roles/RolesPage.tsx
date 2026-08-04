@@ -23,7 +23,6 @@ import { $rolesSort, setRolesSort } from './model/sort.store';
 import { useRolesScreen } from './model/useRolesScreen';
 
 export function RolesPage() {
-  const t = useI18n();
   const navigate = useNavigate();
   // One request for the three domains this screen reads — the roles, the providers that name a member's
   // origin, and the projects that name a role's bucket.
@@ -34,12 +33,19 @@ export function RolesPage() {
   const selectedBuckets = useStore(rolesFilter.$selected);
   const sort = useStore($rolesSort);
 
+  const sortAscLabel = useI18n('roles.sort.nameAsc');
+  const sortDescLabel = useI18n('roles.sort.nameDesc');
+  const systemBucketLabel = useI18n('roles.filter.system');
+  const customBucketLabel = useI18n('roles.filter.custom');
+  const emptyLabel = useI18n('roles.list.empty');
+  const projectsFailedNotice = useI18n('roles.filter.projectsFailed');
+
   const sortOptions = useMemo(
     () => [
-      { id: 'asc', label: t('roles.sort.nameAsc') },
-      { id: 'desc', label: t('roles.sort.nameDesc') },
+      { id: 'asc', label: sortAscLabel },
+      { id: 'desc', label: sortDescLabel },
     ],
-    [t],
+    [],
   ) satisfies readonly { id: SortDirection; label: string }[];
 
   // Shared with the bucket counts below, so the query runs once per render rather than twice.
@@ -58,12 +64,12 @@ export function RolesPage() {
     () =>
       visibleEntries(
         roleBuckets(items, searched, projects, {
-          system: t('roles.filter.system'),
-          custom: t('roles.filter.custom'),
+          system: systemBucketLabel,
+          custom: customBucketLabel,
         }),
         selectedBuckets,
       ),
-    [items, searched, projects, t, selectedBuckets],
+    [items, searched, projects, selectedBuckets],
   );
 
   const section = useBrowseSection({
@@ -85,7 +91,7 @@ export function RolesPage() {
     <BrowseScreen
       {...section}
       actions={ROLE_ACTIONS}
-      emptyLabel={t('roles.list.empty')}
+      emptyLabel={emptyLabel}
       details={<Outlet />}
       filter={
         <BrowseFilter
@@ -94,7 +100,7 @@ export function RolesPage() {
           onToggle={(id) => rolesFilter.toggle(id)}
           // A failed project load leaves the per-project entries out; saying so beats a short list
           // that looks complete.
-          notice={projectsStatus === 'error' ? t('roles.filter.projectsFailed') : undefined}
+          notice={projectsStatus === 'error' ? projectsFailedNotice : undefined}
         />
       }
       sort={<BrowseSort options={sortOptions} value={sort} onChange={setRolesSort} />}

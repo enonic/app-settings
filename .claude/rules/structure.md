@@ -86,8 +86,38 @@ the shape we would want in a library shared with it.
 
 ## i18n
 
-Every user-visible string goes through `useI18n()`; `i18n/phrases.properties` is grouped by section
+Every user-visible string goes through `shared/i18n`. `i18n/phrases.properties` is grouped by section
 with banner comments, and phrases stay sentence-case even where the UI uppercases them.
+
+**A component names its strings at the top and renders them by name**, through the `useI18n(key, …values)`
+hook — Content Studio's `shared/lib/hooks/useI18n.ts` is the same hook:
+
+```tsx
+export function BrowseListHeader({ onRefresh }: BrowseListHeaderProps) {
+  const refreshLabel = useI18n('browse.refresh');
+  const sortLabel = useI18n('browse.sort');
+
+  return <Button label={refreshLabel} onClick={onRefresh} />;
+}
+```
+
+Everything the component can say is then visible before it says it, its JSX carries values rather than
+lookups, and the memo inside the hook keeps a re-render from resolving the phrase again. One key or the
+other goes inside the hook — `useI18n(connected ? 'serverEvents.connected' : 'serverEvents.disconnected')`
+— because a hook cannot be called conditionally, and for the same reason the calls sit above any early
+return.
+
+**A list whose items carry a `labelKey` goes through `useLabelled(items)`**, which resolves each label
+once — a hook cannot be called per item, and the toolbar and the row menu render the same actions. The
+list stays a module constant holding keys, and only what renders it sees labels.
+
+**`i18n(key, …values)` is the plain function, for where no hook fits**: an entity command naming what
+failed, a mapper called from a store, a title that may have no key at all (`AppBar`).
+
+Never at module scope: a `const LABEL = i18n('x')` there runs while the module is imported, which is
+before the phrases are set, and would freeze `#x#` for the session. A module constant holds **keys** —
+`STATE_KEYS` in `ThemeSwitcher`, the `labelKey` a details section hands to a widget — never resolved
+strings.
 
 Existing keys: `nav.<section>` for the rail, `section.<section>.title` for the section heading,
 `browse.*` for the section-agnostic browse widgets, app-shell keys ungrouped (`app.displayName`,

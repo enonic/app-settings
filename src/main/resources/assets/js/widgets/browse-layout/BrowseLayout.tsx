@@ -28,7 +28,7 @@ const HANDLE_CLASS =
   'focus-visible:ring-3 after:absolute after:inset-y-0 after:-inset-x-2 after:content-[""]';
 
 export function BrowseLayout({ toolbar, list, details }: BrowseLayoutProps) {
-  const t = useI18n();
+  const resizeLabel = useI18n('browse.details.resize');
   const columnsRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const itemRouteMatched = useChildMatches({ select: (matches) => matches.length > 0 });
@@ -85,7 +85,7 @@ export function BrowseLayout({ toolbar, list, details }: BrowseLayoutProps) {
         <div
           role="separator"
           aria-orientation="vertical"
-          aria-label={t('browse.details.resize')}
+          aria-label={resizeLabel}
           tabIndex={0}
           data-dragging={dragging || undefined}
           onPointerDown={handlePointerDown}

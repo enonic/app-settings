@@ -2,11 +2,11 @@ import { err, ok, type Result } from 'neverthrow';
 
 import {
   beginGroupsLoad,
-  beginIdProvidersLoad,
+  beginIdProviderNamesLoad,
   receiveGroups,
-  receiveIdProviders,
+  receiveIdProviderNames,
   toGroups,
-  toIdProviders,
+  toIdProviderNames,
 } from '../../../entities/principal';
 import { AppError } from '../../../shared/api';
 import { fetchGroupsScreen, type GroupsScreenData } from '../api/groups-screen.api';
@@ -26,7 +26,7 @@ export function loadGroupsScreen(): Promise<void> {
   const { signal } = controller;
 
   beginGroupsLoad();
-  beginIdProvidersLoad();
+  beginIdProviderNamesLoad();
 
   return fetchGroupsScreen(signal).match(
     (answer) => {
@@ -38,7 +38,7 @@ export function loadGroupsScreen(): Promise<void> {
       if (!signal.aborted) {
         const failed = err(error);
         receiveGroups(failed);
-        receiveIdProviders(failed);
+        receiveIdProviderNames(failed);
       }
     },
   );
@@ -52,7 +52,7 @@ export function loadGroupsScreen(): Promise<void> {
 // lib-graphql sends no `path`, and reaches only the domains that came back null.
 function dispatch(data: GroupsScreenData, message: string | undefined): void {
   receiveGroups(present(data.groups, message).map(toGroups));
-  receiveIdProviders(present(data.idProviders, message).map(toIdProviders));
+  receiveIdProviderNames(present(data.idProviders, message).map(toIdProviderNames));
 }
 
 function present<T>(value: T[] | null, message: string | undefined): Result<T[], AppError> {

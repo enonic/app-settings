@@ -92,9 +92,19 @@ export type UserDetail = User & {
  * There is no `Active` / `Inactive` flag: the platform has none, and which reading it should take is
  * still open — see § 5 of `docs/browse-framework.md`.
  */
-export type IdProvider = {
+/**
+ * A provider as the other sections know it: the name to show where a principal comes from.
+ *
+ * Its own section needs `IdProvider` below, and the difference is not cosmetic — every field that one
+ * adds costs the server a descriptor read or a search per provider, so a screen that only names a
+ * principal's origin asks for this and nothing more.
+ */
+export type IdProviderName = {
   key: string;
   displayName: string;
+};
+
+export type IdProvider = IdProviderName & {
   description?: string;
   /**
    * The application the provider is bound to, named as an administrator recognises it. Absent means

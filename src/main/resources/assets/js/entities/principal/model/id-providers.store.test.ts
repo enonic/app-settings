@@ -1,8 +1,15 @@
-import { okAsync, ResultAsync } from 'neverthrow';
+import { err, ok, okAsync, ResultAsync } from 'neverthrow';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AppError } from '../../../shared/api';
 import { fetchIdProviders } from '../api/id-providers.api';
-import { $idProviders, loadIdProviders } from './id-providers.store';
+import { loadIdProviders } from './id-providers.load';
+import {
+  $idProviderNameByKey,
+  $idProviderNames,
+  $idProviders,
+  receiveIdProviderNames,
+} from './id-providers.store';
 import type { IdProvider } from './principal.types';
 
 // The store owns cancellation and status, not transport: stubbing the api keeps the request out of
@@ -88,5 +95,44 @@ describe('loadIdProviders', () => {
     await slowLoad;
 
     expect($idProviders.get().items).toEqual([fresh]);
+  });
+});
+
+describe('the provider names the other sections read', () => {
+  beforeEach(() => {
+    $idProviderNames.set({ status: 'loading', items: [] });
+  });
+
+  it('carries a name per key, and nothing a screen would not show', () => {
+    receiveIdProviderNames(ok([{ key: 'ldap', displayName: 'Corporate LDAP' }]));
+
+    expect($idProviderNames.get()).toEqual({
+      status: 'ready',
+      items: [{ key: 'ldap', displayName: 'Corporate LDAP' }],
+    });
+  });
+
+  it('projects the names to a lookup by key', () => {
+    receiveIdProviderNames(
+      ok([
+        { key: 'system', displayName: 'System' },
+        { key: 'ldap', displayName: 'Corporate LDAP' },
+      ]),
+    );
+
+    expect($idProviderNameByKey.get().get('ldap')).toBe('Corporate LDAP');
+    expect($idProviderNameByKey.get().get('gone')).toBeUndefined();
+  });
+
+  // The filter menu is built from this list while a ticked provider narrows the query: emptying it
+  // would leave a narrowing with no entry left to untick.
+  it('keeps the names it has when a read fails, and still reports the failure', () => {
+    receiveIdProviderNames(ok([{ key: 'system', displayName: 'System' }]));
+
+    receiveIdProviderNames(err(new AppError('Providers are unreachable')));
+
+    expect($idProviderNames.get().items).toEqual([{ key: 'system', displayName: 'System' }]);
+    expect($idProviderNames.get().status).toBe('error');
+    expect($idProviderNames.get().error).toBe('Providers are unreachable');
   });
 });

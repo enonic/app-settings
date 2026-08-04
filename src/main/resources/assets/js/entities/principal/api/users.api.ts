@@ -1,4 +1,6 @@
-import type { GraphQlRoot } from '../../../shared/api';
+import type { ResultAsync } from 'neverthrow';
+
+import { requestGraphQlDocument, type AppError, type GraphQlRoot } from '../../../shared/api';
 import type {
   PrincipalKey,
   PrincipalRef,
@@ -60,7 +62,7 @@ const MEMBERSHIP_FIELDS = `
  * be re-reading what is on screen. Only the roles and groups are absent from a row, because they are a
  * `getMemberships` call per user and no list can afford one per row.
  */
-export const USER_MEMBERSHIPS_DOCUMENT = `
+const USER_MEMBERSHIPS_DOCUMENT = `
   query UserMemberships($key: String!) {
     user(key: $key) {${MEMBERSHIP_FIELDS}}
   }
@@ -73,7 +75,7 @@ export const USER_MEMBERSHIPS_DOCUMENT = `
  * Null is a legitimate answer to both documents — the key may name nobody — which is why they travel as
  * documents rather than as roots.
  */
-export const USER_DOCUMENT = `
+const USER_DOCUMENT = `
   query User($key: String!) {
     user(key: $key) {${USER_FIELDS}${MEMBERSHIP_FIELDS}}
   }
@@ -112,17 +114,35 @@ type MembershipsDto = {
 };
 
 /** `user` is null for a key nothing answers to, which is an answer rather than a failure. */
-export type UserDetailData = { user: UserDetailDto | null };
+type UserDetailData = { user: UserDetailDto | null };
 
-export type UserMembershipsData = { user: MembershipsDto | null };
+type UserMembershipsData = { user: MembershipsDto | null };
 
-export function toUserDetail(dto: UserDetailDto): UserDetail {
-  return { ...toUser(dto), ...toMemberships(dto) };
+/**
+ * The whole user, for a panel with no row to build on. `undefined` for a key nothing answers to.
+ */
+export function fetchUserDetail(
+  key: string,
+  signal?: AbortSignal,
+): ResultAsync<UserDetail | undefined, AppError> {
+  return requestGraphQlDocument<UserDetailData>(USER_DOCUMENT, { key }, signal).map(({ user }) =>
+    user == null ? undefined : { ...toUser(user), ...toMemberships(user) },
+  );
 }
 
-/** The row the list already holds, completed with what only a by-key read can answer. */
-export function withMemberships(user: User, dto: MembershipsDto): UserDetail {
-  return { ...user, ...toMemberships(dto) };
+/**
+ * The row the list already holds, completed with what only a by-key read can answer: its roles and
+ * groups. Cheaper than the whole user, and every other field is already on screen.
+ */
+export function fetchUserMemberships(
+  row: User,
+  signal?: AbortSignal,
+): ResultAsync<UserDetail | undefined, AppError> {
+  return requestGraphQlDocument<UserMembershipsData>(
+    USER_MEMBERSHIPS_DOCUMENT,
+    { key: row.key },
+    signal,
+  ).map(({ user }) => (user == null ? undefined : { ...row, ...toMemberships(user) }));
 }
 
 export type UsersPage = {
