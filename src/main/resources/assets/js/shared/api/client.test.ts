@@ -45,11 +45,11 @@ describe('requestJson', () => {
   it('serializes the body and sets the JSON content type', async () => {
     mockFetch.mockResolvedValue(jsonResponse({}));
 
-    await requestJson('/api/apps', { method: 'POST', body: { key: 'com.enonic.app.settings' } });
+    await requestJson('/api/apps', { method: 'POST', body: { key: 'com.enonic.xp.app.settings' } });
 
     const [, init] = mockFetch.mock.calls[0] ?? [];
     expect(init?.method).toBe('POST');
-    expect(init?.body).toBe('{"key":"com.enonic.app.settings"}');
+    expect(init?.body).toBe('{"key":"com.enonic.xp.app.settings"}');
     expect(init?.headers).toEqual({ 'Content-Type': 'application/json' });
   });
 

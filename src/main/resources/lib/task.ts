@@ -23,7 +23,7 @@ type ListTaskDescriptorsHandler = {
 
 export function listTaskDescriptors(params: ListTaskDescriptorsParams): TaskDescriptor[] {
   const bean = __.newBean<ListTaskDescriptorsHandler>(
-    'com.enonic.app.settings.lib.task.ListTaskDescriptorsHandler',
+    'com.enonic.xp.app.settings.lib.task.ListTaskDescriptorsHandler',
   );
   bean.setApplication(params.application);
   return __.toNativeObject(bean.execute());

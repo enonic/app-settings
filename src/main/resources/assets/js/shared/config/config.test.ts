@@ -7,13 +7,17 @@ import { AppError } from '../api';
 import { readConfig, type ToolConfig } from './config';
 
 const config: ToolConfig = {
-  appId: 'com.enonic.app.settings',
+  appId: 'com.enonic.xp.app.settings',
   appVersion: '1.0.0',
   locale: 'en',
   assetsUrl: '/assets',
   menuLoaderUrl: '/_/admin:extension/com.enonic.xp.app.main:menu-loader',
   phrases: { 'nav.users': 'Users' },
-  apis: { events: '/_/app:events', graphql: '/_/app:graphql' },
+  apis: {
+    events: '/_/app:events',
+    graphql: '/_/app:graphql',
+    serverApp: { start: '/_/server:app/start', stop: '/_/server:app/stop' },
+  },
 };
 
 type StubOptions = {
@@ -111,6 +115,18 @@ describe('readConfig', () => {
     const doc = stubDocument({
       scriptId: 'config-json',
       content: JSON.stringify({ ...config, apis: { events: '/_/app:events' } }),
+    });
+
+    expect(() => readConfig(doc)).toThrow(/does not describe a tool config/);
+  });
+
+  it('fails when a lifecycle url is missing', () => {
+    const doc = stubDocument({
+      scriptId: 'config-json',
+      content: JSON.stringify({
+        ...config,
+        apis: { ...config.apis, serverApp: { start: '/_/server:app/start' } },
+      }),
     });
 
     expect(() => readConfig(doc)).toThrow(/does not describe a tool config/);

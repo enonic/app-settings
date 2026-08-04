@@ -5,12 +5,16 @@ import { $config } from '../config/config.store';
 import { requestGraphQl } from './graphql';
 
 const config = {
-  appId: 'com.enonic.app.settings',
+  appId: 'com.enonic.xp.app.settings',
   appVersion: '1.0.0',
   locale: 'en',
   assetsUrl: '/assets',
   phrases: {},
-  apis: { events: 'ws:/_/admin:event', graphql: '/_/app:graphql' },
+  apis: {
+    events: 'ws:/_/admin:event',
+    graphql: '/_/app:graphql',
+    serverApp: { start: '/_/server:app/start', stop: '/_/server:app/stop' },
+  },
 } satisfies ToolConfig;
 
 function respondWith(body: unknown, status = 200): void {

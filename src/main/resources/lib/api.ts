@@ -23,7 +23,7 @@ type ListApisHandler = {
 };
 
 export function listApis(params: ListApisParams): ApiDescriptor[] {
-  const bean = __.newBean<ListApisHandler>('com.enonic.app.settings.lib.api.ListApisHandler');
+  const bean = __.newBean<ListApisHandler>('com.enonic.xp.app.settings.lib.api.ListApisHandler');
   bean.setApplication(params.application);
   return __.toNativeObject(bean.execute());
 }

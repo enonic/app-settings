@@ -16,6 +16,10 @@ export type ToolConfig = {
   apis: {
     events: string;
     graphql: string;
+    serverApp: {
+      start: string;
+      stop: string;
+    };
   };
 };
 
@@ -30,6 +34,10 @@ export function getConfig(locales: string[]): ToolConfig {
     apis: {
       events: apiUrl({ api: 'admin:event', type: 'websocket' }),
       graphql: apiUrl({ api: `${app.name}:graphql` }),
+      serverApp: {
+        start: apiUrl({ api: 'server:app', path: 'start' }),
+        stop: apiUrl({ api: 'server:app', path: 'stop' }),
+      },
     },
   };
 }

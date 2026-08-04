@@ -24,7 +24,7 @@ type EncodeApplicationIconHandler = {
 /** Null when the application ships no icon — nothing to encode, not an empty string. */
 export function encodeApplicationIcon(params: EncodeApplicationIconParams): string | null {
   const bean = __.newBean<EncodeApplicationIconHandler>(
-    'com.enonic.app.settings.lib.icon.EncodeApplicationIconHandler',
+    'com.enonic.xp.app.settings.lib.icon.EncodeApplicationIconHandler',
   );
   bean.setApplication(params.application);
   return bean.execute();
