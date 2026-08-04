@@ -22,7 +22,6 @@ import { $groupsSort, setGroupsSort } from './model/sort.store';
 import { useGroupsScreen } from './model/useGroupsScreen';
 
 export function GroupsPage() {
-  const t = useI18n();
   const navigate = useNavigate();
   // One request for both domains: the groups, and the providers whose display names the rows show — a
   // group key carries only the provider's name.
@@ -33,12 +32,16 @@ export function GroupsPage() {
   const selectedProviders = useStore(groupsFilter.$selected);
   const sort = useStore($groupsSort);
 
+  const sortAscLabel = useI18n('groups.sort.nameAsc');
+  const sortDescLabel = useI18n('groups.sort.nameDesc');
+  const emptyLabel = useI18n('groups.list.empty');
+
   const sortOptions = useMemo(
     () => [
-      { id: 'asc', label: t('groups.sort.nameAsc') },
-      { id: 'desc', label: t('groups.sort.nameDesc') },
+      { id: 'asc', label: sortAscLabel },
+      { id: 'desc', label: sortDescLabel },
     ],
-    [t],
+    [],
   ) satisfies readonly { id: SortDirection; label: string }[];
 
   // Shared with the filter entries below, so the query runs once per render rather than twice.
@@ -76,7 +79,7 @@ export function GroupsPage() {
     <BrowseScreen
       {...section}
       actions={GROUP_ACTIONS}
-      emptyLabel={t('groups.list.empty')}
+      emptyLabel={emptyLabel}
       details={<Outlet />}
       filter={
         <BrowseFilter

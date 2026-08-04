@@ -5,9 +5,8 @@ import { useI18n } from '../../shared/i18n';
 import { $serverEventsConnected } from '../../shared/server-events';
 
 export function ServerEventsIndicator() {
-  const t = useI18n();
   const connected = useStore($serverEventsConnected);
-  const label = connected ? t('serverEvents.connected') : t('serverEvents.disconnected');
+  const label = useI18n(connected ? 'serverEvents.connected' : 'serverEvents.disconnected');
 
   return (
     <Tooltip value={label} side="right" delay={300}>

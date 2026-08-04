@@ -1,7 +1,7 @@
 import type { ResultAsync } from 'neverthrow';
 
 import type { AppError } from '../../../shared/api';
-import { $phrases, localize } from '../../../shared/i18n';
+import { i18n } from '../../../shared/i18n';
 import { notifyError } from '../../../shared/notifications';
 import {
   type LifecycleOutcome,
@@ -9,14 +9,19 @@ import {
   postStopApplications,
 } from '../api/application-lifecycle.api';
 import type { Application } from './application.types';
-import { refreshApplication, refreshApplications } from './applications.store';
+import { loadApplication, loadApplications } from './applications.load';
+
+const TEXT = {
+  startFailed: 'applications.notify.startFailed',
+  stopFailed: 'applications.notify.stopFailed',
+} as const;
 
 export function startApplications(applications: readonly Application[]): Promise<void> {
-  return runLifecycleAction(applications, postStartApplications, 'applications.notify.startFailed');
+  return runLifecycleAction(applications, postStartApplications, TEXT.startFailed);
 }
 
 export function stopApplications(applications: readonly Application[]): Promise<void> {
-  return runLifecycleAction(applications, postStopApplications, 'applications.notify.stopFailed');
+  return runLifecycleAction(applications, postStopApplications, TEXT.stopFailed);
 }
 
 // *
@@ -55,11 +60,11 @@ async function runLifecycleAction(
  */
 function resync(keys: readonly string[]): void {
   if (keys.length === 1 && keys[0] != null) {
-    void refreshApplication(keys[0]);
+    void loadApplication(keys[0]);
     return;
   }
 
-  void refreshApplications();
+  void loadApplications();
 }
 
 function notifyFailure(
@@ -68,5 +73,5 @@ function notifyFailure(
   key: string,
 ): void {
   const name = applications.find((application) => application.key === key)?.displayName ?? key;
-  notifyError(localize($phrases.get(), failureKey, name));
+  notifyError(i18n(failureKey, name));
 }

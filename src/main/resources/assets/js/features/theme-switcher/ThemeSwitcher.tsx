@@ -27,16 +27,17 @@ const iconClass = (shown: boolean): string =>
   );
 
 export function ThemeSwitcher() {
-  const t = useI18n();
   const theme = useStore($theme);
+  const stateLabel = useI18n(STATE_KEYS[theme]);
+  const nextLabel = useI18n(NEXT_KEYS[theme]);
 
   return (
-    <Tooltip value={t(STATE_KEYS[theme])} side="bottom" delay={300}>
+    <Tooltip value={stateLabel} side="bottom" delay={300}>
       <Button
         variant="text"
         size="sm"
         onClick={cycleTheme}
-        aria-label={t(NEXT_KEYS[theme])}
+        aria-label={nextLabel}
         className="grid size-9 shrink-0 place-items-center rounded-full p-0"
       >
         <Sun className={iconClass(theme === 'light')} size={16} strokeWidth={1.5} />

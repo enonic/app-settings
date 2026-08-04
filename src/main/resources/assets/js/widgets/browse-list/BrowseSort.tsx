@@ -24,17 +24,12 @@ export function BrowseSort<Id extends string = string>({
   value,
   onChange,
 }: BrowseSortProps<Id>) {
-  const t = useI18n();
+  const sortLabel = useI18n('browse.sort');
 
   return (
     <Menu>
       <Menu.Trigger asChild>
-        <Button
-          variant="text"
-          startIcon={ArrowDownUp}
-          label={t('browse.sort')}
-          className="px-4.5"
-        />
+        <Button variant="text" startIcon={ArrowDownUp} label={sortLabel} className="px-4.5" />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Content align="end" className="min-w-56">

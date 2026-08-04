@@ -3,6 +3,10 @@ export type ActionContext<T> = {
   active: T | undefined;
 };
 
+/**
+ * What a section declares. A key rather than a label, because the list is a module constant: a phrase
+ * resolved there would resolve before the shell has published any.
+ */
 export type SectionAction<T> = {
   id: string;
   labelKey: string;
@@ -10,6 +14,9 @@ export type SectionAction<T> = {
   enabled: (ctx: ActionContext<T>) => boolean;
   run: (ctx: ActionContext<T>) => void | Promise<void>;
 };
+
+/** What the toolbar and the row menu render: the same action with its label resolved. */
+export type LabelledAction<T> = SectionAction<T> & { label: string };
 
 /**
  * What an action applies to: the ticked rows, or the active row when nothing is ticked.

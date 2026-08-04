@@ -17,8 +17,7 @@ export type ApplicationDetailsProps = {
 };
 
 export function ApplicationDetails({ application, info }: ApplicationDetailsProps) {
-  const t = useI18n();
-
+  const infoErrorMessage = useI18n('applications.details.infoError');
   // ! One request, so one message. Every section below is fed by the same `applicationInfo`, and
   // ! letting each report the failure itself printed it once per section.
   const provided = info?.status === 'ready' ? info.info : undefined;
@@ -28,9 +27,7 @@ export function ApplicationDetails({ application, info }: ApplicationDetailsProp
       <ApplicationDetailsHeader application={application} />
       <ApplicationSummarySection application={application} />
 
-      {info?.status === 'error' && (
-        <p className="text-error text-sm">{t('applications.details.infoError')}</p>
-      )}
+      {info?.status === 'error' && <p className="text-error text-sm">{infoErrorMessage}</p>}
 
       <ApplicationSiteSection info={provided} />
       <ApplicationMacrosSection info={provided} />

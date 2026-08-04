@@ -7,16 +7,16 @@ import { $notifications, clearNotifications } from '../../../shared/notification
 import { postStartApplications, postStopApplications } from '../api/application-lifecycle.api';
 import { startApplications, stopApplications } from './application-commands';
 import type { Application } from './application.types';
-import { refreshApplication, refreshApplications } from './applications.store';
+import { loadApplication, loadApplications } from './applications.load';
 
 vi.mock('../api/application-lifecycle.api', () => ({
   postStartApplications: vi.fn(),
   postStopApplications: vi.fn(),
 }));
 
-vi.mock('./applications.store', () => ({
-  refreshApplication: vi.fn(),
-  refreshApplications: vi.fn(),
+vi.mock('./applications.load', () => ({
+  loadApplication: vi.fn(),
+  loadApplications: vi.fn(),
 }));
 
 function application(key: string, displayName: string): Application {
@@ -41,10 +41,10 @@ beforeEach(() => {
   );
   vi.mocked(postStartApplications).mockReset();
   vi.mocked(postStopApplications).mockReset();
-  vi.mocked(refreshApplication).mockReset();
-  vi.mocked(refreshApplication).mockResolvedValue(undefined);
-  vi.mocked(refreshApplications).mockReset();
-  vi.mocked(refreshApplications).mockResolvedValue(undefined);
+  vi.mocked(loadApplication).mockReset();
+  vi.mocked(loadApplication).mockResolvedValue(undefined);
+  vi.mocked(loadApplications).mockReset();
+  vi.mocked(loadApplications).mockResolvedValue(undefined);
 });
 
 describe('startApplications', () => {
@@ -55,8 +55,8 @@ describe('startApplications', () => {
 
     expect(postStartApplications).toHaveBeenCalledWith([booster.key]);
     expect(notificationTexts()).toEqual([]);
-    expect(refreshApplication).toHaveBeenCalledWith(booster.key);
-    expect(refreshApplications).not.toHaveBeenCalled();
+    expect(loadApplication).toHaveBeenCalledWith(booster.key);
+    expect(loadApplications).not.toHaveBeenCalled();
   });
 
   it('reloads the whole list after a bulk action rather than one row at a time', async () => {
@@ -65,8 +65,8 @@ describe('startApplications', () => {
     await startApplications([booster, fathom]);
 
     expect(postStartApplications).toHaveBeenCalledWith([booster.key, fathom.key]);
-    expect(refreshApplications).toHaveBeenCalledTimes(1);
-    expect(refreshApplication).not.toHaveBeenCalled();
+    expect(loadApplications).toHaveBeenCalledTimes(1);
+    expect(loadApplication).not.toHaveBeenCalled();
   });
 
   it('names the application the server refused to start, and resyncs anyway', async () => {
@@ -75,7 +75,7 @@ describe('startApplications', () => {
     await startApplications([booster, fathom]);
 
     expect(notificationTexts()).toEqual(['Could not start Fathom']);
-    expect(refreshApplications).toHaveBeenCalledTimes(1);
+    expect(loadApplications).toHaveBeenCalledTimes(1);
   });
 
   it('reports every target when the request itself fails, and refetches nothing', async () => {
@@ -84,8 +84,8 @@ describe('startApplications', () => {
     await startApplications([booster, fathom]);
 
     expect(notificationTexts()).toEqual(['Could not start Booster', 'Could not start Fathom']);
-    expect(refreshApplication).not.toHaveBeenCalled();
-    expect(refreshApplications).not.toHaveBeenCalled();
+    expect(loadApplication).not.toHaveBeenCalled();
+    expect(loadApplications).not.toHaveBeenCalled();
   });
 
   it('asks the server nothing for an empty target list', async () => {

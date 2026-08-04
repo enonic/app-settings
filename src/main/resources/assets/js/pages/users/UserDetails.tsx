@@ -11,8 +11,10 @@ export type UserDetailsProps = {
 };
 
 export function UserDetails({ user }: UserDetailsProps) {
-  const t = useI18n();
   const providerName = useIdProviderName();
+
+  const editLabel = useI18n('users.details.edit');
+
   const { key, displayName, login, email, roles, groups } = user;
 
   // ! No description and no created/modified pair, though the mockups draw both: XP stores neither for a
@@ -34,7 +36,7 @@ export function UserDetails({ user }: UserDetailsProps) {
         labelKey="users.details.user"
         action={
           // TODO: [#7] Opens the user wizard once it exists.
-          <Button variant="outline" size="sm" label={t('users.details.edit')} />
+          <Button variant="outline" size="sm" label={editLabel} />
         }
       >
         {email !== undefined && (

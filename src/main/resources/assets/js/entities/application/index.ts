@@ -16,7 +16,8 @@ export {
   start as startApplicationsService,
   stop as stopApplicationsService,
 } from './model/applications.service';
-export { $applications, refreshApplications } from './model/applications.store';
+export { ensureApplications, loadApplication, loadApplications } from './model/applications.load';
+export { $applications } from './model/applications.store';
 export type { ApplicationsState } from './model/applications.store';
 export { useApplication } from './model/useApplication';
 export type { ApplicationLookup } from './model/useApplication';

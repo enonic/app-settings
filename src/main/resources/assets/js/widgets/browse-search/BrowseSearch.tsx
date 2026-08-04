@@ -10,19 +10,21 @@ export type BrowseSearchProps = {
 };
 
 export function BrowseSearch({ value, onChange, disabled }: BrowseSearchProps) {
-  const t = useI18n();
+  const placeholder = useI18n('browse.search.placeholder');
+  const clearLabel = useI18n('browse.search.clear');
+  const inputLabel = useI18n('browse.search.label');
 
   return (
     <SearchField
       value={value}
       onChange={onChange}
       disabled={disabled}
-      placeholder={t('browse.search.placeholder')}
-      clearLabel={t('browse.search.clear')}
+      placeholder={placeholder}
+      clearLabel={clearLabel}
       className="shrink-0"
     >
       <SearchField.Icon />
-      <SearchField.Input aria-label={t('browse.search.label')} />
+      <SearchField.Input aria-label={inputLabel} />
       <SearchField.Clear />
     </SearchField>
   );

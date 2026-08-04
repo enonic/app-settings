@@ -1,45 +1,27 @@
-import { errAsync, okAsync } from 'neverthrow';
+import { errAsync, okAsync, ResultAsync } from 'neverthrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AppError, requestGraphQlDocument } from '../../../shared/api';
-import type { User } from './principal.types';
-import { $userDetail, forgetUserDetails, forgetUsers, showUser } from './user-detail.store';
+import { AppError } from '../../../shared/api';
+import { fetchUserDetail, fetchUserMemberships } from '../api/users.api';
+import type { PrincipalRef, User, UserDetail } from './principal.types';
+import { forgetUserDetails, forgetUsers, showUser } from './user-detail.load';
+import { $userDetail } from './user-detail.store';
 import { $users } from './users.store';
 
-// Only the transport is stubbed; `AppError` stays real, since the store reports its message.
-vi.mock('../../../shared/api', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../shared/api')>()),
-  requestGraphQlDocument: vi.fn(),
+// The api is stubbed rather than the transport: which of the two reads the panel makes is the interesting
+// part, and each has a name.
+vi.mock('../api/users.api', () => ({
+  fetchUserDetail: vi.fn(),
+  fetchUserMemberships: vi.fn(),
 }));
 
 const DEBOUNCE_MS = 250;
 
-function wireUser(login: string) {
-  return {
-    key: `user:system:${login}`,
-    displayName: login,
-    login,
-    email: null,
-    idProvider: 'system',
-    hasPassword: true,
-    roles: [{ key: 'role:system.admin', type: 'role', displayName: 'Administrator' }],
-    groups: [],
-  };
-}
-
-function answered(login: string | null) {
-  return okAsync({ user: login === null ? null : wireUser(login) } as never);
-}
-
-/** Just the memberships, which is all the panel is missing when the row is loaded. */
-function answeredMemberships() {
-  return okAsync({
-    user: {
-      roles: [{ key: 'role:system.admin', type: 'role', displayName: 'Administrator' }],
-      groups: [],
-    },
-  } as never);
-}
+const ADMIN: PrincipalRef = {
+  key: 'role:system.admin' as PrincipalRef['key'],
+  type: 'role',
+  displayName: 'Administrator',
+};
 
 function row(login: string): User {
   return {
@@ -52,9 +34,16 @@ function row(login: string): User {
   };
 }
 
-/** The document the transport was asked to send, on call number `nth`. */
-function documentOn(nth = 0): string {
-  return String(vi.mocked(requestGraphQlDocument).mock.calls[nth]?.[0] ?? '');
+function detail(login: string): UserDetail {
+  return { ...row(login), roles: [ADMIN], groups: [] };
+}
+
+function answered(login: string) {
+  return okAsync<UserDetail | undefined, AppError>(detail(login));
+}
+
+function answeredNothing() {
+  return okAsync<UserDetail | undefined, AppError>(undefined);
 }
 
 function loadRows(...logins: readonly string[]): void {
@@ -67,16 +56,24 @@ function loadRows(...logins: readonly string[]): void {
   });
 }
 
-/** The key the transport was asked for, on call number `nth`. */
-function askedFor(nth = 0): unknown {
-  const [, variables] = vi.mocked(requestGraphQlDocument).mock.calls[nth] ?? [];
-  return (variables as { key?: unknown } | undefined)?.key;
+/** Every read the panel made, whichever of the two it was. */
+function reads(): number {
+  return (
+    vi.mocked(fetchUserDetail).mock.calls.length + vi.mocked(fetchUserMemberships).mock.calls.length
+  );
+}
+
+/** The key the panel asked for, on read number `nth`. */
+function askedFor(nth = 0): string | undefined {
+  return vi.mocked(fetchUserDetail).mock.calls[nth]?.[0];
 }
 
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.mocked(requestGraphQlDocument).mockReset();
-  vi.mocked(requestGraphQlDocument).mockReturnValue(answered('alice'));
+  vi.mocked(fetchUserDetail).mockReset();
+  vi.mocked(fetchUserMemberships).mockReset();
+  vi.mocked(fetchUserDetail).mockReturnValue(answered('alice'));
+  vi.mocked(fetchUserMemberships).mockReturnValue(answered('alice'));
 });
 
 afterEach(() => {
@@ -89,30 +86,26 @@ afterEach(() => {
 describe('showUser', () => {
   // ! The row already carries every scalar the panel shows, so asking for them again would be re-reading
   // ! what is on screen. Only the memberships are absent from a row.
-  it('asks only for the memberships when the list already holds the row', async () => {
+  it('reads only the memberships when the list already holds the row', async () => {
     loadRows('alice');
-    vi.mocked(requestGraphQlDocument).mockReturnValue(answeredMemberships());
 
     showUser('user:system:alice');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
-    expect(documentOn()).toContain('query UserMemberships');
-    expect(documentOn()).not.toContain('login');
-
-    const { user } = $userDetail.get();
-    // Scalars from the row, memberships from the answer.
-    expect(user?.login).toBe('alice');
-    expect(user?.roles).toHaveLength(1);
+    expect(vi.mocked(fetchUserMemberships)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(fetchUserMemberships).mock.calls[0]?.[0]).toEqual(row('alice'));
+    expect(vi.mocked(fetchUserDetail)).not.toHaveBeenCalled();
+    expect($userDetail.get().user?.roles).toHaveLength(1);
   });
 
   // ! The case the by-key read exists for: a link opened straight at a key, or a search that narrowed
   // ! past it. There is no row to complete, so the whole user is read.
-  it('asks for the whole user when the loaded page does not carry the row', async () => {
+  it('reads the whole user when the loaded page does not carry the row', async () => {
     showUser('user:system:alice');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
-    expect(documentOn()).toContain('query User(');
-    expect(documentOn()).toContain('login');
+    expect(vi.mocked(fetchUserDetail)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(fetchUserMemberships)).not.toHaveBeenCalled();
     expect($userDetail.get().user?.login).toBe('alice');
   });
 
@@ -137,7 +130,7 @@ describe('showUser', () => {
 
     vi.advanceTimersByTime(DEBOUNCE_MS - 1);
 
-    expect(vi.mocked(requestGraphQlDocument)).not.toHaveBeenCalled();
+    expect(reads()).toBe(0);
     expect($userDetail.get().status).toBe('loading');
   });
 
@@ -152,7 +145,7 @@ describe('showUser', () => {
 
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
-    expect(vi.mocked(requestGraphQlDocument)).toHaveBeenCalledTimes(1);
+    expect(reads()).toBe(1);
     expect(askedFor()).toBe('user:system:carol');
   });
 
@@ -160,23 +153,23 @@ describe('showUser', () => {
     showUser('user:system:alice');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
+    vi.mocked(fetchUserDetail).mockReturnValue(answered('bob'));
     showUser('user:system:bob');
-    vi.mocked(requestGraphQlDocument).mockReturnValue(answered('bob'));
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
     showUser('user:system:alice');
 
-    // Immediately, with no timer to wait for and no second request.
+    // Immediately, with no timer to wait for and no second read.
     expect($userDetail.get().status).toBe('ready');
     expect($userDetail.get().user?.login).toBe('alice');
-    expect(vi.mocked(requestGraphQlDocument)).toHaveBeenCalledTimes(2);
+    expect(reads()).toBe(2);
   });
 
   it('keeps the user on screen while the next one loads, so stepping does not flash empty', async () => {
     showUser('user:system:alice');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
-    vi.mocked(requestGraphQlDocument).mockReturnValue(answered('bob'));
+    vi.mocked(fetchUserDetail).mockReturnValue(answered('bob'));
     showUser('user:system:bob');
 
     const { status, user } = $userDetail.get();
@@ -194,7 +187,7 @@ describe('showUser', () => {
   });
 
   it('empties the panel for a key no user answers to, without calling it a failure', async () => {
-    vi.mocked(requestGraphQlDocument).mockReturnValue(answered(null));
+    vi.mocked(fetchUserDetail).mockReturnValue(answeredNothing());
 
     showUser('user:system:gone');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
@@ -209,7 +202,7 @@ describe('showUser', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
     expect($userDetail.get().user?.login).toBe('alice');
 
-    vi.mocked(requestGraphQlDocument).mockReturnValue(errAsync(new AppError('Principal is gone')));
+    vi.mocked(fetchUserDetail).mockReturnValue(errAsync(new AppError('Principal is gone')));
     showUser('user:system:bob');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
@@ -222,25 +215,24 @@ describe('showUser', () => {
   // ! The answer to an overtaken row must not land after a newer one: the panel would then show a user
   // ! the list is no longer pointing at.
   it('drops the answer of a row a newer selection replaced', async () => {
-    let answerSlowly: ((value: unknown) => void) | undefined;
-    vi.mocked(requestGraphQlDocument).mockReturnValueOnce({
-      match: (onOk: (value: unknown) => void) =>
-        new Promise<void>((resolve) => {
-          answerSlowly = (value) => {
-            onOk(value);
-            resolve();
-          };
+    let answerSlowly: ((user: UserDetail | undefined) => void) | undefined;
+    vi.mocked(fetchUserDetail).mockReturnValueOnce(
+      ResultAsync.fromSafePromise(
+        new Promise<UserDetail | undefined>((resolve) => {
+          answerSlowly = resolve;
         }),
-    } as never);
+      ),
+    );
 
     showUser('user:system:alice');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
-    vi.mocked(requestGraphQlDocument).mockReturnValue(answered('bob'));
+    vi.mocked(fetchUserDetail).mockReturnValue(answered('bob'));
     showUser('user:system:bob');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
-    answerSlowly?.({ user: wireUser('alice') });
+    answerSlowly?.(detail('alice'));
+    await vi.advanceTimersByTimeAsync(0);
 
     expect($userDetail.get().user?.login).toBe('bob');
   });
@@ -249,36 +241,35 @@ describe('showUser', () => {
   // ! beside their updated row — and `Refresh` would never refresh the panel at all.
   it('asks again after the list reloaded, and re-reads the user on screen', async () => {
     loadRows('alice', 'bob');
-    vi.mocked(requestGraphQlDocument).mockReturnValue(answeredMemberships());
 
     // Two keys cached, alice left on screen.
     showUser('user:system:bob');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
     showUser('user:system:alice');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
-    const beforeReload = vi.mocked(requestGraphQlDocument).mock.calls.length;
+    const beforeReload = reads();
 
     forgetUserDetails();
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
     // The open user was re-read rather than left as it was — `Refresh` refreshes the panel too.
-    expect(vi.mocked(requestGraphQlDocument).mock.calls.length).toBe(beforeReload + 1);
+    expect(reads()).toBe(beforeReload + 1);
     expect($userDetail.get().user?.login).toBe('alice');
 
     // And a key cached before the reload no longer answers from the cache.
     showUser('user:system:bob');
     expect($userDetail.get().status).toBe('loading');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
-    expect(vi.mocked(requestGraphQlDocument).mock.calls.length).toBe(beforeReload + 2);
+    expect(reads()).toBe(beforeReload + 2);
   });
 
   it('carries no stale message into the next load', async () => {
-    vi.mocked(requestGraphQlDocument).mockReturnValue(errAsync(new AppError('boom')));
+    vi.mocked(fetchUserDetail).mockReturnValue(errAsync(new AppError('boom')));
     showUser('user:system:alice');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
     expect($userDetail.get().error).toBe('boom');
 
-    vi.mocked(requestGraphQlDocument).mockReturnValue(answered('bob'));
+    vi.mocked(fetchUserDetail).mockReturnValue(answered('bob'));
     showUser('user:system:bob');
 
     expect($userDetail.get().error).toBeUndefined();
@@ -294,28 +285,28 @@ describe('showUser', () => {
     showUser('user:system:alice');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
-    expect(vi.mocked(requestGraphQlDocument)).toHaveBeenCalledTimes(2);
+    expect(reads()).toBe(2);
   });
 
   // ! Stepping through a long list must not grow the cache without bound, so the oldest key goes first.
   it('forgets the oldest key once the cache is full', async () => {
     for (let index = 0; index <= 50; index += 1) {
       const login = `user${index}`;
-      vi.mocked(requestGraphQlDocument).mockReturnValue(answered(login));
+      vi.mocked(fetchUserDetail).mockReturnValue(answered(login));
       showUser(`user:system:${login}`);
       await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
     }
 
-    const beforeReask = vi.mocked(requestGraphQlDocument).mock.calls.length;
-    vi.mocked(requestGraphQlDocument).mockReturnValue(answered('user0'));
+    const beforeReask = reads();
+    vi.mocked(fetchUserDetail).mockReturnValue(answered('user0'));
 
-    // The very first key was evicted, so it costs a request; the newest one is still free.
+    // The very first key was evicted, so it costs a read; the newest one is still free.
     showUser('user:system:user0');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
-    expect(vi.mocked(requestGraphQlDocument).mock.calls.length).toBe(beforeReask + 1);
+    expect(reads()).toBe(beforeReask + 1);
 
     showUser('user:system:user50');
     expect($userDetail.get().status).toBe('ready');
-    expect(vi.mocked(requestGraphQlDocument).mock.calls.length).toBe(beforeReask + 1);
+    expect(reads()).toBe(beforeReask + 1);
   });
 });

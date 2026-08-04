@@ -12,8 +12,10 @@ export type GroupDetailsProps = {
 };
 
 export function GroupDetails({ group }: GroupDetailsProps) {
-  const t = useI18n();
   const providerName = useIdProviderName();
+
+  const editLabel = useI18n('groups.details.edit');
+
   const { key, displayName, description, members, roles } = group;
 
   // Users first, groups last, both flat: a group inside a group is a row, not a branch.
@@ -40,7 +42,7 @@ export function GroupDetails({ group }: GroupDetailsProps) {
         labelKey="groups.details.info"
         action={
           // TODO: [#6] Opens the group wizard once it exists.
-          <Button variant="outline" size="sm" label={t('groups.details.edit')} />
+          <Button variant="outline" size="sm" label={editLabel} />
         }
       >
         {description !== undefined && (

@@ -2,13 +2,13 @@ import { err, ok, type Result } from 'neverthrow';
 
 import {
   appendUsers,
-  beginIdProvidersLoad,
+  beginIdProviderNamesLoad,
   beginUsersAppend,
   beginUsersLoad,
   forgetUserDetails,
-  receiveIdProviders,
+  receiveIdProviderNames,
   receiveUsers,
-  toIdProviders,
+  toIdProviderNames,
   toUsersPage,
   usersAppendStart,
   type UsersPage,
@@ -31,14 +31,14 @@ export function reloadUsersScreen(): Promise<void> {
   const { signal } = start();
 
   beginUsersLoad();
-  beginIdProvidersLoad();
+  beginIdProviderNamesLoad();
 
   return fetchUsersScreen({ ...$usersQuery.get(), start: 0, count: PAGE_SIZE }, signal).match(
     (answer) => {
       if (!signal.aborted) {
         receiveUsers(page(answer.data, answer.message));
 
-        receiveIdProviders(providers(answer.data, answer.message));
+        receiveIdProviderNames(providers(answer.data, answer.message));
 
         // ! After the rows, not before. The cached details are built from rows, so invalidating at request
         // ! time would re-read the open user against the page that is about to be replaced — and the
@@ -49,7 +49,7 @@ export function reloadUsersScreen(): Promise<void> {
     (error) => {
       if (!signal.aborted) {
         receiveUsers(err(error));
-        receiveIdProviders(err(error));
+        receiveIdProviderNames(err(error));
       }
     },
   );
@@ -71,8 +71,8 @@ export function loadMoreUsers(): Promise<void> {
       if (!signal.aborted) {
         appendUsers(page(answer.data, answer.message));
         // The providers came along for free; taking them keeps the labels fresh at no cost, and a failed
-        // half no longer costs the loaded list — `receiveIdProviders` keeps what it has.
-        receiveIdProviders(providers(answer.data, answer.message));
+        // half no longer costs the loaded list — `receiveIdProviderNames` keeps what it has.
+        receiveIdProviderNames(providers(answer.data, answer.message));
       }
     },
     (error) => {
@@ -105,5 +105,5 @@ function page(data: UsersScreenData, message: string | undefined): Result<UsersP
 function providers(data: UsersScreenData, message: string | undefined) {
   return data.idProviders == null
     ? err(new AppError(message ?? 'The id providers could not be read'))
-    : ok(toIdProviders(data.idProviders));
+    : ok(toIdProviderNames(data.idProviders));
 }

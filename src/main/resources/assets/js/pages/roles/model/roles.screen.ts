@@ -1,11 +1,11 @@
 import { err, ok, type Result } from 'neverthrow';
 
 import {
-  beginIdProvidersLoad,
+  beginIdProviderNamesLoad,
   beginRolesLoad,
-  receiveIdProviders,
+  receiveIdProviderNames,
   receiveRoles,
-  toIdProviders,
+  toIdProviderNames,
   toRoles,
 } from '../../../entities/principal';
 import { beginProjectsLoad, receiveProjects } from '../../../entities/project';
@@ -28,7 +28,7 @@ export function loadRolesScreen(): Promise<void> {
   const { signal } = controller;
 
   beginRolesLoad();
-  beginIdProvidersLoad();
+  beginIdProviderNamesLoad();
   beginProjectsLoad();
 
   return fetchRolesScreen(signal).match(
@@ -41,7 +41,7 @@ export function loadRolesScreen(): Promise<void> {
       if (!signal.aborted) {
         const failed = err(error);
         receiveRoles(failed);
-        receiveIdProviders(failed);
+        receiveIdProviderNames(failed);
         receiveProjects(failed);
       }
     },
@@ -62,7 +62,7 @@ export function loadRolesScreen(): Promise<void> {
  */
 function dispatch(data: RolesScreenData, message: string | undefined): void {
   receiveRoles(present(data.roles, message).map(toRoles));
-  receiveIdProviders(present(data.idProviders, message).map(toIdProviders));
+  receiveIdProviderNames(present(data.idProviders, message).map(toIdProviderNames));
   receiveProjects(present(data.projects, message));
 }
 

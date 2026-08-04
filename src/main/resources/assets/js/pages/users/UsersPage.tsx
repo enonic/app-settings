@@ -3,7 +3,7 @@ import { Outlet, useNavigate } from '@tanstack/react-router';
 import { CircleUserRound } from 'lucide-react';
 import { useMemo } from 'preact/hooks';
 
-import { useIdProviderName, useIdProviders, useUsers } from '../../entities/principal';
+import { useIdProviderName, useIdProviderNames, useUsers } from '../../entities/principal';
 import { useI18n } from '../../shared/i18n';
 import { type SortDirection } from '../../widgets/browse-list/browse-sort';
 import { BrowseFilter } from '../../widgets/browse-list/BrowseFilter';
@@ -26,21 +26,26 @@ import { loadMoreUsers, reloadUsersScreen } from './model/users.screen';
 import { useUsersScreen } from './model/useUsersScreen';
 
 export function UsersPage() {
-  const t = useI18n();
   const navigate = useNavigate();
   // One request for a page of users and the providers that name them.
   useUsersScreen();
-  const { status, items, total, appending, error } = useUsers();
-  const { items: providers, status: providersStatus } = useIdProviders();
+  const { status, items, appending, error, hasMore } = useUsers();
+  const { items: providers, status: providersStatus } = useIdProviderNames();
   const providerName = useIdProviderName();
   const { idProvider, sort } = useStore($usersQuery);
 
+  const sortAscLabel = useI18n('users.sort.nameAsc');
+  const sortDescLabel = useI18n('users.sort.nameDesc');
+  const emptyLabel = useI18n('users.list.empty');
+  const loadMoreFailedNotice = useI18n('browse.list.loadMoreFailed');
+  const providersFailedNotice = useI18n('users.filter.providersFailed');
+
   const sortOptions = useMemo(
     () => [
-      { id: 'asc', label: t('users.sort.nameAsc') },
-      { id: 'desc', label: t('users.sort.nameDesc') },
+      { id: 'asc', label: sortAscLabel },
+      { id: 'desc', label: sortDescLabel },
     ],
-    [t],
+    [],
   ) satisfies readonly { id: SortDirection; label: string }[];
 
   // ! Entries come from the provider list, never from the rows: the rows are one page, so a provider the
@@ -68,17 +73,14 @@ export function UsersPage() {
     <BrowseScreen
       {...section}
       actions={USER_ACTIONS}
-      emptyLabel={t('users.list.empty')}
+      emptyLabel={emptyLabel}
       details={<Outlet />}
-      // `total` is the size of the whole match, `items` what has been paged in so far.
-      hasMore={items.length < total}
+      hasMore={hasMore}
       onLoadMore={() => void loadMoreUsers()}
       loadingMore={appending}
       // A page that did not arrive leaves the rows valid, so it is reported beside the control rather
       // than as a list error. Only a first page can put the list itself into an error state.
-      loadMoreError={
-        status === 'ready' && error !== undefined ? t('browse.list.loadMoreFailed') : undefined
-      }
+      loadMoreError={status === 'ready' && error !== undefined ? loadMoreFailedNotice : undefined}
       filter={
         <BrowseFilter
           entries={entries}
@@ -89,7 +91,7 @@ export function UsersPage() {
           onToggle={(id) => setUsersIdProvider(id === idProvider ? undefined : id)}
           // A provider list that failed to load leaves the menu short while the ticked provider goes on
           // narrowing the query; saying so beats a menu that looks complete.
-          notice={providersStatus === 'error' ? t('users.filter.providersFailed') : undefined}
+          notice={providersStatus === 'error' ? providersFailedNotice : undefined}
         />
       }
       sort={

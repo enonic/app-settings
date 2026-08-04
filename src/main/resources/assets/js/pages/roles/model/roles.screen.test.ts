@@ -1,7 +1,7 @@
 import { errAsync, okAsync } from 'neverthrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { $idProviders } from '../../../entities/principal/model/id-providers.store';
+import { $idProviderNames } from '../../../entities/principal/model/id-providers.store';
 import { $roles } from '../../../entities/principal/model/roles.store';
 import { $projects } from '../../../entities/project/model/projects.store';
 import { AppError } from '../../../shared/api';
@@ -20,14 +20,8 @@ const ROLE = {
   members: [],
 };
 
-const PROVIDER = {
-  key: 'system',
-  displayName: 'System',
-  description: null,
-  application: null,
-  users: { total: 3 },
-  groups: { total: 1 },
-};
+// The lean root the screens use asks for these two fields and nothing else.
+const PROVIDER = { key: 'system', displayName: 'System' };
 
 const PROJECT = { id: 'intranet', displayName: 'Company intranet' };
 
@@ -44,7 +38,7 @@ beforeEach(() => {
 
 afterEach(() => {
   $roles.set({ status: 'loading', items: [] });
-  $idProviders.set({ status: 'loading', items: [] });
+  $idProviderNames.set({ status: 'loading', items: [] });
   $projects.set({ status: 'loading', items: [] });
 });
 
@@ -54,9 +48,7 @@ describe('loadRolesScreen', () => {
 
     expect($roles.get().status).toBe('ready');
     expect($roles.get().items).toHaveLength(1);
-    expect($idProviders.get().items).toEqual([
-      { key: 'system', displayName: 'System', users: { total: 3 }, groups: { total: 1 } },
-    ]);
+    expect($idProviderNames.get().items).toEqual([{ key: 'system', displayName: 'System' }]);
     expect($projects.get().items).toEqual([PROJECT]);
   });
 
@@ -75,7 +67,7 @@ describe('loadRolesScreen', () => {
     await loadRolesScreen();
 
     expect($roles.get().status).toBe('ready');
-    expect($idProviders.get().status).toBe('ready');
+    expect($idProviderNames.get().status).toBe('ready');
     expect($projects.get().status).toBe('error');
     expect($projects.get().error).toBe('Project repo is down');
   });
@@ -86,7 +78,7 @@ describe('loadRolesScreen', () => {
     await loadRolesScreen();
 
     expect($roles.get().status).toBe('error');
-    expect($idProviders.get().status).toBe('error');
+    expect($idProviderNames.get().status).toBe('error');
     expect($projects.get().status).toBe('error');
     expect($roles.get().error).toBe('Network is down');
   });
