@@ -1,5 +1,6 @@
 import { useStore } from '@nanostores/preact';
 
+import { PrincipalLabel } from '../../entities/principal/ui/PrincipalLabel';
 import { DeleteConfirmDialog } from '../../shared/ui/dialogs/DeleteConfirmDialog';
 import { rolesDeletion } from './model/deletion.store';
 
@@ -9,9 +10,11 @@ export function RoleDeleteDialog() {
   return (
     <DeleteConfirmDialog
       open={targets !== undefined}
-      targets={(targets ?? []).map(({ key, displayName }) => ({ key, label: displayName }))}
-      // TODO: [#57] Enabled once `deletePrincipals` exists; the command lands with it. Until then this
-      // TODO: dialog can only be dismissed — no dialog in the dialog-first track commits anything.
+      targets={(targets ?? []).map((role) => ({
+        key: role.key,
+        label: <PrincipalLabel principal={role} />,
+      }))}
+      // TODO: [#57] Enabled once `deletePrincipals` and its command exist.
       confirmDisabled
       onClose={rolesDeletion.close}
     />

@@ -23,7 +23,6 @@ export const ROLE_ACTIONS: readonly SectionAction<Role>[] = [
     id: 'edit',
     labelKey: 'roles.action.edit',
     enabled: (ctx) => actionTargets(ctx).length === 1,
-    // The single target `enabled` already established; the check is TypeScript's, not a second refusal.
     run: (ctx) => {
       const [target] = actionTargets(ctx);
       if (target !== undefined) {

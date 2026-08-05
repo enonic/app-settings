@@ -17,14 +17,14 @@ for it — `SectionRail` owns `SectionRailItem` and `AppShell` passes `SECTIONS`
 widget reaching up into `app/navigation`. Same rule for domain data: pass a view model, never import
 from `entities/`.
 
-| Layer                | Holds                                                                             | Never                                 |
-| -------------------- | --------------------------------------------------------------------------------- | ------------------------------------- |
-| `app/`               | shell, router, navigation registry, bootstrap                                     | domain logic                          |
-| `pages/<section>/`   | composition, entity → view-model mapping, route glue, the screen's own query      | reusable logic                        |
-| `widgets/`           | section-agnostic composite blocks                                                 | domain words, `entities/` imports     |
-| `features/<action>/` | one user action: dialog, wizard, command                                          | any import to or from `widgets/`      |
-| `entities/<domain>/` | one domain slice: `api/`, `model/`, sometimes `ui/`                               | UI beyond a domain-specific row/badge |
-| `shared/`            | api client, config, i18n, server events, notifications, selection, detail, format, `ui/` | importing anything above        |
+| Layer                | Holds                                                                                    | Never                                 |
+| -------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------- |
+| `app/`               | shell, router, navigation registry, bootstrap                                            | domain logic                          |
+| `pages/<section>/`   | composition, entity → view-model mapping, route glue, the screen's own query             | reusable logic                        |
+| `widgets/`           | section-agnostic composite blocks                                                        | domain words, `entities/` imports     |
+| `features/<action>/` | one user action: dialog, wizard, command                                                 | any import to or from `widgets/`      |
+| `entities/<domain>/` | one domain slice: `api/`, `model/`, sometimes `ui/`                                      | UI beyond a domain-specific row/badge |
+| `shared/`            | api client, config, i18n, server events, notifications, selection, detail, format, `ui/` | importing anything above              |
 
 **`widgets/` and `features/` never import each other**, in either direction. They sit on one level here,
 and canonical FSD puts `widgets` above `features` — so an import between them is either a same-layer

@@ -109,8 +109,6 @@ export function RolesPage() {
         sort={<BrowseSort options={sortOptions} value={sort} onChange={setRolesSort} />}
       />
 
-      {/* Mounted beside the screen rather than inside it: both are opened from a module-level action
-          list, so their state lives in a store and the dialog only has to be on screen. */}
       <RoleEditorDialog />
       <RoleDeleteDialog />
     </>
