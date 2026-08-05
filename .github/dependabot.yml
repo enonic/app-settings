@@ -31,6 +31,8 @@ updates:
           - 'vite-plus'
           - 'vitest'
           - '@vitest/*'
+          # `vite` is an alias for the vite-plus core build, which has to move with it.
+          - '@voidzero-dev/*'
       tailwindcss:
         patterns:
           - 'tailwindcss'

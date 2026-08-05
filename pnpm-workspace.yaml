@@ -1,10 +1,9 @@
-catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@0.2.5
-  vite-plus: 0.2.5
-  vitest: 4.1.10
+# ! No catalog: Dependabot writes a lockfile that a `catalog:` specifier cannot satisfy —
+# dependabot-core#12244 — so the three versions live in package.json, where it updates them
+# correctly, and `$name` keeps the overrides on whatever is pinned there.
 overrides:
-  vite: 'catalog:'
-  vitest: 'catalog:'
+  vite: '$vite'
+  vitest: '$vitest'
 # react/react-dom are aliased to preact/compat, so never install the real
 # packages when a lib (e.g. @tanstack/react-router) declares them as peers.
 autoInstallPeers: false
