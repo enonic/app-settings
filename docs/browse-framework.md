@@ -702,10 +702,12 @@ Still open, needs design or product input:
    `Toolbar` and has none). Issue #3 promises to rebuild all of app-applications, so dropping it has to
    be deliberate. The other half of this question is closed: `ApplicationsListToolbar`'s "show system
    applications" toggle came back as the section's one filter entry, off by default as it was (§ 3.6).
-8. **Where "available version" comes from** — answered, and only the cell is left. `marketApplications`
-   in the schema reads Enonic Market server-side and hands back `latest`, `installedVersion` and
-   `updateAvailable` per application (#39), with `entities/market/` caching it for the session. What the
-   row does with it — a second version in the meta cell, an update affordance, or nothing until the
-   install dialog lands — is still open.
+8. ~~**Where "available version" comes from.**~~ Answered and built (#39): `marketApplications` reads
+   Enonic Market server-side and hands back `latest`, `installedVersion` and `updateAvailable` per
+   application, `entities/market/` caches it for the session, and the row's version cell reads
+   `Installed: 1.2.0` with `(available: 1.4.0)` under it wherever the market offers something newer. The
+   cell is the one consumer that makes staleness visible — `updateAvailable` is resolved server-side, so
+   an install or update leaves it wrong until the catalogue reloads, and a `market.service.ts` on
+   `application` server events is the open follow-up.
 9. **Where the rest of #7 lives** — service accounts, public keys and permission reports have no
    place in the mockups. Second pass of the Users section.

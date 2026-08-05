@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import type { Application, ApplicationState } from '../../../entities/application';
+import type { MarketApplication } from '../../../entities/market';
 import type { BrowseRow } from '../../../widgets/browse-list/browse-list';
 
 const STATE_LABEL_KEYS: Record<ApplicationState, string> = {
@@ -12,14 +13,26 @@ export function applicationStateLabelKey(state: ApplicationState): string {
   return STATE_LABEL_KEYS[state];
 }
 
+/** The newer version the market offers, per application key. */
+export function availableVersions(market: readonly MarketApplication[]): Map<string, string> {
+  const available = new Map<string, string>();
+
+  for (const application of market) {
+    if (application.updateAvailable) {
+      available.set(application.key, application.latest.version);
+    }
+  }
+
+  return available;
+}
+
 export function toApplicationRow(
   application: Application,
   icon?: ReactNode,
   stateLabel?: string,
+  version?: ReactNode,
 ): BrowseRow {
-  // The available version the mockups show next to the installed one comes from market.enonic.com,
-  // which no XP lib exposes — § 5.8 of docs/browse-framework.md.
-  const meta = [application.version, stateLabel].filter((cell) => cell != null);
+  const meta = [version, stateLabel].filter((cell) => cell != null);
 
   return {
     key: application.key,

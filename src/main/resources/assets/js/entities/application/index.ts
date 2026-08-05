@@ -32,3 +32,5 @@ export { useApplication } from './model/useApplication';
 export type { ApplicationLookup } from './model/useApplication';
 export { useApplicationInfo } from './model/useApplicationInfo';
 export { ApplicationIcon } from './ui/ApplicationIcon';
+export { ApplicationVersions } from './ui/ApplicationVersions';
+export type { ApplicationVersionsProps } from './ui/ApplicationVersions';

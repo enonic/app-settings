@@ -2,7 +2,13 @@ import { useStore } from '@nanostores/preact';
 import { Outlet, useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'preact/hooks';
 
-import { $applications, ApplicationIcon, loadApplications } from '../../entities/application';
+import {
+  $applications,
+  ApplicationIcon,
+  ApplicationVersions,
+  loadApplications,
+} from '../../entities/application';
+import { useMarketApplications } from '../../entities/market';
 import { UninstallApplicationsDialog } from '../../features/uninstall-applications/ui/UninstallApplicationsDialog';
 import { i18n, useI18n } from '../../shared/i18n';
 import { sortByDisplayName, type SortDirection } from '../../widgets/browse-list/browse-sort';
@@ -16,7 +22,11 @@ import {
   searchApplications,
   systemEntry,
 } from './model/applications.filter';
-import { applicationStateLabelKey, toApplicationRow } from './model/applications.rows';
+import {
+  applicationStateLabelKey,
+  availableVersions,
+  toApplicationRow,
+} from './model/applications.rows';
 import { applicationsFilter } from './model/filter.store';
 import { applicationsSearch } from './model/search.store';
 import { applicationsSelection } from './model/selection.store';
@@ -30,6 +40,7 @@ export function ApplicationsPage() {
   const query = useStore(applicationsSearch.$query);
   const selectedEntries = useStore(applicationsFilter.$selected);
   const sort = useStore($applicationsSort);
+  const { items: marketItems } = useMarketApplications();
 
   const emptyLabel = useI18n('applications.list.empty');
   const systemLabel = useI18n('applications.filter.system');
@@ -58,6 +69,10 @@ export function ApplicationsPage() {
   // The count follows the query but not the tick, so it answers "how many would this reveal".
   const entries = useMemo(() => [systemEntry(searched, systemLabel)], [searched]);
 
+  // Empty while the market is loading or unreachable, which leaves every row on its installed
+  // version alone — the list never waits on an outbound call.
+  const available = useMemo(() => availableVersions(marketItems), [marketItems]);
+
   const section = useBrowseSection({
     openItem: (key) =>
       void navigate({ to: '/applications/$id', params: { id: key }, replace: true }),
@@ -74,6 +89,12 @@ export function ApplicationsPage() {
         application,
         <ApplicationIcon icon={application.icon} />,
         i18n(applicationStateLabelKey(application.state)),
+        application.version == null ? undefined : (
+          <ApplicationVersions
+            installed={application.version}
+            available={available.get(application.key)}
+          />
+        ),
       ),
     reload: () => void loadApplications(),
   });
