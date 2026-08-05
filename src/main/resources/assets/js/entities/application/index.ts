@@ -15,7 +15,11 @@ export type {
   IdProviderInstance,
   IdProviderMode,
 } from './model/application.types';
-export { startApplications, stopApplications } from './model/application-commands';
+export {
+  startApplications,
+  stopApplications,
+  uninstallApplications,
+} from './model/application-commands';
 export type { ApplicationInfoEntry } from './model/application-info.store';
 export {
   start as startApplicationsService,

@@ -101,6 +101,7 @@ Segment rules, mirroring `.claude/rules/structure.md`:
 
 ```
 src/main/java/com/enonic/app/settings/
+  lib/application/     IsLocalApplicationHandler
   lib/icon/            EncodeApplicationIconHandler
   lib/macro/           ListMacrosHandler, MacroDescriptorMapper
   lib/task/            ListTaskDescriptorsHandler, TaskDescriptorMapper
@@ -356,6 +357,10 @@ and `applicationInfo(key)` with thirteen lazy fields, on `lib-app`, `lib-schema`
 `/lib/icon`, `/lib/macro`, `/lib/task`, `/lib/admin-tool`, `/lib/admin-extension`, `/lib/api`,
 `/lib/webapp`, `/lib/idprovider`. `../app-applications`' Java has no remaining behaviour this app cannot
 produce, and `FormMapper` was never needed — no section renders a form.
+
+A ninth bean arrived later with Uninstall (#39): `/lib/application`'s `isLocalApplication` backs
+`Application.local`, which the toolbar needs because XP refuses to uninstall a deploy-directory
+application and no JS lib reports which those are — see `docs/platform-facts.md`.
 
 **Schema shape:**
 

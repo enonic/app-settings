@@ -11,6 +11,7 @@ function application(overrides: Partial<Application> = {}): Application {
     version: '1.2.0',
     state: 'STARTED',
     system: false,
+    local: false,
     ...overrides,
   };
 }

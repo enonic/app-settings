@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'preact/hooks';
 
 import { $applications, ApplicationIcon, loadApplications } from '../../entities/application';
+import { UninstallApplicationsDialog } from '../../features/uninstall-applications/ui/UninstallApplicationsDialog';
 import { i18n, useI18n } from '../../shared/i18n';
 import { BrowseScreen } from '../../widgets/browse-screen/BrowseScreen';
 import { useBrowseSection } from '../../widgets/browse-screen/useBrowseSection';
@@ -44,11 +45,15 @@ export function ApplicationsPage() {
   });
 
   return (
-    <BrowseScreen
-      {...section}
-      actions={APPLICATION_ACTIONS}
-      emptyLabel={emptyLabel}
-      details={<Outlet />}
-    />
+    <>
+      <BrowseScreen
+        {...section}
+        actions={APPLICATION_ACTIONS}
+        emptyLabel={emptyLabel}
+        details={<Outlet />}
+      />
+
+      <UninstallApplicationsDialog />
+    </>
   );
 }

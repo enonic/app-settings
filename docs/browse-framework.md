@@ -116,6 +116,8 @@ widgets/browse-search/BrowseSearch.tsx      the composed SearchField
 widgets/details-panel/DetailsPanel.tsx      Empty / Header / Section / Subsection / Field / List
 widgets/details-panel/details-panel.ts      withCount, filledSections, detailsEmptyLabelKey
 widgets/details-panel/DetailsEmpty.tsx      the column with nothing to show
+widgets/dialog/ConfirmDialog.tsx            asks before a destructive action — not part of the browse
+                                            screen, but section-agnostic and used from features/
 shared/selection                            createSelectionStore<K>()
 shared/search                               createSearchStore()
 shared/detail                               createDetailLoader<T>() — the details panel's keyed load
@@ -219,6 +221,12 @@ Rules:
 - A refusal is expressed **inside `enabled`**, never re-checked in `run`, and it names the rule it
   comes from — `isReservedRole` for Delete, not a global flag (§ 3.5).
 - `run` calls a command from `entities/` or opens a `features/` dialog. No fetch in the widget.
+- **An action that needs confirming opens the dialog through a store, not through component state.**
+  The action list is a module constant, so `run` cannot reach a `useState` in the page: the feature slice
+  owns an atom holding what the dialog is asking about, the page mounts the component, and the component
+  renders nothing while that atom is empty. `features/uninstall-applications/` is the worked example, and
+  `widgets/dialog/ConfirmDialog.tsx` is the shell it composes — the copy and what confirming does stay in
+  the feature.
 - **An action targets `actionTargets(ctx)`, not `ctx.selected`.** With rows ticked it is the ticked
   set; with none, the active row — Content Studio's "current items". So highlighting a row, or
   right-clicking one, is enough to act on it, and the toolbar and the row menu agree by construction.
@@ -373,17 +381,17 @@ text-subtle` subtitle — and it lives in `widgets/item-label/` because the deta
 The two controls the mockups show beside `Select all` and `Refresh` are wired where a section has
 supplied them, and render as an inert button where it has not:
 
-| Control                 | v1 state                                                               |
-| ----------------------- | ---------------------------------------------------------------------- |
-| `Type to search` field  | working in every section that loads whole                              |
-| `Filter list` button    | working in Roles, Groups and ID Providers; `disabled` where no entries |
-| `Sort after` button     | working in Roles, Groups and ID Providers; `disabled` where no options |
-| `Select all`, `Refresh` | fully working                                                          |
+| Control                 | v1 state                                                                |
+| ----------------------- | ----------------------------------------------------------------------- |
+| `Type to search` field  | working in every section that loads whole                               |
+| `Filter list` button    | working in Users, Roles, Groups and ID Providers; `disabled` where none |
+| `Sort after` button     | working in Users, Roles, Groups and ID Providers; `disabled` where none |
+| `Select all`, `Refresh` | fully working                                                           |
 
 A section supplies both through the slots in `BrowseListHeaderProps`, and the widgets behind them —
 `BrowseFilter` and `BrowseSort` — stay section-agnostic: an entry is `{ id, label, count }` and an
-option is `{ id, label }`. Supply nothing and the header renders its inert button — Applications has no
-browse screen at all yet, `ApplicationsPage` being a bare `SectionPage`.
+option is `{ id, label }`. Supply nothing and the header renders its inert button, which is what
+Applications does: its rows carry no bucket worth filtering and no second orderable field.
 
 **A narrow header drops the labels and keeps the icons.** Below `36rem` of header width — a comfortable
 width for the current labels, with room to spare — `Refresh`, `Filter` and `Sort` are icons alone,

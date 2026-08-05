@@ -4,7 +4,15 @@ import type { Application } from '../../../entities/application';
 import { filterApplications } from './applications.filter';
 
 function application(key: string, displayName: string, description?: string): Application {
-  return { key, displayName, description, version: '1.0.0', state: 'STARTED', system: false };
+  return {
+    key,
+    displayName,
+    description,
+    version: '1.0.0',
+    state: 'STARTED',
+    system: false,
+    local: false,
+  };
 }
 
 const booster = application('com.enonic.app.booster', 'Booster', 'Caches rendered pages');

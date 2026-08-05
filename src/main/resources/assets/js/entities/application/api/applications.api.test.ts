@@ -12,7 +12,11 @@ const config = {
   apis: {
     events: 'ws:/_/admin:event',
     graphql: '/_/app:graphql',
-    serverApp: { start: '/_/server:app/start', stop: '/_/server:app/stop' },
+    serverApp: {
+      start: '/_/server:app/start',
+      stop: '/_/server:app/stop',
+      uninstall: '/_/server:app/uninstall',
+    },
   },
 } satisfies ToolConfig;
 
@@ -41,6 +45,7 @@ describe('fetchApplications', () => {
             version: '1.2.0',
             state: 'STARTED',
             system: false,
+            local: false,
             icon: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
             modifiedTime: '2026-05-07T12:42:39Z',
             minSystemVersion: '7.15.0',
@@ -63,6 +68,7 @@ describe('fetchApplications', () => {
         version: '1.2.0',
         state: 'STARTED',
         system: false,
+        local: false,
         icon: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
         modifiedTime: '2026-05-07T12:42:39Z',
         minSystemVersion: '7.15.0',
@@ -84,6 +90,7 @@ describe('fetchApplications', () => {
             version: null,
             state: 'STOPPED',
             system: true,
+            local: true,
             icon: null,
             modifiedTime: null,
             minSystemVersion: null,
@@ -105,6 +112,7 @@ describe('fetchApplications', () => {
         version: undefined,
         state: 'STOPPED',
         system: true,
+        local: true,
         icon: undefined,
         modifiedTime: undefined,
         minSystemVersion: undefined,

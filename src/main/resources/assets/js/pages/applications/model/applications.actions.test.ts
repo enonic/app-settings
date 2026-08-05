@@ -6,6 +6,10 @@ import {
   startApplications,
   stopApplications,
 } from '../../../entities/application';
+import {
+  $uninstallTargets,
+  closeUninstallDialog,
+} from '../../../features/uninstall-applications/model/uninstall-dialog.store';
 import { $config, setConfig, type ToolConfig } from '../../../shared/config';
 import type { ActionContext, SectionAction } from '../../../widgets/browse-toolbar/actions';
 import { APPLICATION_ACTIONS } from './applications.actions';
@@ -27,18 +31,28 @@ const config = {
   apis: {
     events: 'ws:/_/admin:event',
     graphql: '/_/app:graphql',
-    serverApp: { start: '/_/server:app/start', stop: '/_/server:app/stop' },
+    serverApp: {
+      start: '/_/server:app/start',
+      stop: '/_/server:app/stop',
+      uninstall: '/_/server:app/uninstall',
+    },
   },
 } satisfies ToolConfig;
 
-function application(key: string, state: ApplicationState, system = false): Application {
-  return { key, displayName: key, version: '1.0.0', state, system };
+function application(
+  key: string,
+  state: ApplicationState,
+  system = false,
+  local = false,
+): Application {
+  return { key, displayName: key, version: '1.0.0', state, system, local };
 }
 
 const booster = application('com.enonic.app.booster', 'STARTED');
 const fathom = application('com.enonic.app.fathom', 'STOPPED');
 const systemApp = application('com.enonic.xp.app.system', 'STARTED', true);
 const ownApp = application(OWN_APP, 'STARTED');
+const localApp = application('com.enonic.app.features', 'STARTED', false, true);
 
 function context(overrides: Partial<ActionContext<Application>> = {}): ActionContext<Application> {
   return { selected: [], active: undefined, ...overrides };
@@ -56,6 +70,7 @@ beforeEach(() => {
   setConfig(config);
   vi.mocked(startApplications).mockReset();
   vi.mocked(stopApplications).mockReset();
+  closeUninstallDialog();
 });
 
 afterEach(() => {
@@ -73,12 +88,47 @@ describe('application actions', () => {
   });
 });
 
-describe('install and uninstall application', () => {
-  it('stay disabled until #3 implements them, whatever is selected', () => {
+describe('install application', () => {
+  it('stays disabled until #3 implements it, whatever is selected', () => {
     expect(action('install').enabled(context())).toBe(false);
     expect(action('install').enabled(context({ selected: [booster] }))).toBe(false);
+  });
+});
+
+describe('uninstall application', () => {
+  it('needs a target', () => {
     expect(action('uninstall').enabled(context())).toBe(false);
-    expect(action('uninstall').enabled(context({ selected: [booster] }))).toBe(false);
+  });
+
+  it('accepts a target in either state, ticked or merely active', () => {
+    expect(action('uninstall').enabled(context({ selected: [booster, fathom] }))).toBe(true);
+    expect(action('uninstall').enabled(context({ active: fathom }))).toBe(true);
+  });
+
+  it('refuses a platform application, and this tool with it', () => {
+    expect(action('uninstall').enabled(context({ selected: [systemApp] }))).toBe(false);
+    expect(action('uninstall').enabled(context({ selected: [ownApp] }))).toBe(false);
+  });
+
+  // What app-applications greys the action out for, and the reason `local` is on the schema at all:
+  // XP refuses a deploy-directory application, so an enabled button could only ever fail.
+  it('refuses applications installed from the deploy directory', () => {
+    expect(action('uninstall').enabled(context({ selected: [localApp] }))).toBe(false);
+    expect(action('uninstall').enabled(context({ selected: [booster, localApp] }))).toBe(false);
+  });
+
+  // The one place Uninstall parts company with Start and Stop: it refuses the mixed selection
+  // outright rather than acting on the half it may take.
+  it('refuses a mixed selection instead of uninstalling part of it', () => {
+    expect(action('uninstall').enabled(context({ selected: [booster, systemApp] }))).toBe(false);
+  });
+
+  it('asks before uninstalling anything', () => {
+    const ctx = context({ selected: [booster, fathom] });
+
+    void action('uninstall').run(ctx);
+
+    expect($uninstallTargets.get()).toEqual([booster, fathom]);
   });
 });
 
