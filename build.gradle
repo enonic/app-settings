@@ -37,6 +37,7 @@ dependencies {
     include xplibs.project
     include xplibs.schema
     include 'com.enonic.lib:lib-graphql:3.0.0'
+    include 'com.enonic.lib:lib-http-client:4.0.0' // the market lookup — no XP lib makes outbound calls
     include 'com.enonic.lib:lib-mustache:3.0.0'
 
     // Optional XP libs — uncomment as features need them.

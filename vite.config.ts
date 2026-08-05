@@ -78,6 +78,7 @@ export default defineConfig(({ mode }) => {
       // and lucide-react — reached through the entity barrels — requires `react`, not installed.
       'lucide-react': join(import.meta.dirname, 'src/test/mocks/lucide-react.ts'),
       '/lib/graphql': join(import.meta.dirname, 'src/test/mocks/lib-graphql.ts'),
+      '/lib/http-client': join(import.meta.dirname, 'src/test/mocks/http-client.ts'),
       '/lib/mustache': join(import.meta.dirname, 'src/test/mocks/lib-mustache.ts'),
       '/lib/xp/portal': join(import.meta.dirname, 'src/test/mocks/lib-xp-portal.ts'),
       '/lib/xp/admin': join(import.meta.dirname, 'src/test/mocks/lib-xp-admin.ts'),
@@ -98,6 +99,7 @@ export default defineConfig(({ mode }) => {
       '/lib/auth': join(import.meta.dirname, 'src/main/resources/lib/auth.ts'),
       '/lib/config': join(import.meta.dirname, 'src/main/resources/lib/config.ts'),
       '/lib/i18n': join(import.meta.dirname, 'src/main/resources/lib/i18n.ts'),
+      '/lib/market': join(import.meta.dirname, 'src/main/resources/lib/market.ts'),
     },
   };
 

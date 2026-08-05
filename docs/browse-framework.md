@@ -702,8 +702,10 @@ Still open, needs design or product input:
    `Toolbar` and has none). Issue #3 promises to rebuild all of app-applications, so dropping it has to
    be deliberate. The other half of this question is closed: `ApplicationsListToolbar`'s "show system
    applications" toggle came back as the section's one filter entry, off by default as it was (§ 3.6).
-8. **Where "available version" comes from.** The Applications rows show installed _and_ available
-   version, but today that second number comes from a live GraphQL call to market.enonic.com, not from
-   any XP lib. Either it is out of v1 scope or the market call is part of #3's backend.
+8. **Where "available version" comes from** — answered, and only the cell is left. `marketApplications`
+   in the schema reads Enonic Market server-side and hands back `latest`, `installedVersion` and
+   `updateAvailable` per application (#39), with `entities/market/` caching it for the session. What the
+   row does with it — a second version in the meta cell, an update affordance, or nothing until the
+   install dialog lands — is still open.
 9. **Where the rest of #7 lives** — service accounts, public keys and permission reports have no
    place in the mockups. Second pass of the Users section.
