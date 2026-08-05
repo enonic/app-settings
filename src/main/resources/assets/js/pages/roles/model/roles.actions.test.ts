@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import type { Role } from '../../../entities/principal';
+import { $roleEditor, closeRoleEditor } from '../../../features/role-editor';
 import type { ActionContext, SectionAction } from '../../../widgets/browse-toolbar/actions';
+import { rolesDeletion } from './deletion.store';
 import { ROLE_ACTIONS } from './roles.actions';
 
 const systemRole: Role = {
@@ -29,9 +31,48 @@ function action(id: string): SectionAction<Role> {
   return found;
 }
 
+afterEach(() => {
+  closeRoleEditor();
+  rolesDeletion.close();
+});
+
 describe('role actions', () => {
   it('offers new, edit and delete in that order', () => {
     expect(ROLE_ACTIONS.map(({ id }) => id)).toEqual(['new', 'edit', 'delete']);
+  });
+});
+
+describe('what an action opens', () => {
+  it('opens the editor with no role to create one', () => {
+    void action('new').run(context());
+
+    expect($roleEditor.get()).toEqual({ mode: 'create' });
+  });
+
+  it('opens the editor on the one target it was given', () => {
+    void action('edit').run(context({ selected: [customRole] }));
+
+    expect($roleEditor.get()).toEqual({ mode: 'edit', role: customRole });
+  });
+
+  it('edits the active row when nothing is ticked', () => {
+    void action('edit').run(context({ active: customRole }));
+
+    expect($roleEditor.get()).toEqual({ mode: 'edit', role: customRole });
+  });
+
+  it('confirms a delete against every target, not only the first', () => {
+    const second: Role = { ...customRole, key: 'role:store.clerk', displayName: 'Store Clerk' };
+
+    void action('delete').run(context({ selected: [customRole, second] }));
+
+    expect(rolesDeletion.$payload.get()).toEqual([customRole, second]);
+  });
+
+  it('leaves the editor closed when a delete is confirmed', () => {
+    void action('delete').run(context({ active: customRole }));
+
+    expect($roleEditor.get()).toBeUndefined();
   });
 });
 

@@ -2,6 +2,7 @@ import { Avatar, Button } from '@enonic/ui';
 import { UserPen } from 'lucide-react';
 
 import { principalName, useIdProviderName, type RoleDetail } from '../../entities/principal';
+import { openRoleEditor } from '../../features/role-editor';
 import { formatDateTime, getInitials } from '../../shared/format';
 import { useI18n } from '../../shared/i18n';
 import { filledSections } from '../../widgets/details-panel/details-panel';
@@ -36,8 +37,12 @@ export function RoleDetails({ role }: RoleDetailsProps) {
       <DetailsPanel.Section
         labelKey="roles.details.role"
         action={
-          // TODO: [#5] Opens the role wizard once it exists.
-          <Button variant="outline" size="sm" label={editLabel} />
+          <Button
+            variant="outline"
+            size="sm"
+            label={editLabel}
+            onClick={() => openRoleEditor(role)}
+          />
         }
       >
         <DetailsPanel.Field labelKey="roles.details.description">

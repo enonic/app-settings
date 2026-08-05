@@ -5,6 +5,7 @@ import { useMemo } from 'preact/hooks';
 
 import { useRoles } from '../../entities/principal';
 import { useProjects } from '../../entities/project';
+import { RoleEditorDialog } from '../../features/role-editor/RoleEditorDialog';
 import { useI18n } from '../../shared/i18n';
 import { visibleEntries } from '../../widgets/browse-list/browse-filter';
 import { sortByDisplayName, type SortDirection } from '../../widgets/browse-list/browse-sort';
@@ -21,6 +22,7 @@ import { rolesSearch } from './model/search.store';
 import { rolesSelection } from './model/selection.store';
 import { $rolesSort, setRolesSort } from './model/sort.store';
 import { useRolesScreen } from './model/useRolesScreen';
+import { RoleDeleteDialog } from './RoleDeleteDialog';
 
 export function RolesPage() {
   const navigate = useNavigate();
@@ -88,22 +90,29 @@ export function RolesPage() {
   });
 
   return (
-    <BrowseScreen
-      {...section}
-      actions={ROLE_ACTIONS}
-      emptyLabel={emptyLabel}
-      details={<Outlet />}
-      filter={
-        <BrowseFilter
-          entries={buckets}
-          selected={selectedBuckets}
-          onToggle={(id) => rolesFilter.toggle(id)}
-          // A failed project load leaves the per-project entries out; saying so beats a short list
-          // that looks complete.
-          notice={projectsStatus === 'error' ? projectsFailedNotice : undefined}
-        />
-      }
-      sort={<BrowseSort options={sortOptions} value={sort} onChange={setRolesSort} />}
-    />
+    <>
+      <BrowseScreen
+        {...section}
+        actions={ROLE_ACTIONS}
+        emptyLabel={emptyLabel}
+        details={<Outlet />}
+        filter={
+          <BrowseFilter
+            entries={buckets}
+            selected={selectedBuckets}
+            onToggle={(id) => rolesFilter.toggle(id)}
+            // A failed project load leaves the per-project entries out; saying so beats a short list
+            // that looks complete.
+            notice={projectsStatus === 'error' ? projectsFailedNotice : undefined}
+          />
+        }
+        sort={<BrowseSort options={sortOptions} value={sort} onChange={setRolesSort} />}
+      />
+
+      {/* Mounted beside the screen rather than inside it: both are opened from a module-level action
+          list, so their state lives in a store and the dialog only has to be on screen. */}
+      <RoleEditorDialog />
+      <RoleDeleteDialog />
+    </>
   );
 }
