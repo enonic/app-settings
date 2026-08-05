@@ -3,6 +3,7 @@ import { err, ok, type Result } from 'neverthrow';
 import {
   beginGroupsLoad,
   beginIdProviderNamesLoad,
+  forgetGroupDetails,
   receiveGroups,
   receiveIdProviderNames,
   toGroups,
@@ -53,6 +54,9 @@ export function loadGroupsScreen(): Promise<void> {
 function dispatch(data: GroupsScreenData, message: string | undefined): void {
   receiveGroups(present(data.groups, message).map(toGroups));
   receiveIdProviderNames(present(data.idProviders, message).map(toIdProviderNames));
+
+  // The panel's members and roles are a request of their own, so `Refresh` has to reach them too.
+  forgetGroupDetails();
 }
 
 function present<T>(value: T[] | null, message: string | undefined): Result<T[], AppError> {

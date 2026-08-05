@@ -9,14 +9,12 @@ const systemRole: Role = {
   key: 'role:system.admin',
   displayName: 'Administrator',
   modifiedTime: '2026-07-21T08:05:00Z',
-  members: [],
 };
 const customRole: Role = {
   type: 'role',
   key: 'role:store.manager',
   displayName: 'Store Manager',
   modifiedTime: '2026-07-21T08:05:00Z',
-  members: [],
 };
 
 function context(overrides: Partial<ActionContext<Role>> = {}): ActionContext<Role> {

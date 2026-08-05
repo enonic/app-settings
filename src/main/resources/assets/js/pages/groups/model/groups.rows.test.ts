@@ -9,8 +9,6 @@ const group: Group = {
   displayName: 'Developers',
   description: 'Deploys applications',
   modifiedTime: '2026-07-19T07:45:00Z',
-  members: [],
-  roles: [],
 };
 
 describe('toGroupRow', () => {

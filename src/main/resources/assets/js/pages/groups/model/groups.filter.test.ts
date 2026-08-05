@@ -10,8 +10,6 @@ function group(key: string, displayName: string, description?: string, provider 
     key: `group:${provider}:${key}`,
     displayName,
     description,
-    members: [],
-    roles: [],
   };
 }
 

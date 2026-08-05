@@ -17,7 +17,6 @@ const ROLE = {
   displayName: 'Administrator',
   description: null,
   modifiedTime: null,
-  members: [],
 };
 
 // The lean root the screens use asks for these two fields and nothing else.

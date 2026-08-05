@@ -76,13 +76,13 @@ wizard, since there is no tree node to create it under.
 
 ## 2. What lives where
 
-| Layer                | Contains                                                   | Must not                                                  |
-| -------------------- | ---------------------------------------------------------- | --------------------------------------------------------- |
-| `widgets/`           | the framework below — section-agnostic                     | import from `entities/` or `pages/`; know any domain word |
-| `pages/<section>/`   | composition, entity → row/field mapping, routing glue      | hold reusable logic                                       |
-| `features/<action>/` | one user action: dialog, wizard, command                   | be imported by `widgets/`                                 |
-| `entities/<domain>/` | types, the only I/O, stores                                | import from `widgets/`, `features/`, `pages/`             |
-| `shared/`            | api client, config, i18n, server events, selection, format | import from any layer above                               |
+| Layer                | Contains                                                           | Must not                                                  |
+| -------------------- | ------------------------------------------------------------------ | --------------------------------------------------------- |
+| `widgets/`           | the framework below — section-agnostic                             | import from `entities/` or `pages/`; know any domain word |
+| `pages/<section>/`   | composition, entity → row/field mapping, routing glue              | hold reusable logic                                       |
+| `features/<action>/` | one user action: dialog, wizard, command                           | be imported by `widgets/`                                 |
+| `entities/<domain>/` | types, the only I/O, stores                                        | import from `widgets/`, `features/`, `pages/`             |
+| `shared/`            | api client, config, i18n, server events, selection, detail, format | import from any layer above                               |
 
 The rule that makes parallel work possible: **the list and the details panel never know what a user
 or an application is.** Sections map their domain objects into the view models below.
@@ -111,10 +111,11 @@ widgets/browse-list/BrowseListContextMenu.tsx  the action list on right-click
 widgets/item-label/ItemLabel.tsx            icon + title + subtitle, shared with the details panel
 widgets/browse-search/BrowseSearch.tsx      the composed SearchField
 widgets/details-panel/DetailsPanel.tsx      Empty / Header / Section / Subsection / Field / List
-widgets/details-panel/details-panel.ts      withCount, the label-with-count helper
+widgets/details-panel/details-panel.ts      withCount, filledSections, detailsEmptyLabelKey
 widgets/details-panel/DetailsEmpty.tsx      the column with nothing to show
 shared/selection                            createSelectionStore<K>()
 shared/search                               createSearchStore()
+shared/detail                               createDetailLoader<T>() — the details panel's keyed load
 shared/format                               formatDate, formatDateTime, formatBytes, getInitials
 ```
 
@@ -619,21 +620,29 @@ lookups like `useRole(id)` take `string`, never a cast to `PrincipalKey`.
   applies to. The client-side sections keep them, since there the hidden rows come back when the query
   clears.
 - **A details panel takes its item from the route, never from a selection store in `entities/`.** The id
-  comes from `useParams` and the panel asks a `use<Thing>(key)` hook for it. Where a section loads whole
-  that hook is a lookup in the list the section already has — `useRole(id)`, `useApplication(id)` — so
-  selecting a row costs nothing. A panel needing more than the list holds loads by key and caches per key:
-  `useApplicationInfo(key)` for an application's descriptors, `useUser(key)` for a paged section, whose
-  selected row may not be among the loaded ones at all. An `entities/` store that subscribed to "the
-  selected key" instead would put per-section UI state in the domain slice and hide the load behind a
-  second store; per `.claude/rules/stores.md` a store never derives from another store that way.
+  comes from `useParams` and the panel asks a `use<Thing>(key)` hook for it. An `entities/` store that
+  subscribed to "the selected key" instead would put per-section UI state in the domain slice and hide the
+  load behind a second store; per `.claude/rules/stores.md` a store never derives from another store that
+  way.
+- **That hook loads by key, and it does so through `shared/detail`'s `createDetailLoader`.** One request
+  in flight, a 250 ms debounce in front of it, a small key cache behind it, `forget()` on leaving the
+  section and `invalidate()` when the list reloads so `Refresh` reaches the panel too. A domain supplies
+  only its own read: `useUser`, `useRole` and `useGroup` are wrappers of twenty lines. Do not write the
+  debounce again, and note that the loader tracks the selected key rather than reading it back off the
+  state — the item on screen during a load is still the previous one.
+- **A panel loads even where the section loads whole, and Roles is the case that settled it.** Reading the
+  item out of the loaded list looks free, but the expensive half of a principal is its member lists, and no
+  list may fetch those per row — so the panel has to ask for something regardless (see _Member lists on
+  demand_ in `docs/unified-api.md`). Once it does, taking the scalars from the same answer costs nothing and
+  buys independence from the list: the panel can tell a deleted item from one the list has not reached, and
+  it keeps working when a section starts paging. `useApplicationInfo(key)` is the same shape from the other
+  direction, and `useApplication(id)` is the one remaining list lookup.
 - **Loading, failed and gone are three states in that panel, not one**, and conflating any pair of them
-  lies to the reader. A panel that loads keeps the item it has while the next is on its way, says
+  lies to the reader. A panel keeps the item it has while the next is on its way, says
   `browse.details.loading` while it has none, and drops the item on failure rather than describing someone
-  other than the selected row. Its load is debounced with a small key cache, because the arrow keys move
-  the active row and therefore the route: holding one down would otherwise fire a request per row through
-  the single-flight queue. A panel reading a whole list only has to tell a list that has not arrived from a
-  key nothing answers to. See the Roles list-query entry under Phase 4 in `docs/unified-api.md` for the
-  same problem arriving from the other direction.
+  other than the selected row — `detailsEmptyLabelKey` beside the panel picks between the three, and a
+  section passes only its own `<section>.details.failed`. The debounce is why `loading` matters: without
+  that state a selection would read as a click that did nothing.
 - Mapping a domain object to `BrowseRow` or to details fields happens in `pages/<section>/`.
 - An api file runs in the browser and therefore always calls an HTTP endpoint. `lib/xp/auth`
   and every other `/lib/xp/*` module is server-side only — it belongs behind that endpoint, never in

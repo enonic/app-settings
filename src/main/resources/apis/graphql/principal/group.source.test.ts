@@ -2,13 +2,14 @@ import {
   findPrincipals,
   getMembers,
   getMemberships,
+  getPrincipal,
   type Group,
   type Role,
   type User,
 } from '/lib/xp/auth';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { listGroupMembers, listGroupRoles, listGroups } from './group.source';
+import { getGroup, listGroupMembers, listGroupRoles, listGroups } from './group.source';
 
 function group(key: string, displayName: string): Group {
   return {
@@ -86,6 +87,44 @@ describe('listGroups', () => {
     vi.mocked(findPrincipals).mockReturnValue(found([]));
 
     expect(listGroups()).toEqual([]);
+  });
+});
+
+describe('getGroup', () => {
+  it('answers the group a key names', () => {
+    const ops = group('group:system:ops', 'Ops');
+    vi.mocked(getPrincipal).mockReturnValue(ops);
+
+    expect(getGroup('group:system:ops')).toBe(ops);
+    expect(vi.mocked(getPrincipal)).toHaveBeenCalledWith('group:system:ops');
+  });
+
+  // A group key carries its provider, so the two-segment form a role uses is not one.
+  it('answers null for a key naming no group, without asking', () => {
+    expect(getGroup('role:system.admin')).toBeNull();
+    expect(getGroup('group:ops')).toBeNull();
+    expect(getGroup('')).toBeNull();
+    expect(vi.mocked(getPrincipal)).not.toHaveBeenCalled();
+  });
+
+  it('answers null when the key names something that is not a group', () => {
+    vi.mocked(getPrincipal).mockReturnValue(user('user:system:su', 'Super User'));
+
+    expect(getGroup('group:system:su')).toBeNull();
+  });
+
+  it('answers null for a group nothing answers to', () => {
+    vi.mocked(getPrincipal).mockReturnValue(null);
+
+    expect(getGroup('group:system:gone')).toBeNull();
+  });
+
+  it('answers null when the platform refuses the key', () => {
+    vi.mocked(getPrincipal).mockImplementation(() => {
+      throw new Error('Invalid group key');
+    });
+
+    expect(getGroup('group:system:not valid')).toBeNull();
   });
 });
 

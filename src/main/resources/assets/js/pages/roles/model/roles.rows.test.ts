@@ -9,7 +9,6 @@ const role: Role = {
   displayName: 'Store Manager',
   description: 'Manage products and orders',
   modifiedTime: '2026-07-21T08:05:00Z',
-  members: [],
 };
 
 describe('toRoleRow', () => {

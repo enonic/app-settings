@@ -2,6 +2,7 @@ import {
   findPrincipals,
   getMembers,
   getMemberships,
+  getPrincipal,
   type Group,
   type GroupKey,
   type Principal,
@@ -18,6 +19,28 @@ export function listGroups(): Group[] {
   const { hits } = findPrincipals({ type: 'group', count: -1 });
 
   return hits.filter(isGroup).sort((a, b) => byName(displayNameOf(a), displayNameOf(b)));
+}
+
+/** A group key carries its provider, so the two-segment form a role uses is not one. */
+const GROUP_KEY = /^group:[^:]+:[^:]+$/;
+
+/**
+ * Null for a key no group answers to, which is a legitimate answer rather than a failure. The three
+ * guards are the ones `getRole` and `getUser` explain: the pattern and the type check keep the field
+ * honest about what it answers for, and the `catch` about failing — `PrincipalKey.ofGroup` throws on an
+ * id `ID_VALIDATOR` rejects rather than returning nothing.
+ */
+export function getGroup(key: string): Group | null {
+  if (!GROUP_KEY.test(key)) {
+    return null;
+  }
+
+  try {
+    const principal = getPrincipal(key as GroupKey);
+    return principal != null && principal.type === 'group' ? principal : null;
+  } catch {
+    return null;
+  }
 }
 
 export function listGroupMembers(key: GroupKey): PrincipalItem[] {

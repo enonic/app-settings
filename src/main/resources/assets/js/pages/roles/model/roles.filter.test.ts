@@ -20,7 +20,6 @@ function role(key: string, displayName: string, description?: string): Role {
     displayName,
     description,
     modifiedTime: '2026-07-21T08:05:00Z',
-    members: [],
   };
 }
 

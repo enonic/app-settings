@@ -1,14 +1,14 @@
 import { Avatar, Button } from '@enonic/ui';
 import { UserPen } from 'lucide-react';
 
-import { principalName, useIdProviderName, type Role } from '../../entities/principal';
+import { principalName, useIdProviderName, type RoleDetail } from '../../entities/principal';
 import { formatDateTime, getInitials } from '../../shared/format';
 import { useI18n } from '../../shared/i18n';
 import { filledSections } from '../../widgets/details-panel/details-panel';
 import { DetailsPanel } from '../../widgets/details-panel/DetailsPanel';
 
 export type RoleDetailsProps = {
-  role: Role;
+  role: RoleDetail;
 };
 
 export function RoleDetails({ role }: RoleDetailsProps) {
