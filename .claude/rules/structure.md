@@ -22,9 +22,20 @@ from `entities/`.
 | `app/`               | shell, router, navigation registry, bootstrap                                     | domain logic                          |
 | `pages/<section>/`   | composition, entity → view-model mapping, route glue, the screen's own query      | reusable logic                        |
 | `widgets/`           | section-agnostic composite blocks                                                 | domain words, `entities/` imports     |
-| `features/<action>/` | one user action: dialog, wizard, command                                          | being imported by `widgets/`          |
+| `features/<action>/` | one user action: dialog, wizard, command                                          | any import to or from `widgets/`      |
 | `entities/<domain>/` | one domain slice: `api/`, `model/`, sometimes `ui/`                               | UI beyond a domain-specific row/badge |
-| `shared/`            | api client, config, i18n, server events, notifications, selection, detail, format | importing anything above              |
+| `shared/`            | api client, config, i18n, server events, notifications, selection, detail, format, `ui/` | importing anything above        |
+
+**`widgets/` and `features/` never import each other**, in either direction. They sit on one level here,
+and canonical FSD puts `widgets` above `features` — so an import between them is either a same-layer
+cross-import or one pointing upwards, depending on which reading you take, and neither is allowed.
+
+The consequence is where a domain-agnostic component goes when a feature needs it too: **`shared/ui/`,
+not `widgets/`**. `shared/ui/dialogs/ModalDialog.tsx` is the case — the modal shell is composed by
+`features/role-editor` and by a page, so it cannot live on either layer. `widgets/` keeps what only a
+page composes: the browse framework. Content Studio v6 draws the same line — `shared/ui/dialogs`,
+`shared/ui/primitives`, `shared/ui/split-view` — which is also what makes these components portable into
+a library shared with it.
 
 ## File names
 
@@ -47,6 +58,13 @@ domain that owns them.
 Folders are `kebab-case`. `shared/` and `entities/` slices are consumed through an `index.ts` barrel;
 components under `widgets/` and `pages/` are imported by file path — no barrels there. A barrel never
 re-exports a store's internals.
+
+**A `features/` barrel carries the slice's commands, stores and types — never its components**, which are
+imported by file path as `widgets/` and `pages/` components are. The reason is mechanical: a component
+pulls in `@enonic/ui`, and the vitest environment is `node` with no `react` resolution, so a barrel that
+re-exports one cannot be imported by anything a test loads — an action list is exactly that. Keeping
+components out of the barrel is what lets `pages/<section>/model/*.actions.ts` open a feature's dialog
+through `features/<action>`.
 
 ## Slices and segments
 

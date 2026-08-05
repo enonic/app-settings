@@ -1,14 +1,11 @@
 import { isReservedRole, type Role } from '../../../entities/principal';
+import { openRoleCreator, openRoleEditor } from '../../../features/role-editor';
 import {
   type ActionContext,
   actionTargets,
   type SectionAction,
 } from '../../../widgets/browse-toolbar/actions';
-
-// TODO: [#5] The role wizard and the delete dialog arrive with the Roles section itself.
-function pending(): void {
-  return undefined;
-}
+import { rolesDeletion } from './deletion.store';
 
 function deletable(ctx: ActionContext<Role>): boolean {
   const targets = actionTargets(ctx);
@@ -20,18 +17,24 @@ export const ROLE_ACTIONS: readonly SectionAction<Role>[] = [
     id: 'new',
     labelKey: 'roles.action.new',
     enabled: () => true,
-    run: pending,
+    run: openRoleCreator,
   },
   {
     id: 'edit',
     labelKey: 'roles.action.edit',
     enabled: (ctx) => actionTargets(ctx).length === 1,
-    run: pending,
+    // The single target `enabled` already established; the check is TypeScript's, not a second refusal.
+    run: (ctx) => {
+      const [target] = actionTargets(ctx);
+      if (target !== undefined) {
+        openRoleEditor(target);
+      }
+    },
   },
   {
     id: 'delete',
     labelKey: 'roles.action.delete',
     enabled: deletable,
-    run: pending,
+    run: (ctx) => rolesDeletion.open(actionTargets(ctx)),
   },
 ];
