@@ -2,6 +2,7 @@ import { Button, Menu } from '@enonic/ui';
 import { ArrowDownUp } from 'lucide-react';
 
 import { useI18n } from '../../shared/i18n';
+import { HEADER_CONTROL_CLASS, HEADER_CONTROL_LABEL_CLASS } from './header-controls';
 
 export type BrowseSortOption<Id extends string = string> = {
   id: Id;
@@ -29,7 +30,14 @@ export function BrowseSort<Id extends string = string>({
   return (
     <Menu>
       <Menu.Trigger asChild>
-        <Button variant="text" startIcon={ArrowDownUp} label={sortLabel} className="px-4.5" />
+        <Button
+          variant="text"
+          startIcon={ArrowDownUp}
+          title={sortLabel}
+          className={HEADER_CONTROL_CLASS}
+        >
+          <span className={HEADER_CONTROL_LABEL_CLASS}>{sortLabel}</span>
+        </Button>
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Content align="end" className="min-w-56">
