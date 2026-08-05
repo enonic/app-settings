@@ -381,17 +381,16 @@ text-subtle` subtitle — and it lives in `widgets/item-label/` because the deta
 The two controls the mockups show beside `Select all` and `Refresh` are wired where a section has
 supplied them, and render as an inert button where it has not:
 
-| Control                 | v1 state                                                                |
-| ----------------------- | ----------------------------------------------------------------------- |
-| `Type to search` field  | working in every section that loads whole                               |
-| `Filter list` button    | working in Users, Roles, Groups and ID Providers; `disabled` where none |
-| `Sort after` button     | working in Users, Roles, Groups and ID Providers; `disabled` where none |
-| `Select all`, `Refresh` | fully working                                                           |
+| Control                 | v1 state                                            |
+| ----------------------- | --------------------------------------------------- |
+| `Type to search` field  | working in every section that loads whole           |
+| `Filter list` button    | working in all five sections; `disabled` where none |
+| `Sort after` button     | working in all five sections; `disabled` where none |
+| `Select all`, `Refresh` | fully working                                       |
 
 A section supplies both through the slots in `BrowseListHeaderProps`, and the widgets behind them —
 `BrowseFilter` and `BrowseSort` — stay section-agnostic: an entry is `{ id, label, count }` and an
-option is `{ id, label }`. Supply nothing and the header renders its inert button, which is what
-Applications does: its rows carry no bucket worth filtering and no second orderable field.
+option is `{ id, label }`. Supply nothing and the header renders its inert button.
 
 **A narrow header drops the labels and keeps the icons.** Below `36rem` of header width — a comfortable
 width for the current labels, with room to spare — `Refresh`, `Filter` and `Sort` are icons alone,
@@ -443,8 +442,19 @@ projects load reclassified every project role at once, so a ticked project bucke
 vanishing from the menu. The loaded list contributes labels and the buckets that own no row yet; when it
 is missing, the id stands in as the label.
 
-Sorting offers display name ascending and descending and nothing else, since none of the three carries
-another orderable field. `modifiedTime` would be the candidate for Roles and Groups and never arrives:
+**Applications is the one section whose unticked filter narrows, and it is deliberate.** It offers a
+single entry, `System applications`, and it is an include toggle rather than a bucket: unticked — the
+default — hides the applications XP itself ships, ticked shows the whole list. Those rows are noise for
+an admin managing their own applications, which is why app-applications hid them behind the same toggle,
+off by default; the empty selection every section starts and returns to is what expresses "hidden" here,
+so nothing about the store or `resetOnLeave` is special-cased. The one rule that inverts with it is the
+dropping of empty entries: the entry is offered whatever its count and never passes through
+`visibleEntries`, because an absent entry would go on hiding rows with no control left on screen to
+reveal them — the same failure the rule above prevents, arriving from the other direction — and a
+checkbox appearing and vanishing as the user types is worse than one reading zero.
+
+Sorting offers display name ascending and descending and nothing else. `modifiedTime` would be the
+candidate for Roles and Groups and never arrives:
 `PrincipalNodeTranslator` does not copy it off the node, which is a defect on the XP side rather than a
 shape to design around — see `docs/platform-facts.md`.
 
@@ -675,9 +685,10 @@ Decided:
 2. The two columns are a draggable split view with a `300px` minimum each; the width is remembered in
    `localStorage`. No collapse toggle in v1 — the mockups have none, and dragging covers it.
 3. Item route stays `/{section}/$id` with hash history.
-4. Search filters client-side wherever the section loads whole; `Filter list` and `Sort after` stay
-   inert until they are designed (§ 3.6). The last row meta cell is provenance; the undefined `Info` /
-   `More info` cells are left out until they mean something.
+4. Search filters client-side wherever the section loads whole; `Filter list` and `Sort after` are
+   supplied by all five sections now, and the slots stay inert for a section that supplies neither
+   (§ 3.6). The last row meta cell is provenance; the undefined `Info` / `More info` cells are left out
+   until they mean something.
 5. No ID-provider tree — ID Providers is a flat section like the others.
 
 Still open, needs design or product input:
@@ -686,11 +697,11 @@ Still open, needs design or product input:
    platform has no such flag. Candidate readings: bound to an application _and_ that application is
    started; has an `idProviderConfig`; mounted on a vhost (`lib/xp/vhost.list()` exposes
    `idProviderKeys`).
-7. **Functionality present today that the mockups drop** — both in Applications only: the "show only
+7. **Functionality present today that the mockups drop** — in Applications only: the "show only
    selected" toggle, inherited from lib-admin-ui's `ListBoxToolbar` (app-users extends the plain
-   `Toolbar` and has none), and the "show system applications" toggle in `ApplicationsListToolbar`,
-   off by default. Issue #3 promises to rebuild all of app-applications, so dropping them has to be
-   deliberate.
+   `Toolbar` and has none). Issue #3 promises to rebuild all of app-applications, so dropping it has to
+   be deliberate. The other half of this question is closed: `ApplicationsListToolbar`'s "show system
+   applications" toggle came back as the section's one filter entry, off by default as it was (§ 3.6).
 8. **Where "available version" comes from.** The Applications rows show installed _and_ available
    version, but today that second number comes from a live GraphQL call to market.enonic.com, not from
    any XP lib. Either it is out of v1 scope or the market call is part of #3's backend.
