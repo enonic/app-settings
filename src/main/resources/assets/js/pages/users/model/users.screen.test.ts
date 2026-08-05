@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { $idProviderNames } from '../../../entities/principal/model/id-providers.store';
 import { showUser } from '../../../entities/principal/model/user-detail.load';
-import { $userDetail } from '../../../entities/principal/model/user-detail.store';
+import { $userDetail } from '../../../entities/principal/model/user-detail.load';
 import { $users } from '../../../entities/principal/model/users.store';
 import { AppError, requestGraphQlDocument } from '../../../shared/api';
 import { fetchUsersScreen } from '../api/users-screen.api';
@@ -122,7 +122,7 @@ describe('reloadUsersScreen', () => {
 
       showUser('user:system:alice');
       await vi.advanceTimersByTimeAsync(300);
-      expect($userDetail.get().user?.login).toBe('alice');
+      expect($userDetail.get().item?.login).toBe('alice');
       const readsBefore = vi.mocked(requestGraphQlDocument).mock.calls.length;
 
       await reloadUsersScreen();
@@ -130,7 +130,7 @@ describe('reloadUsersScreen', () => {
 
       // The open user was read again rather than served from a cache built on the replaced rows.
       expect(vi.mocked(requestGraphQlDocument).mock.calls.length).toBe(readsBefore + 1);
-      expect($userDetail.get().user?.login).toBe('alice');
+      expect($userDetail.get().item?.login).toBe('alice');
     } finally {
       vi.useRealTimers();
     }

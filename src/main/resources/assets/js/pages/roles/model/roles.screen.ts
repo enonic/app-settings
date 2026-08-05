@@ -3,6 +3,7 @@ import { err, ok, type Result } from 'neverthrow';
 import {
   beginIdProviderNamesLoad,
   beginRolesLoad,
+  forgetRoleDetails,
   receiveIdProviderNames,
   receiveRoles,
   toIdProviderNames,
@@ -64,6 +65,10 @@ function dispatch(data: RolesScreenData, message: string | undefined): void {
   receiveRoles(present(data.roles, message).map(toRoles));
   receiveIdProviderNames(present(data.idProviders, message).map(toIdProviderNames));
   receiveProjects(present(data.projects, message));
+
+  // The panel's members are a request of their own, so `Refresh` has to reach them too: without this the
+  // open role would keep the member list it was cached with beside a row that has just been re-read.
+  forgetRoleDetails();
 }
 
 function present<T>(value: T[] | null, message: string | undefined): Result<T[], AppError> {

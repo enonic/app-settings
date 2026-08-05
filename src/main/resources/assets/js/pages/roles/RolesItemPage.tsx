@@ -1,17 +1,18 @@
 import { useParams } from '@tanstack/react-router';
 
 import { useRole } from '../../entities/principal';
+import { detailsEmptyLabelKey } from '../../widgets/details-panel/details-panel';
 import { DetailsEmpty } from '../../widgets/details-panel/DetailsEmpty';
 import { RoleDetails } from './RoleDetails';
 
 export function RolesItemPage() {
   const { id } = useParams({ strict: false });
-  const role = useRole(id);
+  const { status, item: role } = useRole(id);
 
-  // The id is unknown, or the section has not loaded yet: the column says the same thing it
-  // says with no item route at all, never nothing.
-  if (!role) {
-    return <DetailsEmpty labelKey="browse.details.empty" />;
+  // Three states, never nothing: the panel loads by key, so a selection has to read as under way rather
+  // than as a click that did nothing, and a failure says so instead of showing another role's members.
+  if (role === undefined) {
+    return <DetailsEmpty labelKey={detailsEmptyLabelKey(status, 'roles.details.failed')} />;
   }
 
   return <RoleDetails role={role} />;

@@ -10,8 +10,6 @@ function group(name: string): Group {
     type: 'group',
     key: `group:system:${name}` as Group['key'],
     displayName: name,
-    members: [],
-    roles: [],
   };
 }
 

@@ -11,7 +11,6 @@ function role(key: string): Role {
     key: `role:${key}` as Role['key'],
     displayName: key,
     modifiedTime: '2026-07-21T08:05:00Z',
-    members: [],
   };
 }
 

@@ -4,8 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../../shared/api';
 import { fetchUserDetail, fetchUserMemberships } from '../api/users.api';
 import type { PrincipalRef, User, UserDetail } from './principal.types';
-import { forgetUserDetails, forgetUsers, showUser } from './user-detail.load';
-import { $userDetail } from './user-detail.store';
+import { $userDetail, forgetUserDetails, forgetUsers, showUser } from './user-detail.load';
 import { $users } from './users.store';
 
 // The api is stubbed rather than the transport: which of the two reads the panel makes is the interesting
@@ -95,7 +94,7 @@ describe('showUser', () => {
     expect(vi.mocked(fetchUserMemberships)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(fetchUserMemberships).mock.calls[0]?.[0]).toEqual(row('alice'));
     expect(vi.mocked(fetchUserDetail)).not.toHaveBeenCalled();
-    expect($userDetail.get().user?.roles).toHaveLength(1);
+    expect($userDetail.get().item?.roles).toHaveLength(1);
   });
 
   // ! The case the by-key read exists for: a link opened straight at a key, or a search that narrowed
@@ -106,7 +105,7 @@ describe('showUser', () => {
 
     expect(vi.mocked(fetchUserDetail)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(fetchUserMemberships)).not.toHaveBeenCalled();
-    expect($userDetail.get().user?.login).toBe('alice');
+    expect($userDetail.get().item?.login).toBe('alice');
   });
 
   it('starts idle, with nothing selected', () => {
@@ -119,7 +118,7 @@ describe('showUser', () => {
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
     expect(askedFor()).toBe('user:system:alice');
-    const { status, user } = $userDetail.get();
+    const { status, item: user } = $userDetail.get();
     expect(status).toBe('ready');
     expect(user?.login).toBe('alice');
     expect(user?.roles).toHaveLength(1);
@@ -161,7 +160,7 @@ describe('showUser', () => {
 
     // Immediately, with no timer to wait for and no second read.
     expect($userDetail.get().status).toBe('ready');
-    expect($userDetail.get().user?.login).toBe('alice');
+    expect($userDetail.get().item?.login).toBe('alice');
     expect(reads()).toBe(2);
   });
 
@@ -172,7 +171,7 @@ describe('showUser', () => {
     vi.mocked(fetchUserDetail).mockReturnValue(answered('bob'));
     showUser('user:system:bob');
 
-    const { status, user } = $userDetail.get();
+    const { status, item: user } = $userDetail.get();
     expect(status).toBe('loading');
     expect(user?.login).toBe('alice');
   });
@@ -200,13 +199,13 @@ describe('showUser', () => {
   it('drops the user it was showing when a load fails', async () => {
     showUser('user:system:alice');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
-    expect($userDetail.get().user?.login).toBe('alice');
+    expect($userDetail.get().item?.login).toBe('alice');
 
     vi.mocked(fetchUserDetail).mockReturnValue(errAsync(new AppError('Principal is gone')));
     showUser('user:system:bob');
     await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
 
-    const { status, user, error } = $userDetail.get();
+    const { status, item: user, error } = $userDetail.get();
     expect(status).toBe('error');
     expect(user).toBeUndefined();
     expect(error).toBe('Principal is gone');
@@ -234,7 +233,7 @@ describe('showUser', () => {
     answerSlowly?.(detail('alice'));
     await vi.advanceTimersByTimeAsync(0);
 
-    expect($userDetail.get().user?.login).toBe('bob');
+    expect($userDetail.get().item?.login).toBe('bob');
   });
 
   // ! A reload replaces the rows the cache was built from, so a cached hit would serve a user's old email
@@ -254,7 +253,7 @@ describe('showUser', () => {
 
     // The open user was re-read rather than left as it was — `Refresh` refreshes the panel too.
     expect(reads()).toBe(beforeReload + 1);
-    expect($userDetail.get().user?.login).toBe('alice');
+    expect($userDetail.get().item?.login).toBe('alice');
 
     // And a key cached before the reload no longer answers from the cache.
     showUser('user:system:bob');

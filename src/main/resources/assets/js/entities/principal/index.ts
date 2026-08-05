@@ -11,6 +11,7 @@ export { ROLES_ROOT, toRoles } from './api/roles.api';
 export type { RolesData } from './api/roles.api';
 export { USERS_ROOT, toUsersPage } from './api/users.api';
 export type { UsersData, UsersPage } from './api/users.api';
+export { forgetGroupDetails, forgetGroups } from './model/group-detail.load';
 export { beginGroupsLoad, receiveGroups } from './model/groups.store';
 export type { GroupsState } from './model/groups.store';
 export { loadIdProviders } from './model/id-providers.load';
@@ -30,9 +31,9 @@ export {
   projectRoleIdOf,
 } from './model/principal.keys';
 export { forgetUserDetails, forgetUsers } from './model/user-detail.load';
-export type { UserDetailState } from './model/user-detail.store';
 export type {
   Group,
+  GroupDetail,
   GroupKey,
   IdProvider,
   IdProviderName,
@@ -40,11 +41,13 @@ export type {
   PrincipalKey,
   PrincipalType,
   Role,
+  RoleDetail,
   RoleKey,
   User,
   UserDetail,
   UserKey,
 } from './model/principal.types';
+export { forgetRoleDetails, forgetRoles } from './model/role-detail.load';
 export { beginRolesLoad, receiveRoles } from './model/roles.store';
 export type { RolesState } from './model/roles.store';
 export {

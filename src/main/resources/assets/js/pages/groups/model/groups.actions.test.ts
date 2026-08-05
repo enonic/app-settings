@@ -10,8 +10,6 @@ function group(key: string): Group {
     key: `group:system:${key}`,
     displayName: key,
     modifiedTime: '2026-07-14T14:41:00Z',
-    members: [],
-    roles: [],
   };
 }
 

@@ -425,8 +425,8 @@ and as its own issue (#37), because it is the only section that cannot load whol
 `apis/graphql/principal/` contributes three root fields on `lib-auth`:
 
 - `roles` and `groups` on `findPrincipals` with `count: -1`, which is `NodeSearchService.GET_ALL_SIZE_FLAG`
-  — the default is 10 and truncates silently without it. `Role.members`, `Group.members` and
-  `Group.roles` resolve through `getMembers` / `getMemberships`.
+  — the default is 10 and truncates silently without it. Neither carries a member list; see _Member lists
+  on demand_ below.
 - `idProviders` on `getIdProviders`, with `IdProvider.application` naming the bound application from its
   own descriptor, and `users` / `groups` as a `PrincipalSet` whose `total` costs a `count: 0` search and
   whose `items` is deliberately never selected by the list query — a provider may hold a whole corporate
@@ -447,6 +447,42 @@ is in `build.gradle`.
 
 No Java was needed for any of the three, and `graphql.d.ts` was not extended — none of them needs an
 interface type. Users almost certainly will.
+
+#### Member lists on demand ([#40](https://github.com/enonic/app-settings/issues/40))
+
+**A member list is unreachable from a list field, in the schema and not only in the selection.**
+`role(key): RoleDetail` and `group(key): GroupDetail` carry them; `Role` and `Group` do not. The split is
+the one `applications` versus `applicationInfo(key)` already makes, and for the same reason: lib-graphql
+has no query-cost analysis, so a field that is merely expensive is a field someone will select. Measured
+against 113 roles and 200 groups, a list load went from 114 and 401 `lib-auth` calls to **one each**, and
+opening a panel costs 2 calls for a role and 3 for a group.
+
+Three things about that split are worth keeping:
+
+- **The detail type repeats the scalars, and that is not duplication.** `getRole` reads the principal to
+  answer at all, so `displayName` and the rest are already in hand. Paying nothing for them is what lets
+  the panel stand alone: it can tell a deleted role from one the list has not reached, and it keeps
+  working when a section starts paging. A shared `roleFields` object spread into both types keeps the
+  field list written once — lib-graphql's builder has no inheritance.
+- **`role(key)` and `group(key)` guard the key three ways**, as `getUser` does: a pattern, a `type` check
+  and a `catch`. Without the first two, `getPrincipal` would happily serve a group's members as a role's;
+  without the third, an id `ID_VALIDATOR` rejects throws instead of answering null.
+- **Null means the key names nothing**, which is an answer, not a failure — so these travel on
+  `requestGraphQlDocument`, where a null field passes through.
+
+Client side, the machinery that made this affordable is now `shared/detail`'s `createDetailLoader`: one
+request in flight, a 250 ms debounce in front of it, a 50-key cache behind it that evicts the oldest
+entry, and `forget` / `invalidate` for leaving a section and for `Refresh`. It was lifted out of the Users
+panel with its behaviour intact — that panel's existing suite is the proof — and Roles and Groups are
+20-line wrappers over it supplying only their own read.
+`entities/application/model/application-info.store.ts` is a fourth instance of the same per-key cache and
+the obvious next caller.
+
+One thing did change in the lift. `invalidate` used to re-read the key of the item **on screen**, which
+during a load is still the previous item: a `Refresh` landing between two selections loaded the row the
+user had just left and cancelled the read of the one they were on, leaving the panel describing a row the
+route no longer pointed at. The loader now tracks the selected key separately, which also makes `Refresh`
+retry a selection whose load failed.
 
 Type names are global to a schema and lib-graphql only rejects a duplicate when the schema is
 assembled, i.e. at module load, so one clash 500s every query rather than the new one. The `idProviders`
@@ -488,25 +524,8 @@ patterns are visible. None of them blocks Phase 3.
   directly are invasive to change later. Irrelevant for ~50 applications; material for
   `principalsConnection { permissions { principal } }`, which is one `getPrincipal` per ACE per row.
   Sketch it at the start of Phase 3 even if it lands here.
-- **A thin list query for Roles and Groups.** Both list queries select the member lists of every row, so
-  a list that renders only names pays for the membership of the whole instance: `ROLES_SELECTION` costs one
-  `getMembers` per role — roughly 113 sequential calls on an install with twenty projects, since each
-  contributes five — and `GROUPS_SELECTION` costs two per group, `getMembers` plus `getMemberships`. All of it
-  inside the app's single JS thread. Exactly the waste the two-queries-per-domain rule exists to prevent,
-  and both object types keep those fields lazy for a laziness nothing uses.
-
-  **Groups is the worse half and the reason this cannot wait indefinitely: roles are bounded, groups are
-  not.** ID Providers already shows the shape that fixes it — `PrincipalSet` hands over `total` from a
-  `count: 0` search and leaves `items` unfetched — and Applications shows the other half: split the object
-  type so the member lists are unreachable from the list field, add `role(key)` / `group(key)` root
-  fields, and load the detail on selection.
-
-  Deferred because the cost is not the schema, it is the details panel: `useRole` and `useGroup` are
-  lookups in the loaded list today, and making either a request turns arrow-key navigation into one
-  request per row, needing a debounce and a small key cache. Users (#37) forces that machinery
-  regardless, which is the natural moment to build it. **Measure first** — under a couple of hundred
-  milliseconds Roles can keep waiting.
-
+- ~~**A thin list query for Roles and Groups.**~~ **Done** ([#40](https://github.com/enonic/app-settings/issues/40))
+  — see _Member lists on demand_ below.
 - **Connections and cursors.** app-users hand-rolls offset-int cursors; `/lib/graphql-connection` ships
   base64 ones. For a few hundred principals, plain `start`/`count`/`total` may be enough. Decide with
   batching — the two share a shape.

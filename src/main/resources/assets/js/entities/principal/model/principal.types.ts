@@ -32,26 +32,42 @@ export type PrincipalRef = {
 };
 
 /**
- * A role with its member list, which the platform exposes separately through `getMembers`.
+ * A role as a list row.
  *
  * `modifiedTime` is optional here although `@enonic-types/core` declares it required: it is written
  * from a nullable Java getter, and the script bridge drops the key instead of sending null.
  */
 export type Role = Omit<XpRole, 'modifiedTime'> & {
   modifiedTime?: string;
+};
+
+/**
+ * A role with the principals holding it, which the platform answers separately through `getMembers`.
+ *
+ * Only the details panel needs them, and one `getMembers` per row is what a list must never pay, so they
+ * are fetched by key for the selected role rather than carried on every row.
+ */
+export type RoleDetail = Role & {
   members: readonly PrincipalRef[];
 };
 
 /**
- * A group with its members and the roles it holds. Both are separate calls in the platform —
- * `getMembers` and `getMemberships` — and a member that is itself a group appears here as a plain
- * reference, without members of its own: the UI shows no nesting.
+ * A group as a list row.
  *
  * `modifiedTime` is optional here although `@enonic-types/core` declares it required, for the reason
  * given on `Role`.
  */
 export type Group = Omit<XpGroup, 'modifiedTime'> & {
   modifiedTime?: string;
+};
+
+/**
+ * A group with its members and the roles it holds. Both are separate calls in the platform —
+ * `getMembers` and `getMemberships` — so both are fetched by key for the selected group, and a member
+ * that is itself a group appears as a plain reference without members of its own: the UI shows no
+ * nesting.
+ */
+export type GroupDetail = Group & {
   members: readonly PrincipalRef[];
   roles: readonly PrincipalRef[];
 };

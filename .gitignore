@@ -107,3 +107,5 @@ node_modules
 .claude/*
 !.claude/rules/
 .zed/*
+
+.gh-actions/

@@ -1,14 +1,14 @@
 import { Avatar, Button } from '@enonic/ui';
 import { UserPen, Users } from 'lucide-react';
 
-import { type Group, principalName, useIdProviderName } from '../../entities/principal';
+import { type GroupDetail, principalName, useIdProviderName } from '../../entities/principal';
 import { getInitials } from '../../shared/format';
 import { useI18n } from '../../shared/i18n';
 import { filledSections } from '../../widgets/details-panel/details-panel';
 import { DetailsPanel } from '../../widgets/details-panel/DetailsPanel';
 
 export type GroupDetailsProps = {
-  group: Group;
+  group: GroupDetail;
 };
 
 export function GroupDetails({ group }: GroupDetailsProps) {
