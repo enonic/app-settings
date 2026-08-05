@@ -3,6 +3,8 @@ import { Circle, CircleDot, Filter, Square } from 'lucide-react';
 
 import { useI18n } from '../../shared/i18n';
 import type { BrowseFilterEntry } from './browse-filter';
+import { HEADER_CONTROL_CLASS, HEADER_CONTROL_LABEL_CLASS } from './header-controls';
+import { InertHeaderControl } from './InertHeaderControl';
 
 export type BrowseFilterProps = {
   entries: readonly BrowseFilterEntry[];
@@ -36,15 +38,20 @@ export function BrowseFilter({
   const filterLabel = useI18n('browse.filter');
 
   if (entries.length === 0 && notice === undefined) {
-    return (
-      <Button variant="text" startIcon={Filter} label={filterLabel} disabled className="px-4.5" />
-    );
+    return <InertHeaderControl icon={Filter} label={filterLabel} />;
   }
 
   return (
     <Menu>
       <Menu.Trigger asChild>
-        <Button variant="text" startIcon={Filter} label={filterLabel} className="px-4.5" />
+        <Button
+          variant="text"
+          startIcon={Filter}
+          title={filterLabel}
+          className={HEADER_CONTROL_CLASS}
+        >
+          <span className={HEADER_CONTROL_LABEL_CLASS}>{filterLabel}</span>
+        </Button>
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Content align="end" className="min-w-56">

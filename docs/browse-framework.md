@@ -105,6 +105,8 @@ widgets/browse-list/browse-list.ts          BrowseRow and the pure list logic: s
 widgets/browse-list/BrowseList.tsx          rows, roving focus, skeleton, empty and error states
 widgets/browse-list/BrowseListRow.tsx       one row: checkbox, label, meta cells
 widgets/browse-list/BrowseListHeader.tsx    select all, refresh, filter and sort slots
+widgets/browse-list/header-controls.ts      the classes those three controls share, labels included
+widgets/browse-list/InertHeaderControl.tsx  the greyed stand-in for a control a section has not supplied
 widgets/browse-list/BrowseListContextMenu.tsx  the action list on right-click
 widgets/item-label/ItemLabel.tsx            icon + title + subtitle, shared with the details panel
 widgets/browse-search/BrowseSearch.tsx      the composed SearchField
@@ -222,7 +224,9 @@ Rules:
   first (`contextMenuTarget` decides, § 3.3), so the menu acts on what was clicked; right-clicking one
   of several ticked rows keeps the whole set.
 - Overflow row and split buttons come later, reusing the same `SectionAction` list. Do not fork the
-  type for them.
+  type for them. This row keeps its fixed `h-15` and does not wrap: a `SectionAction` carries a
+  `labelKey` and no icon, so it cannot degrade to icons the way the list header does (§ 3.6). Content
+  Studio's `OverflowActionRow` is the shape the eventual fix will take.
 
 ### 3.3 List
 
@@ -311,7 +315,7 @@ Rules:
   | Action toolbar         | `h-15 px-5 py-2 gap-2 border-b border-bdr-soft`                                     |
   | List column            | `gap-5 p-5` — it owns all spacing of the three blocks inside it                     |
   | Search and list header | no outer padding of their own                                                       |
-  | List header controls   | `gap-2.5` apart, each `px-4.5`, text at the 16px of size `md`                       |
+  | List header controls   | `gap-2.5` apart, each `px-4.5`, text at the 16px of size `md`; `@max-xl:px-2.5`     |
   | Select all             | `h-10 pl-2.5` so its box lines up with the rows', 18px on the label text only       |
   | Scroll container       | `gap-y-1.5`, no padding                                                             |
   | Row                    | `gap-2.5 px-2.5 py-1`, `hover:bg-surface-neutral-hover`                             |
@@ -376,6 +380,33 @@ A section supplies both through the slots in `BrowseListHeaderProps`, and the wi
 `BrowseFilter` and `BrowseSort` — stay section-agnostic: an entry is `{ id, label, count }` and an
 option is `{ id, label }`. Supply nothing and the header renders its inert button — Applications has no
 browse screen at all yet, `ApplicationsPage` being a bare `SectionPage`.
+
+**A narrow header drops the labels and keeps the icons.** Below `36rem` of header width — a comfortable
+width for the current labels, with room to spare — `Refresh`, `Filter` and `Sort` are icons alone,
+tightened to `px-2.5`. `Select all` keeps its text: it is the one control with no icon to fall back on.
+Translations may want the number adjusted.
+
+The query is on the header, which carries `@container`, not on the window: the split handle narrows the
+list column on a wide screen too, and that is the case the icons exist for. Wrapping stays underneath as
+the last resort — on both the outer row and the group of three, so the header can break under
+`Select all` and also between the controls — because at the 300px column minimum not even three icons
+fit beside `Select all`. `justify-between` survives that wrap, a line holding one item packing it to the
+start. The action toolbar (§ 3.2) is a separate widget and keeps its fixed height.
+
+Two things about the labels are easy to break:
+
+- **A label cannot be the `Button` `label` prop.** `@enonic/ui` renders it as a bare text node, and CSS
+  cannot hide one, so a control passes its label as a `span` child —
+  `HEADER_CONTROL_CLASS` and `HEADER_CONTROL_LABEL_CLASS` in `browse-list/header-controls.ts` are the
+  two class names, shared because `BrowseFilter` and `BrowseSort` render the same button as the header
+  does. `Button` stays the direct child of `Menu.Trigger`: it is what takes the ref.
+- **A hidden label leaves no accessible name.** A live control puts it on `title`, which `Button` also
+  derives `aria-label` from, and which doubles as the tooltip. An inert one cannot: `disabled` brings
+  `pointer-events-none`, so the button is never hovered and its own `title` never shows — hence the
+  wrapping `span` in `InertHeaderControl`.
+
+Nothing here is unit-tested: it is CSS, and the environment is `node`. Verification is the split handle
+at 300px in both themes.
 
 **A section that narrows on the server supplies entries without a count**, and `count` is optional for
 that reason. Users takes its entries from the loaded provider list rather than from the rows — the rows
