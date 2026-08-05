@@ -1,4 +1,4 @@
-export { GROUPS_ROOT, toGroups } from './api/groups.api';
+export { fetchGroupDetail, GROUPS_ROOT, toGroups } from './api/groups.api';
 export type { GroupsData } from './api/groups.api';
 export {
   ID_PROVIDER_NAMES_ROOT,
@@ -7,7 +7,7 @@ export {
   toIdProviders,
 } from './api/id-providers.api';
 export type { IdProviderNamesData, IdProvidersData } from './api/id-providers.api';
-export { ROLES_ROOT, toRoles } from './api/roles.api';
+export { fetchRoleDetail, ROLES_ROOT, toRoles } from './api/roles.api';
 export type { RolesData } from './api/roles.api';
 export { USERS_ROOT, toUsersPage } from './api/users.api';
 export type { UsersData, UsersPage } from './api/users.api';
@@ -22,6 +22,7 @@ export {
   receiveIdProviders,
 } from './model/id-providers.store';
 export type { IdProviderNamesState, IdProvidersState } from './model/id-providers.store';
+export { derivePrincipalName, isIllegalPrincipalName } from './model/principal-name';
 export {
   idProviderOf,
   isPlatformRole,
@@ -39,6 +40,7 @@ export type {
   IdProviderName,
   Principal,
   PrincipalKey,
+  PrincipalRef,
   PrincipalType,
   Role,
   RoleDetail,

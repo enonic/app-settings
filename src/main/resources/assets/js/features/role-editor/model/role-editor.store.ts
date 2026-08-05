@@ -1,7 +1,6 @@
 import type { Role } from '../../../entities/principal';
 import { createDialogStore } from '../../../shared/dialog';
 
-/** Creating a role, or editing the one the action was pointed at. */
 export type RoleEditorPayload = { mode: 'create' } | { mode: 'edit'; role: Role };
 
 const store = createDialogStore<RoleEditorPayload>();

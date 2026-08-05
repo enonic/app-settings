@@ -2,7 +2,7 @@ import { ListItem, Separator } from '@enonic/ui';
 import type { ReactNode } from 'react';
 
 import { useI18n } from '../../shared/i18n';
-import { ItemLabel } from '../item-label/ItemLabel';
+import { ItemLabel } from '../../shared/ui/ItemLabel';
 import { withCount } from './details-panel';
 import { DetailsEmpty } from './DetailsEmpty';
 

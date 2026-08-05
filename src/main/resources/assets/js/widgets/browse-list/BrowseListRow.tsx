@@ -1,7 +1,7 @@
 import { Checkbox, cn } from '@enonic/ui';
 import { useEffect, useRef } from 'preact/hooks';
 
-import { ItemLabel } from '../item-label/ItemLabel';
+import { ItemLabel } from '../../shared/ui/ItemLabel';
 import type { BrowseRow } from './browse-list';
 
 export type BrowseListRowProps = {

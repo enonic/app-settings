@@ -81,14 +81,15 @@ export function fetchGroupDetail(
   key: string,
   signal?: AbortSignal,
 ): ResultAsync<GroupDetail | undefined, AppError> {
-  return requestGraphQlDocument<GroupDetailData>(GROUP_DOCUMENT, { key }, signal).map(({ group }) =>
-    group == null
-      ? undefined
-      : {
-          ...toGroup(group),
-          members: group.members.map(toPrincipalRef),
-          roles: group.roles.map(toPrincipalRef),
-        },
+  return requestGraphQlDocument<GroupDetailData>(GROUP_DOCUMENT, { key }, signal).map(
+    ({ group }) =>
+      group == null
+        ? undefined
+        : {
+            ...toGroup(group),
+            members: group.members.map(toPrincipalRef),
+            roles: group.roles.map(toPrincipalRef),
+          },
   );
 }
 
