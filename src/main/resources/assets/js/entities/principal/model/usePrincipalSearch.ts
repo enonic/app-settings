@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 
-import { fetchGroupRefs, fetchRoleRefs, matching, searchUsers } from '../api/principal-search.api';
+import { fetchGroupRefs, fetchRoleRefs, searchUsers } from '../api/principal-search.api';
+import { matching } from './principal-match';
 import type { PrincipalRef, PrincipalType } from './principal.types';
 
 export type PrincipalSearchState = {

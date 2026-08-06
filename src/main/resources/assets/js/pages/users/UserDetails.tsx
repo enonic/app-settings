@@ -36,7 +36,6 @@ export function UserDetails({ user }: UserDetailsProps) {
       <DetailsPanel.Section
         labelKey="users.details.user"
         action={
-          // TODO: [#7] Opens the user wizard once it exists.
           <Button
             variant="outline"
             size="sm"

@@ -51,7 +51,8 @@ export function PrincipalPicker({
   const searchingLabel = useI18n('principal.picker.searching');
   const noMatchesLabel = useI18n('principal.picker.noMatches');
   const failedLabel = useI18n('principal.picker.failed');
-  const removeLabel = useI18n('principal.picker.remove');
+  const removeLabel = (principal: PrincipalRef): string =>
+    i18n('principal.picker.remove', principal.displayName);
   const applyLabel = useI18n('principal.picker.apply');
 
   const { status, principals, incompleteKinds } = usePrincipalSearch(query, open, kinds);
@@ -107,17 +108,19 @@ export function PrincipalPicker({
             </Combobox.Search>
           </Combobox.Control>
 
-          <Combobox.Popup>
-            <PrincipalOptions
-              principals={principals}
-              status={status}
-              incompleteKinds={incompleteKinds}
-              locked={locked}
-              searchingLabel={searchingLabel}
-              noMatchesLabel={noMatchesLabel}
-              failedLabel={failedLabel}
-            />
-          </Combobox.Popup>
+          <Combobox.Portal>
+            <Combobox.Popup>
+              <PrincipalOptions
+                principals={principals}
+                status={status}
+                incompleteKinds={incompleteKinds}
+                locked={locked}
+                searchingLabel={searchingLabel}
+                noMatchesLabel={noMatchesLabel}
+                failedLabel={failedLabel}
+              />
+            </Combobox.Popup>
+          </Combobox.Portal>
         </Combobox.Content>
       </Combobox>
 
@@ -136,7 +139,7 @@ export function PrincipalPicker({
                   {/* Disabled rather than absent on a pinned row: the column keeps its width, so the
                       rows below it do not shift. */}
                   <IconButton
-                    aria-label={removeLabel}
+                    aria-label={removeLabel(member)}
                     icon={X}
                     variant="text"
                     disabled={locked?.has(member.key)}

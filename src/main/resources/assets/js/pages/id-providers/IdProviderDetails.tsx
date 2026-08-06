@@ -36,7 +36,6 @@ export function IdProviderDetails({ provider }: IdProviderDetailsProps) {
       <DetailsPanel.Section
         labelKey="idProviders.details.info"
         action={
-          // TODO: [#4] Opens the provider wizard once it exists.
           <Button
             variant="outline"
             size="sm"

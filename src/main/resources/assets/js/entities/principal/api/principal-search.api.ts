@@ -73,21 +73,6 @@ export function fetchRoleRefs(signal?: AbortSignal): ResultAsync<PrincipalRef[],
   );
 }
 
-export function matching<T extends { key: string; displayName: string }>(
-  hits: readonly T[],
-  search: string,
-): T[] {
-  const needle = search.trim().toLowerCase();
-  if (needle.length === 0) {
-    return [...hits];
-  }
-
-  return hits.filter(
-    ({ key, displayName }) =>
-      displayName.toLowerCase().includes(needle) || key.toLowerCase().includes(needle),
-  );
-}
-
 function toRef({ key, displayName }: PrincipalHitDto, type: PrincipalRef['type']): PrincipalRef {
   return { key: key as PrincipalKey, type, displayName };
 }

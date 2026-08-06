@@ -422,7 +422,7 @@ open.
 **All five principal sections read through the schema; no fixture is left in the tree.** Users came last
 and as its own issue (#37), because it is the only section that cannot load whole.
 
-`apis/graphql/principal/` contributes three root fields on `lib-auth`:
+`apis/graphql/principal/` contributes these root fields on `lib-auth`:
 
 - `roles` and `groups` on `findPrincipals` with `count: -1`, which is `NodeSearchService.GET_ALL_SIZE_FLAG`
   — the default is 10 and truncates silently without it. Neither carries a member list; see _Member lists
@@ -431,10 +431,19 @@ and as its own issue (#37), because it is the only section that cannot load whol
   own descriptor, and `users` / `groups` as a `PrincipalSet` whose `total` costs a `count: 0` search and
   whose `items` is deliberately never selected by the list query — a provider may hold a whole corporate
   directory. No `roles` field: that aggregate has no cheap query behind it, see #23.
+- `idProvider(key)` and `defaultIdProviderPermissions`, which the provider dialog needs. Both answer in
+  `IdProviderPermission`s, and both go through Java — `lib/xp/auth` exposes neither an access control
+  list nor a read-one. `IdProvider.permissions` is one bean call, so no list query selects it.
+
+The Applications domain gained `idProviderApplications` for the same dialog: the installed applications
+that ship an `idprovider` descriptor, one descriptor read each. `IdProviderDescriptor.hasConfig` says
+whether the descriptor declares a config form without carrying the form, which waits on #64.
 
 `users` and `user(key)` came with Users, and they are the only fields the server narrows: `findUsers`
 takes a constraint expression and a sort expression, so search, provider filter, ordering and paging all
-happen there. Three things about that are load-bearing and written down in `platform-facts.md`: the sort
+happen there. The provider filter takes `idProviders: [String]` rather than one key, joined as an OR of
+`userStoreKey` constraints, so the Users filter can tick several as the client-side filters of the other
+sections do. `User.publicKeys` reads the profile, one `getProfile` per user, and so stays off the list. Three things about that are load-bearing and written down in `platform-facts.md`: the sort
 needs `_path` as a tie-break (`principalKey` is declared in the index config but never written to a node,
 so ordering by it is silently ignored), the offset is clamped to the Elasticsearch result window, and
 `getMemberships` needs `transitive: true` or an administrator's roles read as empty. The one place that

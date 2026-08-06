@@ -8,12 +8,10 @@ export type PasswordStrength = {
   labelKey: string;
 };
 
-const LEVELS: Record<string, PasswordStrengthLevel> = {
-  'Too weak': 'tooWeak',
-  Weak: 'weak',
-  Medium: 'medium',
-  Strong: 'strong',
-};
+// ! Indexed by the library's `id`, not by its `value`: the id is the stable half of a level, while the
+// ! value is the display string of `defaultOptions` and would silently read every password as the
+// ! weakest if that wording ever changed.
+const LEVELS: readonly PasswordStrengthLevel[] = ['tooWeak', 'weak', 'medium', 'strong'];
 
 const SCORES: Record<PasswordStrengthLevel, 1 | 2 | 3 | 4> = {
   tooWeak: 1,
@@ -27,7 +25,7 @@ export function passwordStrength(value: string): PasswordStrength {
     return { level: 'tooWeak', score: 0, labelKey: 'users.dialog.strength.tooWeak' };
   }
 
-  const level = LEVELS[assess(value).value] ?? 'tooWeak';
+  const level = LEVELS[assess(value).id] ?? 'tooWeak';
 
   return { level, score: SCORES[level], labelKey: `users.dialog.strength.${level}` };
 }

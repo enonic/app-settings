@@ -94,7 +94,7 @@ export function UserForm({
               </Selector.Value>
               <Selector.Icon />
             </Selector.Trigger>
-            <Selector.Content portal={false}>
+            <Selector.Content>
               <Selector.Viewport>
                 {providers.map(({ key, displayName }) => (
                   <Selector.Item key={key} value={key} textValue={displayName}>

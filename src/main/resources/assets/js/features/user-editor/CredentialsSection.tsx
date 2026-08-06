@@ -3,7 +3,7 @@ import { Eye, EyeOff, Plus, X } from 'lucide-react';
 import { useState } from 'preact/hooks';
 
 import type { PublicKey } from '../../entities/principal';
-import { useI18n } from '../../shared/i18n';
+import { i18n, useI18n } from '../../shared/i18n';
 import { ConfirmDialog } from '../../shared/ui/dialogs/ConfirmDialog';
 import { FieldLabel } from '../../shared/ui/FieldLabel';
 import { PasswordStrengthMeter } from '../../shared/ui/PasswordStrengthMeter';
@@ -50,7 +50,8 @@ export function CredentialsSection({
   const keysHelp = useI18n('users.dialog.publicKeysHelp');
   const addKeyLabel = useI18n('users.dialog.addPublicKey');
   const noKeysLabel = useI18n('users.dialog.noPublicKeys');
-  const removeKeyLabel = useI18n('users.dialog.removePublicKey');
+  const removeKeyLabel = (key: PublicKey): string =>
+    i18n('users.dialog.removePublicKey', key.label ?? key.kid);
   const revokeQuestion = useI18n('browse.confirm.deleteQuestion');
 
   const [shown, setShown] = useState(false);
@@ -156,7 +157,7 @@ export function CredentialsSection({
                       <GridList.Cell>
                         <GridList.Action>
                           <IconButton
-                            aria-label={removeKeyLabel}
+                            aria-label={removeKeyLabel(key)}
                             icon={X}
                             variant="text"
                             onClick={() => setRevoking(key)}
