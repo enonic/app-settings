@@ -2,6 +2,7 @@ import { Avatar, Button } from '@enonic/ui';
 import { UserPen, Users } from 'lucide-react';
 
 import { type GroupDetail, principalName, useIdProviderName } from '../../entities/principal';
+import { openGroupEditor } from '../../features/group-editor';
 import { getInitials } from '../../shared/format';
 import { useI18n } from '../../shared/i18n';
 import { filledSections } from '../../widgets/details-panel/details-panel';
@@ -42,7 +43,12 @@ export function GroupDetails({ group }: GroupDetailsProps) {
         labelKey="groups.details.info"
         action={
           // TODO: [#6] Opens the group wizard once it exists.
-          <Button variant="outline" size="sm" label={editLabel} />
+          <Button
+            variant="outline"
+            size="sm"
+            label={editLabel}
+            onClick={() => openGroupEditor(group)}
+          />
         }
       >
         {description !== undefined && (

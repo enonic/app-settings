@@ -4,6 +4,7 @@ import { Users } from 'lucide-react';
 import { useMemo } from 'preact/hooks';
 
 import { useGroups, useIdProviderName } from '../../entities/principal';
+import { GroupEditorDialog } from '../../features/group-editor/GroupEditorDialog';
 import { useI18n } from '../../shared/i18n';
 import { visibleEntries } from '../../widgets/browse-list/browse-filter';
 import { sortByDisplayName, type SortDirection } from '../../widgets/browse-list/browse-sort';
@@ -11,6 +12,7 @@ import { BrowseFilter } from '../../widgets/browse-list/BrowseFilter';
 import { BrowseSort } from '../../widgets/browse-list/BrowseSort';
 import { BrowseScreen } from '../../widgets/browse-screen/BrowseScreen';
 import { useBrowseSection } from '../../widgets/browse-screen/useBrowseSection';
+import { GroupDeleteDialog } from './GroupDeleteDialog';
 import { groupsFilter } from './model/filter.store';
 import { GROUP_ACTIONS } from './model/groups.actions';
 import { filterByIdProvider, idProviderEntries, searchGroups } from './model/groups.filter';
@@ -76,19 +78,24 @@ export function GroupsPage() {
   });
 
   return (
-    <BrowseScreen
-      {...section}
-      actions={GROUP_ACTIONS}
-      emptyLabel={emptyLabel}
-      details={<Outlet />}
-      filter={
-        <BrowseFilter
-          entries={entries}
-          selected={selectedProviders}
-          onToggle={(id) => groupsFilter.toggle(id)}
-        />
-      }
-      sort={<BrowseSort options={sortOptions} value={sort} onChange={setGroupsSort} />}
-    />
+    <>
+      <BrowseScreen
+        {...section}
+        actions={GROUP_ACTIONS}
+        emptyLabel={emptyLabel}
+        details={<Outlet />}
+        filter={
+          <BrowseFilter
+            entries={entries}
+            selected={selectedProviders}
+            onToggle={(id) => groupsFilter.toggle(id)}
+          />
+        }
+        sort={<BrowseSort options={sortOptions} value={sort} onChange={setGroupsSort} />}
+      />
+
+      <GroupEditorDialog />
+      <GroupDeleteDialog />
+    </>
   );
 }
