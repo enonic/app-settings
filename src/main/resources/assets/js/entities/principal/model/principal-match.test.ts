@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { matching } from './principal-search.api';
+import { matching } from './principal-match';
 
 const hits = [
   { key: 'group:system:administrators', displayName: 'Administrators' },

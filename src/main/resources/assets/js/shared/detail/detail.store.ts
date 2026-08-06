@@ -38,7 +38,14 @@ export type DetailLoaderOptions<T> = {
 
 export type DetailLoader<T> = {
   $detail: ReadableAtom<DetailState<T>>;
-  /** The selection moved. `undefined` means nothing is selected. */
+  /**
+   * The selection moved. `undefined` means nothing is selected.
+   *
+   * ! Every call re-emits, cache hit or not. A caller that seeds editable state from `$detail` — the
+   * ! editor dialogs do, for member and permission lists — would overwrite what the user has since
+   * ! changed. Safe today only because those callers `show` once per dialog payload and wire no
+   * ! `invalidate`; a loader that gains either needs the guard to be real.
+   */
   show: (key: string | undefined) => void;
   /** Leaving the section: nothing loaded here means anything once the list is gone. */
   forget: () => void;

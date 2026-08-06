@@ -42,7 +42,6 @@ export function GroupDetails({ group }: GroupDetailsProps) {
       <DetailsPanel.Section
         labelKey="groups.details.info"
         action={
-          // TODO: [#6] Opens the group wizard once it exists.
           <Button
             variant="outline"
             size="sm"

@@ -30,6 +30,7 @@ export function AddPublicKeyDialog({ open, onClose }: AddPublicKeyDialogProps) {
       title={title}
       primaryLabel={generateLabel}
       // TODO: [#60] Generating a pair here means storing its public half through `addPublicKey` and
+      // TODO: handing the private half over once, since nothing can show it again.
       primaryDisabled
       cancelLabel={cancelLabel}
       closeLabel={closeLabel}

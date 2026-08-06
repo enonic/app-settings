@@ -7,7 +7,7 @@ import type {
   PrincipalType,
 } from '../../entities/principal';
 import { PrincipalPicker } from '../../entities/principal/ui/PrincipalPicker';
-import { useI18n, useLabelled } from '../../shared/i18n';
+import { i18n, useI18n, useLabelled } from '../../shared/i18n';
 import { FieldSection } from '../../shared/ui/FieldSection';
 import {
   pinnedPermissions,
@@ -46,7 +46,6 @@ export function PermissionsSection({
 }: PermissionsSectionProps) {
   const sectionLabel = useI18n('idProviders.dialog.permissions');
   const pickerPlaceholder = useI18n('idProviders.dialog.permissionsPlaceholder');
-  const accessLabel = useI18n('idProviders.dialog.access.label');
 
   const levels = useLabelled(ACCESS_LEVELS);
 
@@ -69,7 +68,7 @@ export function PermissionsSection({
         kinds={KINDS}
         placeholder={pickerPlaceholder}
         locked={pinned}
-        rowTrailing={({ key }) => (
+        rowTrailing={({ key, displayName }) => (
           <Selector.Root
             value={accessOf(key)}
             disabled={pinned.has(key)}
@@ -77,13 +76,16 @@ export function PermissionsSection({
               onChange(withPermissionAccess(permissions, key, access as IdProviderAccess))
             }
           >
-            <Selector.Trigger aria-label={accessLabel} className="w-56">
+            <Selector.Trigger
+              aria-label={i18n('idProviders.dialog.access.labelFor', displayName)}
+              className="w-56"
+            >
               <Selector.Value>
                 {levels.find((level) => level.value === accessOf(key))?.label}
               </Selector.Value>
               <Selector.Icon />
             </Selector.Trigger>
-            <Selector.Content portal={false}>
+            <Selector.Content>
               <Selector.Viewport>
                 {levels.map(({ value, label }) => (
                   <Selector.Item key={value} value={value} textValue={label}>

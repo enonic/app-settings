@@ -76,13 +76,16 @@ wizard, since there is no tree node to create it under.
 
 ## 2. What lives where
 
-| Layer                | Contains                                                           | Must not                                                  |
-| -------------------- | ------------------------------------------------------------------ | --------------------------------------------------------- |
-| `widgets/`           | the framework below — section-agnostic                             | import from `entities/` or `pages/`; know any domain word |
-| `pages/<section>/`   | composition, entity → row/field mapping, routing glue              | hold reusable logic                                       |
-| `features/<action>/` | one user action: dialog, wizard, command                           | be imported by `widgets/`                                 |
-| `entities/<domain>/` | types, the only I/O, stores                                        | import from `widgets/`, `features/`, `pages/`             |
-| `shared/`            | api client, config, i18n, server events, selection, detail, format | import from any layer above                               |
+| Layer                | Contains                                                                  | Must not                                                  |
+| -------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `widgets/`           | the framework below — section-agnostic                                    | import from `entities/` or `pages/`; know any domain word |
+| `pages/<section>/`   | composition, entity → row/field mapping, routing glue                     | hold reusable logic                                       |
+| `features/<action>/` | one user action: dialog, wizard, command                                  | any import to or from `widgets/`                          |
+| `entities/<domain>/` | types, the only I/O, stores                                               | import from `widgets/`, `features/`, `pages/`             |
+| `shared/`            | api client, config, i18n, server events, selection, detail, format, `ui/` | import from any layer above                               |
+
+`.claude/rules/structure.md` is the same table with the reasoning; a component both a widget and a
+feature need goes to `shared/ui/`, since neither layer may import the other.
 
 The rule that makes parallel work possible: **the list and the details panel never know what a user
 or an application is.** Sections map their domain objects into the view models below.
