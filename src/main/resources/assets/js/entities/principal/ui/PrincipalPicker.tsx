@@ -1,6 +1,7 @@
 import { Checkbox, Combobox, GridList, IconButton, Listbox, useCombobox } from '@enonic/ui';
 import { X } from 'lucide-react';
 import { useId, useState } from 'preact/hooks';
+import type { ReactNode } from 'react';
 
 import { i18n, useI18n } from '../../../shared/i18n';
 import { FieldLabel } from '../../../shared/ui/FieldLabel';
@@ -16,6 +17,16 @@ export type PrincipalPickerProps = {
   /** Omitted where a section header already names the picker. */
   label?: string;
   placeholder: string;
+  /**
+   * A control the caller owns on every picked row, rendered before the remove button — the access level
+   * of an id provider permission is the case.
+   */
+  rowTrailing?: (principal: PrincipalRef) => ReactNode;
+  /**
+   * Principals the caller pins: the row's remove button is disabled and the option is inert in the
+   * popup. An id provider's seeded permissions are the case.
+   */
+  locked?: ReadonlySet<string>;
 };
 
 const INCOMPLETE_KEYS: Record<PrincipalType, string> = {
@@ -30,6 +41,8 @@ export function PrincipalPicker({
   kinds,
   label,
   placeholder,
+  rowTrailing,
+  locked,
 }: PrincipalPickerProps) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -53,7 +66,7 @@ export function PrincipalPicker({
   // ! click straight into the form. Staged ticks are the user's, and only Apply hands them over.
   const replace = (next: readonly string[]): void => {
     const nextKeys = new Set<string>(next);
-    const kept = selected.filter(({ key }) => nextKeys.has(key));
+    const kept = selected.filter(({ key }) => nextKeys.has(key) || locked?.has(key) === true);
     const added = [...nextKeys]
       .filter((key) => !pickedKeys.some((picked) => picked === key))
       .map((key) => known.get(key))
@@ -99,6 +112,7 @@ export function PrincipalPicker({
               principals={principals}
               status={status}
               incompleteKinds={incompleteKinds}
+              locked={locked}
               searchingLabel={searchingLabel}
               noMatchesLabel={noMatchesLabel}
               failedLabel={failedLabel}
@@ -115,12 +129,17 @@ export function PrincipalPicker({
                 <PrincipalLabel className="min-w-0 flex-1" principal={member} />
               </GridList.Cell>
 
+              {rowTrailing !== undefined && <GridList.Cell>{rowTrailing(member)}</GridList.Cell>}
+
               <GridList.Cell>
                 <GridList.Action>
+                  {/* Disabled rather than absent on a pinned row: the column keeps its width, so the
+                      rows below it do not shift. */}
                   <IconButton
                     aria-label={removeLabel}
                     icon={X}
                     variant="text"
+                    disabled={locked?.has(member.key)}
                     onClick={() => remove(member.key)}
                   />
                 </GridList.Action>
@@ -137,6 +156,7 @@ type PrincipalOptionsProps = {
   principals: readonly PrincipalRef[];
   status: PrincipalSearchState['status'];
   incompleteKinds: readonly PrincipalType[];
+  locked?: ReadonlySet<string>;
   searchingLabel: string;
   noMatchesLabel: string;
   failedLabel: string;
@@ -146,6 +166,7 @@ function PrincipalOptions({
   principals,
   status,
   incompleteKinds,
+  locked,
   searchingLabel,
   noMatchesLabel,
   failedLabel,
@@ -173,7 +194,12 @@ function PrincipalOptions({
       ))}
 
       {principals.map((principal) => (
-        <Listbox.Item key={principal.key} value={principal.key} className="px-2.5 py-1.5">
+        <Listbox.Item
+          key={principal.key}
+          value={principal.key}
+          disabled={locked?.has(principal.key)}
+          className="px-2.5 py-1.5"
+        >
           <PrincipalLabel className="flex-1" principal={principal} />
           <Checkbox
             tabIndex={-1}

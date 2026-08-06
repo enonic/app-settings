@@ -2,6 +2,7 @@ import { Button } from '@enonic/ui';
 import { CircleUserRound, UserShield, Users } from 'lucide-react';
 
 import { type IdProvider, principalName } from '../../entities/principal';
+import { openIdProviderEditor } from '../../features/idprovider-editor';
 import { useI18n } from '../../shared/i18n';
 import { countedSections } from '../../widgets/details-panel/details-panel';
 import { DetailsPanel } from '../../widgets/details-panel/DetailsPanel';
@@ -36,7 +37,12 @@ export function IdProviderDetails({ provider }: IdProviderDetailsProps) {
         labelKey="idProviders.details.info"
         action={
           // TODO: [#4] Opens the provider wizard once it exists.
-          <Button variant="outline" size="sm" label={editLabel} />
+          <Button
+            variant="outline"
+            size="sm"
+            label={editLabel}
+            onClick={() => openIdProviderEditor(provider)}
+          />
         }
       >
         {description !== undefined && (

@@ -24,6 +24,8 @@ public final class IdProviderDescriptorMapper
         // app-applications calls getMode().toString() unguarded and NPEs on exactly this input.
         gen.value( "mode", Objects.toString( idProviderDescriptor.getMode(), null ) );
 
-        // The config form is left out: no section renders it, and it would drag in a FormMapper.
+        // Whether the descriptor declares a config form, not the form itself: rendering it is its own
+        // job (#64), while the dialog only has to know there is something to render.
+        gen.value( "hasConfig", idProviderDescriptor.getConfig().size() > 0 );
     }
 }

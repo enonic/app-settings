@@ -1,4 +1,5 @@
 import { encodeApplicationIcon } from '/lib/icon';
+import { getIdProviderDescriptor } from '/lib/idprovider';
 import {
   get,
   getDescriptor,
@@ -13,6 +14,7 @@ import {
   getApplication,
   iconDataUriOf,
   listApplications,
+  listIdProviderApplications,
   type ApplicationSource,
 } from './application.source';
 
@@ -180,5 +182,29 @@ describe('listApplications', () => {
     listApplications();
 
     expect(vi.mocked(getDescriptor)).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('listIdProviderApplications', () => {
+  it('offers only the applications that ship an id provider descriptor', () => {
+    vi.mocked(list).mockReturnValue([
+      application('com.example.login'),
+      application('com.example.blog'),
+    ]);
+    vi.mocked(getDescriptor).mockReturnValue(null);
+    vi.mocked(getIdProviderDescriptor).mockImplementation(({ application: key }) =>
+      key === 'com.example.login' ? { mode: 'MIXED', hasConfig: true } : null,
+    );
+
+    expect(listIdProviderApplications()).toEqual([
+      { key: 'com.example.login', displayName: 'com.example.login', hasConfig: true },
+    ]);
+  });
+
+  it('offers nothing when no installed application is an id provider', () => {
+    vi.mocked(list).mockReturnValue([application('com.example.blog')]);
+    vi.mocked(getIdProviderDescriptor).mockReturnValue(null);
+
+    expect(listIdProviderApplications()).toEqual([]);
   });
 });

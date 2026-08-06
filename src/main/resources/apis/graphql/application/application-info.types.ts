@@ -1,4 +1,11 @@
-import { GraphQLString, list, nonNull, type GraphQLFields, type GraphQLType } from '/lib/graphql';
+import {
+  GraphQLBoolean,
+  GraphQLString,
+  list,
+  nonNull,
+  type GraphQLFields,
+  type GraphQLType,
+} from '/lib/graphql';
 
 import { generator } from '../schema/generator';
 import {
@@ -100,6 +107,10 @@ const ApplicationIdProviderType: GraphQLType = generator.createObjectType({
     mode: {
       type: IdProviderModeType,
       description: 'Nullable even here: a descriptor may omit `mode:`.',
+    },
+    hasConfig: {
+      type: nonNull(GraphQLBoolean),
+      description: 'Whether the descriptor declares a config form. The form itself is #64.',
     },
     usedBy: {
       type: nonNull(list(nonNull(IdProviderItemType))),

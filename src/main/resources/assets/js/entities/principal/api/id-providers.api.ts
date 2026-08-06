@@ -1,7 +1,19 @@
 import type { ResultAsync } from 'neverthrow';
 
-import { requestGraphQl, type AppError, type GraphQlRoot } from '../../../shared/api';
-import type { IdProvider, IdProviderName } from '../model/principal.types';
+import {
+  requestGraphQl,
+  requestGraphQlDocument,
+  type AppError,
+  type GraphQlRoot,
+} from '../../../shared/api';
+import type {
+  IdProvider,
+  IdProviderAccess,
+  IdProviderName,
+  IdProviderPermission,
+  IdProviderPermissions,
+  PrincipalRef,
+} from '../model/principal.types';
 
 /**
  * ! Two roots over one field, because a selection carries a cost and not only a shape. `application`
@@ -102,9 +114,75 @@ export function fetchIdProviders(signal?: AbortSignal): ResultAsync<IdProvider[]
   );
 }
 
+const PERMISSIONS_SELECTION = `{
+  principal {
+    key
+    type
+    displayName
+  }
+  access
+}`;
+
+const ID_PROVIDER_PERMISSIONS_DOCUMENT = `query IdProviderPermissions($key: String!) {
+  idProvider(key: $key) {
+    key
+    permissions ${PERMISSIONS_SELECTION}
+  }
+}`;
+
+const DEFAULT_ID_PROVIDER_PERMISSIONS_ROOT: GraphQlRoot = {
+  field: 'defaultIdProviderPermissions',
+  selection: PERMISSIONS_SELECTION,
+};
+
+type IdProviderPermissionDto = {
+  principal: PrincipalRef;
+  access: IdProviderAccess | null;
+};
+
+type IdProviderPermissionsDto = {
+  key: string;
+  permissions: IdProviderPermissionDto[];
+};
+
+/**
+ * The provider's access control list. `undefined` when no provider answers to the key, which the editor
+ * reads as "nothing to show" rather than as a failure.
+ */
+export function fetchIdProviderPermissions(
+  key: string,
+  signal?: AbortSignal,
+): ResultAsync<IdProviderPermissions | undefined, AppError> {
+  return requestGraphQlDocument<{ idProvider: IdProviderPermissionsDto | null }>(
+    ID_PROVIDER_PERMISSIONS_DOCUMENT,
+    { key },
+    signal,
+  ).map(({ idProvider }) =>
+    idProvider == null
+      ? undefined
+      : { key: idProvider.key, permissions: idProvider.permissions.map(toPermission) },
+  );
+}
+
+/** What a new provider starts from: the three entries app-users seeds one with. */
+export function fetchDefaultIdProviderPermissions(
+  signal?: AbortSignal,
+): ResultAsync<IdProviderPermission[], AppError> {
+  return requestGraphQl<{ defaultIdProviderPermissions: IdProviderPermissionDto[] }>(
+    DEFAULT_ID_PROVIDER_PERMISSIONS_ROOT,
+    { signal },
+  ).map(({ defaultIdProviderPermissions }) => defaultIdProviderPermissions.map(toPermission));
+}
+
 //
 // * Helpers
 //
+
+// ? `access` is absent for a principal the list grants nothing, which XP itself does not produce. Read
+// ? as the narrowest level rather than dropped, so such an entry stays visible and can be corrected.
+function toPermission(dto: IdProviderPermissionDto): IdProviderPermission {
+  return { principal: dto.principal, access: dto.access ?? 'READ' };
+}
 
 function toIdProvider(dto: IdProviderDto): IdProvider {
   return {

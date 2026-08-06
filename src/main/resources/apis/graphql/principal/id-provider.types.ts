@@ -1,9 +1,14 @@
-import { GraphQLString, nonNull, type GraphQLType } from '/lib/graphql';
+import { GraphQLString, list, nonNull, type GraphQLType } from '/lib/graphql';
 
 import { generator } from '../schema/generator';
-import { boundApplicationOf, principalSetOf, type IdProviderSource } from './id-provider.source';
+import {
+  boundApplicationOf,
+  listIdProviderPermissions,
+  principalSetOf,
+  type IdProviderSource,
+} from './id-provider.source';
 import { displayNameOf } from './principal.source';
-import { PrincipalSetType } from './principal.types';
+import { PrincipalSetType, PrincipalType } from './principal.types';
 
 const BoundApplicationType: GraphQLType = generator.createObjectType({
   name: 'BoundApplication',
@@ -18,6 +23,26 @@ const BoundApplicationType: GraphQLType = generator.createObjectType({
     },
     // TODO: [#8] The per-instance `config` tree of the binding is left out until the PropertyTree
     // wire format is settled — see the open question in `docs/unified-api.md`. Nothing renders it.
+  },
+});
+
+const IdProviderAccessType: GraphQLType = generator.createEnumType({
+  name: 'IdProviderAccess',
+  description: "How far a principal may reach into a provider. XP's own `IdProviderAccess`.",
+  values: ['READ', 'CREATE_USERS', 'WRITE_USERS', 'ID_PROVIDER_MANAGER', 'ADMINISTRATOR'],
+});
+
+export const IdProviderPermissionType: GraphQLType = generator.createObjectType({
+  name: 'IdProviderPermission',
+  description: "One entry of a provider's access control list.",
+  fields: {
+    principal: {
+      type: nonNull(PrincipalType),
+    },
+    access: {
+      type: IdProviderAccessType,
+      description: 'Absent for an entry the list carries no access for, which XP does not produce.',
+    },
   },
 });
 
@@ -40,6 +65,12 @@ export const IdProviderType: GraphQLType = generator.createObjectType({
       resolve: (env: { source: IdProviderSource }) => boundApplicationOf(env.source),
     },
     // Both containers resolve for free — nothing is counted or fetched until a leaf below is asked.
+    permissions: {
+      type: nonNull(list(nonNull(IdProviderPermissionType))),
+      description:
+        'Who may reach this provider and how far. One bean call, so it stays off the list query.',
+      resolve: (env: { source: IdProviderSource }) => listIdProviderPermissions(env.source.key),
+    },
     users: {
       type: nonNull(PrincipalSetType),
       resolve: (env: { source: IdProviderSource }) => principalSetOf(env.source.key, 'user'),

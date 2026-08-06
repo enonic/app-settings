@@ -1,3 +1,8 @@
+import {
+  defaultIdProviderPermissions,
+  getIdProviderPermissions,
+  type IdProviderPermission,
+} from '/lib/idprovider';
 import { getDescriptor } from '/lib/xp/app';
 import { findPrincipals, getIdProviders, type IdProvider } from '/lib/xp/auth';
 
@@ -24,6 +29,11 @@ export type PrincipalSetSource = {
 
 export function listIdProviders(): IdProvider[] {
   return getIdProviders().sort((a, b) => byName(displayNameOf(a), displayNameOf(b)));
+}
+
+export function getIdProvider(key: string): IdProvider | null {
+  // `lib/xp/auth` has no read-one, and the list is a handful of entries even on a large install.
+  return getIdProviders().find((provider) => provider.key === key) ?? null;
 }
 
 /**
@@ -68,4 +78,20 @@ export function listPrincipals({ idProvider, type }: PrincipalSetSource): Princi
   return findPrincipals({ type, idProvider, count: -1 })
     .hits.map(toPrincipalItem)
     .sort((a, b) => byName(a.displayName, b.displayName));
+}
+
+export type IdProviderPermissionSource = IdProviderPermission;
+
+/**
+ * Who may reach this provider, and how far.
+ *
+ * Empty for a provider the platform holds no access control list for, which a freshly created one is
+ * until somebody grants something.
+ */
+export function listIdProviderPermissions(idProvider: string): IdProviderPermission[] {
+  return getIdProviderPermissions({ idProvider }) ?? [];
+}
+
+export function listDefaultIdProviderPermissions(): IdProviderPermission[] {
+  return defaultIdProviderPermissions();
 }
