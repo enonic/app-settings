@@ -2,8 +2,8 @@ import { GraphQLString, list, nonNull, type GraphQLFields } from '/lib/graphql';
 
 import { applicationInfoSource } from './application-info.source';
 import { ApplicationInfoType } from './application-info.types';
-import { getApplication, listApplications } from './application.source';
-import { ApplicationType } from './application.types';
+import { getApplication, listApplications, listIdProviderApplications } from './application.source';
+import { ApplicationType, IdProviderApplicationType } from './application.types';
 
 export const applicationQueryFields: GraphQLFields = {
   application: {
@@ -18,6 +18,12 @@ export const applicationQueryFields: GraphQLFields = {
     type: list(nonNull(ApplicationType)),
     description: 'Every installed application, sorted by display name.',
     resolve: () => listApplications(),
+  },
+  idProviderApplications: {
+    type: list(nonNull(IdProviderApplicationType)),
+    description:
+      'Applications that ship an id provider descriptor, i.e. those a provider can be bound to.',
+    resolve: () => listIdProviderApplications(),
   },
   applicationInfo: {
     type: ApplicationInfoType,

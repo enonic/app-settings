@@ -143,6 +143,34 @@ export type IdProvider = IdProviderName & {
   groups: PrincipalSet;
 };
 
+/**
+ * How far a principal may reach into a provider, from the platform's own `IdProviderAccess`. The order
+ * is the platform's too — widening — and the pickers keep it.
+ */
+export type IdProviderAccess =
+  | 'READ'
+  | 'CREATE_USERS'
+  | 'WRITE_USERS'
+  | 'ID_PROVIDER_MANAGER'
+  | 'ADMINISTRATOR';
+
+/** One entry of a provider's access control list. */
+export type IdProviderPermission = {
+  principal: PrincipalRef;
+  access: IdProviderAccess;
+};
+
+/**
+ * A provider's access control list, read by key.
+ *
+ * Its own read: the list costs a security-service call per provider, so no list query carries it and
+ * only the editor asks for it.
+ */
+export type IdProviderPermissions = {
+  key: string;
+  permissions: readonly IdProviderPermission[];
+};
+
 export type BoundApplication = {
   key: string;
   displayName: string;

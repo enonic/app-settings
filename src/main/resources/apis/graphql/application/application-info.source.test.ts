@@ -402,19 +402,21 @@ describe('idProviderSourceOf', () => {
   });
 
   it('carries the mode the descriptor declares', () => {
-    vi.mocked(getIdProviderDescriptor).mockReturnValue({ mode: 'MIXED' });
+    vi.mocked(getIdProviderDescriptor).mockReturnValue({ mode: 'MIXED', hasConfig: false });
 
     expect(idProviderSourceOf('com.example.app')).toEqual({
       application: 'com.example.app',
       mode: 'MIXED',
+      hasConfig: false,
     });
   });
 
   it('is still an id provider when the descriptor omits the mode', () => {
-    vi.mocked(getIdProviderDescriptor).mockReturnValue({});
+    vi.mocked(getIdProviderDescriptor).mockReturnValue({ hasConfig: false });
 
     expect(idProviderSourceOf('com.example.app')).toEqual({
       application: 'com.example.app',
+      hasConfig: false,
       mode: undefined,
     });
   });

@@ -1,4 +1,5 @@
 import { encodeApplicationIcon } from '/lib/icon';
+import { getIdProviderDescriptor } from '/lib/idprovider';
 import {
   get,
   getDescriptor,
@@ -50,4 +51,35 @@ export function listApplications(): ApplicationSource[] {
 
 function byDisplayName(a: ApplicationSource, b: ApplicationSource): number {
   return displayNameOf(a).localeCompare(displayNameOf(b), undefined, { sensitivity: 'base' });
+}
+
+export type IdProviderApplicationSource = {
+  key: string;
+  displayName: string;
+  hasConfig: boolean;
+};
+
+/**
+ * The applications an id provider can be bound to: those that ship an `idprovider` descriptor.
+ *
+ * ! One descriptor read per installed application, which is what app-users' own
+ * ! `ListIdProviderApplicationsRequest` does. Cheaper than it looks — the descriptor service reads one
+ * ! resource per application and nothing walks the jar.
+ */
+export function listIdProviderApplications(): IdProviderApplicationSource[] {
+  const providers: IdProviderApplicationSource[] = [];
+
+  for (const application of listApplications()) {
+    const descriptor = getIdProviderDescriptor({ application: application.key });
+
+    if (descriptor != null) {
+      providers.push({
+        key: application.key,
+        displayName: displayNameOf(application),
+        hasConfig: descriptor.hasConfig,
+      });
+    }
+  }
+
+  return providers;
 }

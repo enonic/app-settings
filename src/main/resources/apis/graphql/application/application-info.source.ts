@@ -35,6 +35,7 @@ export type ApiItem = ApplicationItem & { documentationUrl?: string };
 export type IdProviderSource = {
   application: string;
   mode?: string;
+  hasConfig: boolean;
 };
 
 export type IdProviderItem = {
@@ -110,7 +111,10 @@ export function deploymentUrlOf(application: string): string | null {
 
 export function idProviderSourceOf(application: string): IdProviderSource | null {
   const descriptor = getIdProviderDescriptor({ application });
-  return descriptor == null ? null : { application, mode: nonEmpty(descriptor.mode) };
+
+  return descriptor == null
+    ? null
+    : { application, mode: nonEmpty(descriptor.mode), hasConfig: descriptor.hasConfig };
 }
 
 export function listUsedByItems(application: string): IdProviderItem[] {

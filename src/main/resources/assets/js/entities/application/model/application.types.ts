@@ -56,3 +56,11 @@ export type ApplicationInfo = {
   /** Only an application that declares an id provider descriptor has one. */
   idProvider?: ApplicationIdProvider;
 };
+
+/** An application an id provider can be bound to, i.e. one that ships an id provider descriptor. */
+export type IdProviderApplication = {
+  key: string;
+  displayName: string;
+  /** Whether the descriptor declares a config form. Rendering it is #64. */
+  hasConfig: boolean;
+};

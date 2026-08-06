@@ -4,6 +4,7 @@ import { UserShield } from 'lucide-react';
 import { useMemo } from 'preact/hooks';
 
 import { loadIdProviders, useIdProviders } from '../../entities/principal';
+import { IdProviderEditorDialog } from '../../features/idprovider-editor/IdProviderEditorDialog';
 import { useI18n } from '../../shared/i18n';
 import { visibleEntries } from '../../widgets/browse-list/browse-filter';
 import { sortByDisplayName, type SortDirection } from '../../widgets/browse-list/browse-sort';
@@ -11,6 +12,7 @@ import { BrowseFilter } from '../../widgets/browse-list/BrowseFilter';
 import { BrowseSort } from '../../widgets/browse-list/BrowseSort';
 import { BrowseScreen } from '../../widgets/browse-screen/BrowseScreen';
 import { useBrowseSection } from '../../widgets/browse-screen/useBrowseSection';
+import { IdProviderDeleteDialog } from './IdProviderDeleteDialog';
 import { idProvidersFilter } from './model/filter.store';
 import { ID_PROVIDER_ACTIONS } from './model/id-providers.actions';
 import {
@@ -78,19 +80,24 @@ export function IdProvidersPage() {
   });
 
   return (
-    <BrowseScreen
-      {...section}
-      actions={ID_PROVIDER_ACTIONS}
-      emptyLabel={emptyLabel}
-      details={<Outlet />}
-      filter={
-        <BrowseFilter
-          entries={entries}
-          selected={selectedApplications}
-          onToggle={(id) => idProvidersFilter.toggle(id)}
-        />
-      }
-      sort={<BrowseSort options={sortOptions} value={sort} onChange={setIdProvidersSort} />}
-    />
+    <>
+      <BrowseScreen
+        {...section}
+        actions={ID_PROVIDER_ACTIONS}
+        emptyLabel={emptyLabel}
+        details={<Outlet />}
+        filter={
+          <BrowseFilter
+            entries={entries}
+            selected={selectedApplications}
+            onToggle={(id) => idProvidersFilter.toggle(id)}
+          />
+        }
+        sort={<BrowseSort options={sortOptions} value={sort} onChange={setIdProvidersSort} />}
+      />
+
+      <IdProviderEditorDialog />
+      <IdProviderDeleteDialog />
+    </>
   );
 }
