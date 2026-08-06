@@ -23,6 +23,33 @@ export const ID_PROVIDER_NAMES_ROOT: GraphQlRoot = {
 
 export type IdProviderNamesData = { idProviders: IdProviderNameDto[] | null };
 
+// One `count: 0` search per provider, which is what lets the Users filter hide a provider holding none
+// and show the rest with a number, as the client-side filters of the other sections do.
+const ID_PROVIDER_USER_COUNTS_SELECTION = `{
+  key
+  displayName
+  users {
+    total
+  }
+}`;
+
+export const ID_PROVIDER_USER_COUNTS_ROOT: GraphQlRoot = {
+  field: 'idProviders',
+  selection: ID_PROVIDER_USER_COUNTS_SELECTION,
+};
+
+type IdProviderUserCountDto = IdProviderNameDto & { users: { total: number } };
+
+export type IdProviderUserCountsData = { idProviders: IdProviderUserCountDto[] | null };
+
+export type IdProviderUserCount = IdProviderName & { users: number };
+
+export function toIdProviderUserCounts(
+  dtos: readonly IdProviderUserCountDto[],
+): IdProviderUserCount[] {
+  return dtos.map(({ key, displayName, users }) => ({ key, displayName, users: users.total }));
+}
+
 // Counts only: `items` on either set is every principal the provider holds, which on a
 // directory-backed install is the whole directory. The panel asks for numbers, not rows.
 const ID_PROVIDERS_SELECTION = `{

@@ -76,6 +76,7 @@ export function RoleEditorDialog() {
     <ModalDialog
       open={editor !== undefined}
       title={editor?.mode === 'edit' ? editTitle : createTitle}
+      size="wide"
       primaryLabel={saveLabel}
       // TODO: [#58] Enabled by the form being error-free once the role mutations exist.
       primaryDisabled

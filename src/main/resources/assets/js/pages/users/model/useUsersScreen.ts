@@ -39,7 +39,7 @@ export function useUsersScreen(): void {
      */
     usersSelection.clear();
     void reloadUsersScreen();
-  }, [asked.search, asked.idProvider, asked.sort]);
+  }, [asked.search, asked.idProviders, asked.sort]);
 
   /*
    * The cached details go with the section: a key loaded here means nothing once the list is left.

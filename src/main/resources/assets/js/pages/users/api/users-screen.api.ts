@@ -1,9 +1,9 @@
 import type { ResultAsync } from 'neverthrow';
 
 import {
-  ID_PROVIDER_NAMES_ROOT,
+  ID_PROVIDER_USER_COUNTS_ROOT,
   USERS_ROOT,
-  type IdProviderNamesData,
+  type IdProviderUserCountsData,
   type UsersData,
 } from '../../../entities/principal';
 import {
@@ -20,13 +20,13 @@ import {
  * The providers are the whole list every time — there are a handful, and the filter must offer one the
  * current page happens not to contain. The users are one page, narrowed and ordered by the server.
  */
-export type UsersScreenData = UsersData & IdProviderNamesData;
+export type UsersScreenData = UsersData & IdProviderUserCountsData;
 
 export type UsersPageQuery = {
   start: number;
   count: number;
   search?: string;
-  idProvider?: string;
+  idProviders: readonly string[];
   sort: 'displayNameAsc' | 'displayNameDesc';
 };
 
@@ -34,10 +34,14 @@ export function fetchUsersScreen(
   query: UsersPageQuery,
   signal?: AbortSignal,
 ): ResultAsync<GraphQlRootsAnswer<UsersScreenData>, AppError> {
-  return requestGraphQlRoots<UsersScreenData>([USERS_ROOT, ID_PROVIDER_NAMES_ROOT], 'UsersScreen', {
-    values: valuesFor(query),
-    signal,
-  });
+  return requestGraphQlRoots<UsersScreenData>(
+    [USERS_ROOT, ID_PROVIDER_USER_COUNTS_ROOT],
+    'UsersScreen',
+    {
+      values: valuesFor(query),
+      signal,
+    },
+  );
 }
 
 //
@@ -51,7 +55,7 @@ function valuesFor(query: UsersPageQuery): GraphQlVariables {
     start: query.start,
     count: query.count,
     search: query.search ?? null,
-    idProvider: query.idProvider ?? null,
+    idProviders: query.idProviders.length === 0 ? null : query.idProviders,
     sort: query.sort,
   };
 }

@@ -1,4 +1,4 @@
-import { GraphQLInt, GraphQLString, nonNull, type GraphQLFields } from '/lib/graphql';
+import { GraphQLInt, GraphQLString, list, nonNull, type GraphQLFields } from '/lib/graphql';
 
 import { getUser, listUsers, type UserSort } from './user.source';
 import { UserPageType, UserSortEnum, UserType } from './user.types';
@@ -12,7 +12,7 @@ export const userQueryFields: GraphQLFields = {
       start: GraphQLInt,
       count: GraphQLInt,
       search: GraphQLString,
-      idProvider: GraphQLString,
+      idProviders: list(GraphQLString),
       sort: UserSortEnum,
     },
     resolve: (env: {
@@ -20,7 +20,7 @@ export const userQueryFields: GraphQLFields = {
         start?: number;
         count?: number;
         search?: string;
-        idProvider?: string;
+        idProviders?: string[];
         sort?: UserSort;
       };
     }) => listUsers(env.args),

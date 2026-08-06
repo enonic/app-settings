@@ -3,8 +3,10 @@ import { Outlet, useNavigate } from '@tanstack/react-router';
 import { CircleUserRound } from 'lucide-react';
 import { useMemo } from 'preact/hooks';
 
-import { useIdProviderName, useIdProviderNames, useUsers } from '../../entities/principal';
+import { $idProviderUserCounts, useIdProviderName, useUsers } from '../../entities/principal';
+import { UserEditorDialog } from '../../features/user-editor/UserEditorDialog';
 import { useI18n } from '../../shared/i18n';
+import { visibleEntries } from '../../widgets/browse-list/browse-filter';
 import { type SortDirection } from '../../widgets/browse-list/browse-sort';
 import { BrowseFilter } from '../../widgets/browse-list/BrowseFilter';
 import { BrowseSort } from '../../widgets/browse-list/BrowseSort';
@@ -13,7 +15,7 @@ import { useBrowseSection } from '../../widgets/browse-screen/useBrowseSection';
 import {
   $usersQuery,
   clearUsersQuery,
-  setUsersIdProvider,
+  toggleUsersIdProvider,
   setUsersSort,
   sortDirectionOf,
 } from './model/query.store';
@@ -24,15 +26,16 @@ import { providerEntries } from './model/users.filter';
 import { toUserRow } from './model/users.rows';
 import { loadMoreUsers, reloadUsersScreen } from './model/users.screen';
 import { useUsersScreen } from './model/useUsersScreen';
+import { UserDeleteDialog } from './UserDeleteDialog';
 
 export function UsersPage() {
   const navigate = useNavigate();
   // One request for a page of users and the providers that name them.
   useUsersScreen();
   const { status, items, appending, error, hasMore } = useUsers();
-  const { items: providers, status: providersStatus } = useIdProviderNames();
+  const { items: providerCounts, status: providersStatus } = useStore($idProviderUserCounts);
   const providerName = useIdProviderName();
-  const { idProvider, sort } = useStore($usersQuery);
+  const { idProviders, sort } = useStore($usersQuery);
 
   const sortAscLabel = useI18n('users.sort.nameAsc');
   const sortDescLabel = useI18n('users.sort.nameDesc');
@@ -51,7 +54,10 @@ export function UsersPage() {
   // ! Entries come from the provider list, never from the rows: the rows are one page, so a provider the
   // ! page happens not to contain would disappear from the menu while still narrowing the query. They
   // ! carry no count either — `findUsers` reports one total for the whole query and nothing per provider.
-  const entries = useMemo(() => providerEntries(providers), [providers]);
+  const entries = useMemo(
+    () => visibleEntries(providerEntries(providerCounts), new Set(idProviders)),
+    [providerCounts, idProviders],
+  );
 
   const section = useBrowseSection({
     openItem: (key) => void navigate({ to: '/users/$id', params: { id: key }, replace: true }),
@@ -70,37 +76,39 @@ export function UsersPage() {
   });
 
   return (
-    <BrowseScreen
-      {...section}
-      actions={USER_ACTIONS}
-      emptyLabel={emptyLabel}
-      details={<Outlet />}
-      hasMore={hasMore}
-      onLoadMore={() => void loadMoreUsers()}
-      loadingMore={appending}
-      // A page that did not arrive leaves the rows valid, so it is reported beside the control rather
-      // than as a list error. Only a first page can put the list itself into an error state.
-      loadMoreError={status === 'ready' && error !== undefined ? loadMoreFailedNotice : undefined}
-      filter={
-        <BrowseFilter
-          entries={entries}
-          // One provider at a time: `findUsers` takes a single `userStoreKey`, and the control says so
-          // rather than announcing checkboxes and silently unticking the previous choice.
-          mode="single"
-          selected={new Set(idProvider === undefined ? [] : [idProvider])}
-          onToggle={(id) => setUsersIdProvider(id === idProvider ? undefined : id)}
-          // A provider list that failed to load leaves the menu short while the ticked provider goes on
-          // narrowing the query; saying so beats a menu that looks complete.
-          notice={providersStatus === 'error' ? providersFailedNotice : undefined}
-        />
-      }
-      sort={
-        <BrowseSort
-          options={sortOptions}
-          value={sortDirectionOf({ sort })}
-          onChange={setUsersSort}
-        />
-      }
-    />
+    <>
+      <BrowseScreen
+        {...section}
+        actions={USER_ACTIONS}
+        emptyLabel={emptyLabel}
+        details={<Outlet />}
+        hasMore={hasMore}
+        onLoadMore={() => void loadMoreUsers()}
+        loadingMore={appending}
+        // A page that did not arrive leaves the rows valid, so it is reported beside the control rather
+        // than as a list error. Only a first page can put the list itself into an error state.
+        loadMoreError={status === 'ready' && error !== undefined ? loadMoreFailedNotice : undefined}
+        filter={
+          <BrowseFilter
+            entries={entries}
+            selected={new Set(idProviders)}
+            onToggle={toggleUsersIdProvider}
+            // A provider list that failed to load leaves the menu short while the ticked provider goes on
+            // narrowing the query; saying so beats a menu that looks complete.
+            notice={providersStatus === 'error' ? providersFailedNotice : undefined}
+          />
+        }
+        sort={
+          <BrowseSort
+            options={sortOptions}
+            value={sortDirectionOf({ idProviders, sort })}
+            onChange={setUsersSort}
+          />
+        }
+      />
+
+      <UserEditorDialog />
+      <UserDeleteDialog />
+    </>
   );
 }

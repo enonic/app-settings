@@ -1,10 +1,7 @@
 import { isSystemUser, type User } from '../../../entities/principal';
+import { openUserCreator, openUserEditor } from '../../../features/user-editor';
 import { actionTargets, type SectionAction } from '../../../widgets/browse-toolbar/actions';
-
-// TODO: [#7] The user wizard, passwords and the delete dialog arrive with the Users section.
-function pending(): void {
-  return undefined;
-}
+import { usersDeletion } from './deletion.store';
 
 // ? `su` and `anonymous` belong to the platform — `isSystem()` in lib-admin-ui refuses exactly
 // ? those two — so Delete leaves them alone.
@@ -13,13 +10,18 @@ export const USER_ACTIONS: readonly SectionAction<User>[] = [
     id: 'new',
     labelKey: 'users.action.new',
     enabled: () => true,
-    run: pending,
+    run: openUserCreator,
   },
   {
     id: 'edit',
     labelKey: 'users.action.edit',
     enabled: (ctx) => actionTargets(ctx).length === 1,
-    run: pending,
+    run: (ctx) => {
+      const [target] = actionTargets(ctx);
+      if (target !== undefined) {
+        openUserEditor(target);
+      }
+    },
   },
   {
     id: 'delete',
@@ -28,6 +30,6 @@ export const USER_ACTIONS: readonly SectionAction<User>[] = [
       const targets = actionTargets(ctx);
       return targets.length > 0 && targets.every(({ key }) => !isSystemUser(key));
     },
-    run: pending,
+    run: (ctx) => usersDeletion.open(actionTargets(ctx)),
   },
 ];

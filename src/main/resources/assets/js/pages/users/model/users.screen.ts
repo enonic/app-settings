@@ -3,12 +3,15 @@ import { err, ok, type Result } from 'neverthrow';
 import {
   appendUsers,
   beginIdProviderNamesLoad,
+  beginIdProviderUserCountsLoad,
   beginUsersAppend,
   beginUsersLoad,
   forgetUserDetails,
   receiveIdProviderNames,
+  receiveIdProviderUserCounts,
   receiveUsers,
   toIdProviderNames,
+  toIdProviderUserCounts,
   toUsersPage,
   usersAppendStart,
   type UsersPage,
@@ -32,6 +35,7 @@ export function reloadUsersScreen(): Promise<void> {
 
   beginUsersLoad();
   beginIdProviderNamesLoad();
+  beginIdProviderUserCountsLoad();
 
   return fetchUsersScreen({ ...$usersQuery.get(), start: 0, count: PAGE_SIZE }, signal).match(
     (answer) => {
@@ -39,6 +43,7 @@ export function reloadUsersScreen(): Promise<void> {
         receiveUsers(page(answer.data, answer.message));
 
         receiveIdProviderNames(providers(answer.data, answer.message));
+        receiveIdProviderUserCounts(providerCounts(answer.data, answer.message));
 
         // ! After the rows, not before. The cached details are built from rows, so invalidating at request
         // ! time would re-read the open user against the page that is about to be replaced — and the
@@ -50,6 +55,7 @@ export function reloadUsersScreen(): Promise<void> {
       if (!signal.aborted) {
         receiveUsers(err(error));
         receiveIdProviderNames(err(error));
+        receiveIdProviderUserCounts(err(error));
       }
     },
   );
@@ -73,6 +79,7 @@ export function loadMoreUsers(): Promise<void> {
         // The providers came along for free; taking them keeps the labels fresh at no cost, and a failed
         // half no longer costs the loaded list — `receiveIdProviderNames` keeps what it has.
         receiveIdProviderNames(providers(answer.data, answer.message));
+        receiveIdProviderUserCounts(providerCounts(answer.data, answer.message));
       }
     },
     (error) => {
@@ -106,4 +113,10 @@ function providers(data: UsersScreenData, message: string | undefined) {
   return data.idProviders == null
     ? err(new AppError(message ?? 'The id providers could not be read'))
     : ok(toIdProviderNames(data.idProviders));
+}
+
+function providerCounts(data: UsersScreenData, message: string | undefined) {
+  return data.idProviders == null
+    ? err(new AppError(message ?? 'The id providers could not be read'))
+    : ok(toIdProviderUserCounts(data.idProviders));
 }
