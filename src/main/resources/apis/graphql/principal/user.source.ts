@@ -1,4 +1,11 @@
-import { findUsers, getMemberships, getPrincipal, type User, type UserKey } from '/lib/xp/auth';
+import {
+  findUsers,
+  getMemberships,
+  getPrincipal,
+  getProfile,
+  type User,
+  type UserKey,
+} from '/lib/xp/auth';
 
 import { byName, toPrincipalItem, type PrincipalItem } from './principal.source';
 
@@ -17,7 +24,7 @@ export type UserQuery = {
   start?: number;
   count?: number;
   search?: string;
-  idProvider?: string;
+  idProviders?: readonly string[];
   sort?: UserSort;
 };
 
@@ -74,11 +81,11 @@ const SORT_EXPRESSIONS: Record<UserSort, string> = {
   displayNameDesc: 'displayName DESC, _path ASC',
 };
 
-export function listUsers({ start, count, search, idProvider, sort }: UserQuery): UserPage {
+export function listUsers({ start, count, search, idProviders, sort }: UserQuery): UserPage {
   const { total, hits } = findUsers({
     start: clampStart(start),
     count: clampCount(count),
-    query: queryExpression(search, idProvider),
+    query: queryExpression(search, idProviders),
     sort: SORT_EXPRESSIONS[sort ?? 'displayNameAsc'],
   });
 
@@ -114,6 +121,30 @@ export function getUser(key: string): User | null {
   }
 }
 
+export type PublicKeyItem = {
+  kid: string;
+  publicKey?: string;
+  label?: string;
+  creationTime?: string;
+};
+
+type PublicKeyProfile = {
+  publicKeys?: PublicKeyItem | PublicKeyItem[];
+};
+
+// ! A single key comes back as an object, not an array of one: a `PropertyTree` property with one
+// ! value reads as that value, which is why app-users runs every such read through `util.forceArray`.
+export function listUserPublicKeys(key: UserKey): PublicKeyItem[] {
+  const profile = getProfile<PublicKeyProfile>({ key });
+  const keys = profile?.publicKeys;
+
+  if (keys == null) {
+    return [];
+  }
+
+  return Array.isArray(keys) ? keys : [keys];
+}
+
 export function listUserRoles(key: UserKey): PrincipalItem[] {
   return membershipsOf(key, 'role');
 }
@@ -145,7 +176,7 @@ export function escapeQueryValue(value: string): string {
  * `findUsers` adds only `principalType = USER` of its own (`UserQueryNodeQueryTranslator`), so every
  * other narrowing belongs here. The provider lives on the node under its old name, `userStoreKey`.
  */
-function queryExpression(search?: string, idProvider?: string): string {
+function queryExpression(search?: string, idProviders?: readonly string[]): string {
   const parts: string[] = [];
 
   const needle = search?.trim();
@@ -154,8 +185,14 @@ function queryExpression(search?: string, idProvider?: string): string {
     parts.push(`(fulltext(${args}) OR ngram(${args}))`);
   }
 
-  if (idProvider != null && idProvider.length > 0) {
-    parts.push(`userStoreKey="${escapeQueryValue(idProvider)}"`);
+  // Several providers are an OR of the same constraint, so the filter can tick more than one, as the
+  // client-side filters of the other sections do.
+  const providers = (idProviders ?? []).filter((provider) => provider.length > 0);
+  if (providers.length > 0) {
+    const constraints = providers
+      .map((provider) => `userStoreKey="${escapeQueryValue(provider)}"`)
+      .join(' OR ');
+    parts.push(providers.length === 1 ? constraints : `(${constraints})`);
   }
 
   return parts.join(' AND ');

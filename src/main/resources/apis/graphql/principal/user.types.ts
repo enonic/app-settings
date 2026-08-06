@@ -10,7 +10,13 @@ import {
 import { generator } from '../schema/generator';
 import { displayNameOf } from './principal.source';
 import { PrincipalType, PrincipalTypeEnum } from './principal.types';
-import { listUserGroups, listUserRoles, type UserPage, type UserSource } from './user.source';
+import {
+  listUserGroups,
+  listUserPublicKeys,
+  listUserRoles,
+  type UserPage,
+  type UserSource,
+} from './user.source';
 
 export const UserSortEnum: GraphQLType = generator.createEnumType({
   name: 'UserSort',
@@ -20,6 +26,26 @@ export const UserSortEnum: GraphQLType = generator.createEnumType({
 });
 
 const principals = nonNull(list(nonNull(PrincipalType)));
+
+export const PublicKeyType: GraphQLType = generator.createObjectType({
+  name: 'PublicKey',
+  description: 'A public key a user can authenticate with, stored in its profile.',
+  fields: {
+    kid: {
+      type: nonNull(GraphQLString),
+      description: 'The key id, derived from the key itself.',
+    },
+    publicKey: {
+      type: GraphQLString,
+    },
+    label: {
+      type: GraphQLString,
+    },
+    creationTime: {
+      type: GraphQLString,
+    },
+  },
+});
 
 export const UserType: GraphQLType = generator.createObjectType({
   name: 'User',
@@ -64,6 +90,12 @@ export const UserType: GraphQLType = generator.createObjectType({
       type: principals,
       description: 'Groups this user is in.',
       resolve: (env: { source: UserSource }) => listUserGroups(env.source.key),
+    },
+    // ! One `getProfile` per user, so it stays lazy.
+    publicKeys: {
+      type: nonNull(list(nonNull(PublicKeyType))),
+      description: 'Public keys this user can authenticate with. Empty when it has none.',
+      resolve: (env: { source: UserSource }) => listUserPublicKeys(env.source.key),
     },
   },
 });

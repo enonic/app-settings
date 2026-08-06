@@ -7,7 +7,7 @@ import { $userDetail } from '../../../entities/principal/model/user-detail.load'
 import { $users } from '../../../entities/principal/model/users.store';
 import { AppError, requestGraphQlDocument } from '../../../shared/api';
 import { fetchUsersScreen } from '../api/users-screen.api';
-import { $usersQuery, setUsersIdProvider, setUsersSearch } from './query.store';
+import { $usersQuery, setUsersSearch, toggleUsersIdProvider } from './query.store';
 import { loadMoreUsers, reloadUsersScreen } from './users.screen';
 
 // The screen owns the query, the paging and the cancelling; stubbing the api keeps the transport out of
@@ -33,7 +33,7 @@ function wireUser(login: string) {
 }
 
 // The lean root the screens use asks for these two fields and nothing else.
-const PROVIDER = { key: 'system', displayName: 'System' };
+const PROVIDER = { key: 'system', displayName: 'System', users: { total: 3 } };
 
 function answered(logins: readonly string[], total: number, message?: string) {
   return okAsync({
@@ -58,7 +58,7 @@ beforeEach(() => {
 afterEach(() => {
   $users.set({ status: 'loading', items: [], total: 0, appending: false, exhausted: false });
   $idProviderNames.set({ status: 'loading', items: [] });
-  $usersQuery.set({ sort: 'displayNameAsc' });
+  $usersQuery.set({ idProviders: [], sort: 'displayNameAsc' });
 });
 
 describe('reloadUsersScreen', () => {
@@ -75,12 +75,12 @@ describe('reloadUsersScreen', () => {
 
   it('carries the search, the provider and the order the query store holds', async () => {
     setUsersSearch('  alice  ');
-    setUsersIdProvider('ldap');
+    toggleUsersIdProvider('ldap');
 
     await reloadUsersScreen();
 
     expect(askedOn()?.search).toBe('alice');
-    expect(askedOn()?.idProvider).toBe('ldap');
+    expect(askedOn()?.idProviders).toEqual(['ldap']);
     expect(askedOn()?.sort).toBe('displayNameAsc');
   });
 
@@ -113,7 +113,7 @@ describe('reloadUsersScreen', () => {
    */
   it('drops the cached details, so the panel cannot serve pre-reload data', async () => {
     vi.mocked(requestGraphQlDocument).mockReturnValue(
-      okAsync({ user: { ...wireUser('alice'), roles: [], groups: [] } } as never),
+      okAsync({ user: { ...wireUser('alice'), roles: [], groups: [], publicKeys: [] } } as never),
     );
 
     vi.useFakeTimers();

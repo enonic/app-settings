@@ -2,13 +2,21 @@ import {
   findUsers,
   getMemberships,
   getPrincipal,
+  getProfile,
   type Group,
   type Role,
   type User,
 } from '/lib/xp/auth';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { escapeQueryValue, getUser, listUserGroups, listUserRoles, listUsers } from './user.source';
+import {
+  escapeQueryValue,
+  getUser,
+  listUserGroups,
+  listUserPublicKeys,
+  listUserRoles,
+  listUsers,
+} from './user.source';
 
 function user(name: string, displayName: string): User {
   return {
@@ -163,15 +171,31 @@ describe('listUsers', () => {
   it('filters by provider through the node property that carries it', () => {
     vi.mocked(findUsers).mockReturnValue(found([]));
 
-    listUsers({ idProvider: 'ldap' });
+    listUsers({ idProviders: ['ldap'] });
 
     expect(calledWith()?.query).toBe('userStoreKey="ldap"');
+  });
+
+  it('ORs several providers, so the filter can tick more than one', () => {
+    vi.mocked(findUsers).mockReturnValue(found([]));
+
+    listUsers({ idProviders: ['ldap', 'system'] });
+
+    expect(calledWith()?.query).toBe('(userStoreKey="ldap" OR userStoreKey="system")');
+  });
+
+  it('ignores an empty provider list', () => {
+    vi.mocked(findUsers).mockReturnValue(found([]));
+
+    listUsers({ idProviders: [] });
+
+    expect(calledWith()?.query).toBe('');
   });
 
   it('combines a search and a provider filter', () => {
     vi.mocked(findUsers).mockReturnValue(found([]));
 
-    listUsers({ search: 'alice', idProvider: 'ldap' });
+    listUsers({ search: 'alice', idProviders: ['ldap'] });
 
     expect(calledWith()?.query).toBe(
       '(fulltext("_allText,displayName","alice","AND") OR ngram("_allText,displayName","alice","AND")) AND userStoreKey="ldap"',
@@ -191,7 +215,7 @@ describe('listUsers', () => {
   it('escapes the provider filter too, not only the search', () => {
     vi.mocked(findUsers).mockReturnValue(found([]));
 
-    listUsers({ idProvider: 'od"d' });
+    listUsers({ idProviders: ['od"d'] });
 
     expect(calledWith()?.query).toBe('userStoreKey="od\\"d"');
   });
@@ -305,5 +329,33 @@ describe('listUserRoles and listUserGroups', () => {
     vi.mocked(getMemberships).mockReturnValue([]);
 
     expect(listUserRoles('user:system:alice' as User['key'])).toEqual([]);
+  });
+});
+
+describe('listUserPublicKeys', () => {
+  it('answers empty for a profile that carries none', () => {
+    vi.mocked(getProfile).mockReturnValue({});
+
+    expect(listUserPublicKeys('user:system:alice')).toEqual([]);
+  });
+
+  it('answers empty for a user with no profile at all', () => {
+    vi.mocked(getProfile).mockReturnValue(null);
+
+    expect(listUserPublicKeys('user:system:alice')).toEqual([]);
+  });
+
+  it('wraps a single key, which the profile does not store as an array', () => {
+    const key = { kid: 'abc', label: 'Laptop' };
+    vi.mocked(getProfile).mockReturnValue({ publicKeys: key });
+
+    expect(listUserPublicKeys('user:system:alice')).toEqual([key]);
+  });
+
+  it('passes several through in order', () => {
+    const keys = [{ kid: 'abc' }, { kid: 'def' }];
+    vi.mocked(getProfile).mockReturnValue({ publicKeys: keys });
+
+    expect(listUserPublicKeys('user:system:alice')).toEqual(keys);
   });
 });

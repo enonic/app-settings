@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { useI18n } from '../../i18n';
-import { ModalDialog } from './ModalDialog';
+import { ConfirmDialog } from './ConfirmDialog';
 
 export type DeleteTarget = {
   key: string;
@@ -24,36 +24,25 @@ export function DeleteConfirmDialog({
   onClose,
   onConfirm,
 }: DeleteConfirmDialogProps) {
-  const title = useI18n('browse.confirm.title');
   const question = useI18n(
     targets.length === 1
       ? 'browse.confirm.deleteQuestion'
       : 'browse.confirm.deleteQuestionMultiple',
   );
-  const yesLabel = useI18n('browse.dialog.yes');
-  const noLabel = useI18n('browse.dialog.no');
-  const closeLabel = useI18n('browse.dialog.close');
 
   return (
-    <ModalDialog
+    <ConfirmDialog
       open={open}
-      title={title}
-      primaryLabel={yesLabel}
-      primaryDisabled={confirmDisabled}
-      cancelLabel={noLabel}
-      closeLabel={closeLabel}
+      question={question}
+      confirmDisabled={confirmDisabled}
       onClose={onClose}
-      onPrimary={onConfirm}
+      onConfirm={onConfirm}
     >
-      <div className="flex flex-col gap-2.5">
-        <p className="text-main text-base">{question}</p>
-
-        <ul className="flex flex-col gap-2.5 py-1.5">
-          {targets.map(({ key, label }) => (
-            <li key={key}>{label}</li>
-          ))}
-        </ul>
-      </div>
-    </ModalDialog>
+      <ul className="flex flex-col gap-2.5 py-1.5">
+        {targets.map(({ key, label }) => (
+          <li key={key}>{label}</li>
+        ))}
+      </ul>
+    </ConfirmDialog>
   );
 }

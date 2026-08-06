@@ -28,3 +28,5 @@ export const getMemberships =
 export const findUsers = vi.fn<(params: FindUsersParams) => FindPrincipalsResult<User>>();
 
 export const getPrincipal = vi.fn<(key: PrincipalKey) => Principal | null>();
+
+export const getProfile = vi.fn<(params: { key: string; scope?: string }) => unknown>();

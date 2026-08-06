@@ -2,6 +2,7 @@ import { Button } from '@enonic/ui';
 import { CircleUserRound, UserPen, Users } from 'lucide-react';
 
 import { principalName, useIdProviderName, type UserDetail } from '../../entities/principal';
+import { openUserEditor } from '../../features/user-editor';
 import { useI18n } from '../../shared/i18n';
 import { filledSections } from '../../widgets/details-panel/details-panel';
 import { DetailsPanel } from '../../widgets/details-panel/DetailsPanel';
@@ -36,7 +37,12 @@ export function UserDetails({ user }: UserDetailsProps) {
         labelKey="users.details.user"
         action={
           // TODO: [#7] Opens the user wizard once it exists.
-          <Button variant="outline" size="sm" label={editLabel} />
+          <Button
+            variant="outline"
+            size="sm"
+            label={editLabel}
+            onClick={() => openUserEditor(user)}
+          />
         }
       >
         {email !== undefined && (

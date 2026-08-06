@@ -34,7 +34,7 @@ function row(login: string): User {
 }
 
 function detail(login: string): UserDetail {
-  return { ...row(login), roles: [ADMIN], groups: [] };
+  return { ...row(login), roles: [ADMIN], groups: [], publicKeys: [] };
 }
 
 function answered(login: string) {

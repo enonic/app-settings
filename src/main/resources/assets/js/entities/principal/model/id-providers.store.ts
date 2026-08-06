@@ -2,6 +2,7 @@ import { computed, map, type ReadableAtom } from 'nanostores';
 import type { Result } from 'neverthrow';
 
 import type { AppError } from '../../../shared/api';
+import type { IdProviderUserCount } from '../api/id-providers.api';
 import type { IdProvider, IdProviderName } from './principal.types';
 
 export type IdProvidersState = {
@@ -16,6 +17,12 @@ export type IdProviderNamesState = {
   error?: string;
 };
 
+export type IdProviderUserCountsState = {
+  status: 'loading' | 'ready' | 'error';
+  items: readonly IdProviderUserCount[];
+  error?: string;
+};
+
 /** The ID Providers section's own list, with what only that section shows. */
 export const $idProviders = map<IdProvidersState>({ status: 'loading', items: [] });
 
@@ -25,6 +32,15 @@ export const $idProviders = map<IdProvidersState>({ status: 'loading', items: []
  * domain, in the same request.
  */
 export const $idProviderNames = map<IdProviderNamesState>({ status: 'loading', items: [] });
+
+/**
+ * How many users each provider holds, which the Users filter needs to leave out a provider holding
+ * none. One `count: 0` search per provider, asked for beside the page of users.
+ */
+export const $idProviderUserCounts = map<IdProviderUserCountsState>({
+  status: 'loading',
+  items: [],
+});
 
 /**
  * Provider name to display name, for the sections that show where a principal comes from.
@@ -67,5 +83,22 @@ export function receiveIdProviderNames(result: Result<IdProviderName[], AppError
     (items) => $idProviderNames.set({ status: 'ready', items }),
     (error) =>
       $idProviderNames.set({ ...$idProviderNames.get(), status: 'error', error: error.message }),
+  );
+}
+
+export function beginIdProviderUserCountsLoad(): void {
+  $idProviderUserCounts.setKey('status', 'loading');
+}
+
+/** ! Keeps what it has on a failed read, for the reason `receiveIdProviderNames` explains. */
+export function receiveIdProviderUserCounts(result: Result<IdProviderUserCount[], AppError>): void {
+  result.match(
+    (items) => $idProviderUserCounts.set({ status: 'ready', items }),
+    (error) =>
+      $idProviderUserCounts.set({
+        ...$idProviderUserCounts.get(),
+        status: 'error',
+        error: error.message,
+      }),
   );
 }

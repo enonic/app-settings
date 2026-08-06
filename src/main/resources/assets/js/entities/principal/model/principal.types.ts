@@ -95,6 +95,14 @@ export type User = Omit<XpUser, 'modifiedTime'>;
 export type UserDetail = User & {
   roles: readonly PrincipalRef[];
   groups: readonly PrincipalRef[];
+  publicKeys: readonly PublicKey[];
+};
+
+/** A key a user can authenticate with, stored in its profile — so only a detail read carries it. */
+export type PublicKey = {
+  kid: string;
+  label?: string;
+  creationTime?: string;
 };
 
 /**

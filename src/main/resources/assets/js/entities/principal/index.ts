@@ -2,26 +2,40 @@ export { fetchGroupDetail, GROUPS_ROOT, toGroups } from './api/groups.api';
 export type { GroupsData } from './api/groups.api';
 export {
   ID_PROVIDER_NAMES_ROOT,
+  ID_PROVIDER_USER_COUNTS_ROOT,
   ID_PROVIDERS_ROOT,
   toIdProviderNames,
   toIdProviders,
+  toIdProviderUserCounts,
 } from './api/id-providers.api';
-export type { IdProviderNamesData, IdProvidersData } from './api/id-providers.api';
+export type {
+  IdProviderNamesData,
+  IdProvidersData,
+  IdProviderUserCount,
+  IdProviderUserCountsData,
+} from './api/id-providers.api';
 export { fetchRoleDetail, ROLES_ROOT, toRoles } from './api/roles.api';
 export type { RolesData } from './api/roles.api';
-export { USERS_ROOT, toUsersPage } from './api/users.api';
+export { fetchUserDetail, USERS_ROOT, toUsersPage } from './api/users.api';
 export type { UsersData, UsersPage } from './api/users.api';
 export { forgetGroupDetails, forgetGroups } from './model/group-detail.load';
 export { beginGroupsLoad, receiveGroups } from './model/groups.store';
 export type { GroupsState } from './model/groups.store';
 export { loadIdProviders } from './model/id-providers.load';
 export {
+  $idProviderUserCounts,
   beginIdProviderNamesLoad,
   beginIdProvidersLoad,
+  beginIdProviderUserCountsLoad,
   receiveIdProviderNames,
   receiveIdProviders,
+  receiveIdProviderUserCounts,
 } from './model/id-providers.store';
-export type { IdProviderNamesState, IdProvidersState } from './model/id-providers.store';
+export type {
+  IdProviderNamesState,
+  IdProvidersState,
+  IdProviderUserCountsState,
+} from './model/id-providers.store';
 export { derivePrincipalName, isIllegalPrincipalName } from './model/principal-name';
 export {
   idProviderOf,
@@ -42,6 +56,7 @@ export type {
   PrincipalKey,
   PrincipalRef,
   PrincipalType,
+  PublicKey,
   Role,
   RoleDetail,
   RoleKey,

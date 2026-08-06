@@ -4,6 +4,7 @@ import { requestGraphQlDocument, type AppError, type GraphQlRoot } from '../../.
 import type {
   PrincipalKey,
   PrincipalRef,
+  PublicKey,
   User,
   UserDetail,
   UserKey,
@@ -28,12 +29,12 @@ const USER_FIELDS = `
  */
 export const USERS_ROOT: GraphQlRoot = {
   field: 'users',
-  args: '(start: $start, count: $count, search: $search, idProvider: $idProvider, sort: $sort)',
+  args: '(start: $start, count: $count, search: $search, idProviders: $idProviders, sort: $sort)',
   variables: {
     start: 'Int',
     count: 'Int',
     search: 'String',
-    idProvider: 'String',
+    idProviders: '[String]',
     sort: 'UserSort',
   },
   selection: `{
@@ -41,6 +42,14 @@ export const USERS_ROOT: GraphQlRoot = {
   hits {${USER_FIELDS}}
 }`,
 };
+
+const PUBLIC_KEY_FIELDS = `
+  publicKeys {
+    kid
+    label
+    creationTime
+  }
+`;
 
 const MEMBERSHIP_FIELDS = `
   roles {
@@ -64,7 +73,7 @@ const MEMBERSHIP_FIELDS = `
  */
 const USER_MEMBERSHIPS_DOCUMENT = `
   query UserMemberships($key: String!) {
-    user(key: $key) {${MEMBERSHIP_FIELDS}}
+    user(key: $key) {${MEMBERSHIP_FIELDS}${PUBLIC_KEY_FIELDS}}
   }
 `;
 
@@ -77,7 +86,7 @@ const USER_MEMBERSHIPS_DOCUMENT = `
  */
 const USER_DOCUMENT = `
   query User($key: String!) {
-    user(key: $key) {${USER_FIELDS}${MEMBERSHIP_FIELDS}}
+    user(key: $key) {${USER_FIELDS}${MEMBERSHIP_FIELDS}${PUBLIC_KEY_FIELDS}}
   }
 `;
 
@@ -103,12 +112,20 @@ type PrincipalRefDto = {
   displayName: string;
 };
 
+type PublicKeyDto = {
+  kid: string;
+  label: string | null;
+  creationTime: string | null;
+};
+
 type UserDetailDto = UserDto & {
   roles: PrincipalRefDto[];
   groups: PrincipalRefDto[];
+  publicKeys: PublicKeyDto[];
 };
 
 type MembershipsDto = {
+  publicKeys: PublicKeyDto[];
   roles: PrincipalRefDto[];
   groups: PrincipalRefDto[];
 };
@@ -158,8 +175,20 @@ export function toUsersPage({ total, hits }: UsersPageDto): UsersPage {
 // * Helpers
 //
 
-function toMemberships(dto: MembershipsDto): Pick<UserDetail, 'roles' | 'groups'> {
-  return { roles: dto.roles.map(toPrincipalRef), groups: dto.groups.map(toPrincipalRef) };
+function toMemberships(dto: MembershipsDto): Pick<UserDetail, 'roles' | 'groups' | 'publicKeys'> {
+  return {
+    roles: dto.roles.map(toPrincipalRef),
+    groups: dto.groups.map(toPrincipalRef),
+    publicKeys: dto.publicKeys.map(toPublicKey),
+  };
+}
+
+function toPublicKey(dto: PublicKeyDto): PublicKey {
+  return {
+    kid: dto.kid,
+    label: dto.label ?? undefined,
+    creationTime: dto.creationTime ?? undefined,
+  };
 }
 
 function toPrincipalRef(dto: PrincipalRefDto): PrincipalRef {

@@ -1,11 +1,11 @@
-import { Combobox, GridList, IconButton, Listbox } from '@enonic/ui';
+import { Checkbox, Combobox, GridList, IconButton, Listbox, useCombobox } from '@enonic/ui';
 import { X } from 'lucide-react';
 import { useId, useState } from 'preact/hooks';
 
 import { i18n, useI18n } from '../../../shared/i18n';
 import { FieldLabel } from '../../../shared/ui/FieldLabel';
 import type { PrincipalRef, PrincipalType } from '../model/principal.types';
-import { usePrincipalSearch } from '../model/usePrincipalSearch';
+import { usePrincipalSearch, type PrincipalSearchState } from '../model/usePrincipalSearch';
 import { PrincipalLabel } from './PrincipalLabel';
 
 export type PrincipalPickerProps = {
@@ -39,20 +39,27 @@ export function PrincipalPicker({
   const noMatchesLabel = useI18n('principal.picker.noMatches');
   const failedLabel = useI18n('principal.picker.failed');
   const removeLabel = useI18n('principal.picker.remove');
+  const applyLabel = useI18n('principal.picker.apply');
 
   const { status, principals, incompleteKinds } = usePrincipalSearch(query, open, kinds);
 
-  const picked = new Set(selected.map(({ key }) => key));
-  const offered = principals.filter(({ key }) => !picked.has(key));
+  const pickedKeys = selected.map(({ key }) => key);
 
-  const add = (key: string): void => {
-    const found = offered.find((candidate) => candidate.key === key);
-    if (found === undefined) {
-      return;
-    }
+  const known = new Map<string, PrincipalRef>(
+    [...selected, ...principals].map((principal) => [principal.key, principal]),
+  );
 
-    onChange([...selected, found]);
-    setQuery('');
+  // ! Staged, not single or multiple: single closes the popup on the first click, multiple commits every
+  // ! click straight into the form. Staged ticks are the user's, and only Apply hands them over.
+  const replace = (next: readonly string[]): void => {
+    const nextKeys = new Set<string>(next);
+    const kept = selected.filter(({ key }) => nextKeys.has(key));
+    const added = [...nextKeys]
+      .filter((key) => !pickedKeys.some((picked) => picked === key))
+      .map((key) => known.get(key))
+      .filter((principal): principal is PrincipalRef => principal !== undefined);
+
+    onChange([...kept, ...added]);
   };
 
   const remove = (key: string): void => {
@@ -68,9 +75,9 @@ export function PrincipalPicker({
         onOpenChange={setOpen}
         value={query}
         onChange={(next) => setQuery(next ?? '')}
-        selectionMode="single"
-        selection={[]}
-        onSelectionChange={([key]) => key !== undefined && add(key)}
+        selectionMode="staged"
+        selection={pickedKeys}
+        onSelectionChange={replace}
         contentType="listbox"
       >
         <Combobox.Content>
@@ -82,36 +89,20 @@ export function PrincipalPicker({
                 aria-labelledby={label === undefined ? undefined : labelId}
                 placeholder={placeholder}
               />
+              <Combobox.Apply label={applyLabel} />
               <Combobox.Toggle />
             </Combobox.Search>
           </Combobox.Control>
 
           <Combobox.Popup>
-            <Combobox.ListContent className="max-h-60 overflow-y-auto">
-              {status === 'error' && (
-                <p className="text-error px-2.5 py-1 text-sm">{failedLabel}</p>
-              )}
-
-              {status === 'loading' && offered.length === 0 && (
-                <p className="text-subtle px-2.5 py-1 text-sm">{searchingLabel}</p>
-              )}
-
-              {status === 'ready' && offered.length === 0 && incompleteKinds.length === 0 && (
-                <p className="text-subtle px-2.5 py-1 text-sm">{noMatchesLabel}</p>
-              )}
-
-              {incompleteKinds.map((kind) => (
-                <p key={kind} className="text-error px-2.5 py-1 text-sm">
-                  {i18n(INCOMPLETE_KEYS[kind])}
-                </p>
-              ))}
-
-              {offered.map((principal) => (
-                <Listbox.Item key={principal.key} value={principal.key} className="px-2.5 py-1.5">
-                  <PrincipalLabel principal={principal} />
-                </Listbox.Item>
-              ))}
-            </Combobox.ListContent>
+            <PrincipalOptions
+              principals={principals}
+              status={status}
+              incompleteKinds={incompleteKinds}
+              searchingLabel={searchingLabel}
+              noMatchesLabel={noMatchesLabel}
+              failedLabel={failedLabel}
+            />
           </Combobox.Popup>
         </Combobox.Content>
       </Combobox>
@@ -139,5 +130,58 @@ export function PrincipalPicker({
         </GridList>
       )}
     </div>
+  );
+}
+
+type PrincipalOptionsProps = {
+  principals: readonly PrincipalRef[];
+  status: PrincipalSearchState['status'];
+  incompleteKinds: readonly PrincipalType[];
+  searchingLabel: string;
+  noMatchesLabel: string;
+  failedLabel: string;
+};
+
+function PrincipalOptions({
+  principals,
+  status,
+  incompleteKinds,
+  searchingLabel,
+  noMatchesLabel,
+  failedLabel,
+}: PrincipalOptionsProps) {
+  // ! The staged ticks, not the applied ones: the selection this reads is the combobox's own, so a box
+  // ! ticks the moment it is clicked while the form still holds what Apply last handed it.
+  const { selection } = useCombobox();
+
+  return (
+    <Combobox.ListContent className="max-h-60 overflow-y-auto">
+      {status === 'error' && <p className="text-error px-2.5 py-1 text-sm">{failedLabel}</p>}
+
+      {status === 'loading' && principals.length === 0 && (
+        <p className="text-subtle px-2.5 py-1 text-sm">{searchingLabel}</p>
+      )}
+
+      {status === 'ready' && principals.length === 0 && incompleteKinds.length === 0 && (
+        <p className="text-subtle px-2.5 py-1 text-sm">{noMatchesLabel}</p>
+      )}
+
+      {incompleteKinds.map((kind) => (
+        <p key={kind} className="text-error px-2.5 py-1 text-sm">
+          {i18n(INCOMPLETE_KEYS[kind])}
+        </p>
+      ))}
+
+      {principals.map((principal) => (
+        <Listbox.Item key={principal.key} value={principal.key} className="px-2.5 py-1.5">
+          <PrincipalLabel className="flex-1" principal={principal} />
+          <Checkbox
+            tabIndex={-1}
+            checked={selection.has(principal.key)}
+            onClick={(event) => event.preventDefault()}
+          />
+        </Listbox.Item>
+      ))}
+    </Combobox.ListContent>
   );
 }

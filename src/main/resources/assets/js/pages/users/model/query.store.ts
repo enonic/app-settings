@@ -17,20 +17,26 @@ export type UsersSort = 'displayNameAsc' | 'displayNameDesc';
  */
 export type UsersQueryState = {
   search?: string;
-  idProvider?: string;
+  idProviders: readonly string[];
   sort: UsersSort;
 };
 
-export const $usersQuery = map<UsersQueryState>({ sort: 'displayNameAsc' });
+export const $usersQuery = map<UsersQueryState>({ idProviders: [], sort: 'displayNameAsc' });
 
 export function setUsersSearch(search: string): void {
   const needle = search.trim();
   $usersQuery.setKey('search', needle.length === 0 ? undefined : needle);
 }
 
-/** One provider at a time, unlike the client-side filters: `findUsers` takes one `userStoreKey`. */
-export function setUsersIdProvider(idProvider: string | undefined): void {
-  $usersQuery.setKey('idProvider', idProvider);
+export function toggleUsersIdProvider(idProvider: string): void {
+  const current = $usersQuery.get().idProviders;
+
+  $usersQuery.setKey(
+    'idProviders',
+    current.includes(idProvider)
+      ? current.filter((candidate) => candidate !== idProvider)
+      : [...current, idProvider],
+  );
 }
 
 export function setUsersSort(direction: SortDirection): void {
@@ -42,5 +48,5 @@ export function sortDirectionOf({ sort }: UsersQueryState): SortDirection {
 }
 
 export function clearUsersQuery(): void {
-  $usersQuery.set({ sort: 'displayNameAsc' });
+  $usersQuery.set({ idProviders: [], sort: 'displayNameAsc' });
 }
