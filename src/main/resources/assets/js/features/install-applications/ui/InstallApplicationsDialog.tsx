@@ -1,6 +1,5 @@
-import { Button, cn, Dialog, SearchField } from '@enonic/ui';
+import { cn, Dialog, SearchField } from '@enonic/ui';
 import { useStore } from '@nanostores/preact';
-import { Upload } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'preact/hooks';
 
 import { loadMarketApplications, useMarketApplications } from '../../../entities/market';
@@ -11,8 +10,10 @@ import { marketInstallIntent, runMarketInstall } from '../model/install-market-a
 import { toInstallProgress } from '../model/install-progress';
 import { $marketInstalls, receiveInstallProgress } from '../model/install.store';
 import { type MarketRow, searchMarketRows, toMarketRow } from '../model/market-rows';
+import { runJarUpload } from '../model/upload-applications';
 import { ConfirmMajorUpdate } from './ConfirmMajorUpdate';
 import { MarketApplicationList } from './MarketApplicationList';
+import { UploadJarButton } from './UploadJarButton';
 
 /** Where an application comes from: Enonic Market, or a jar the operator has in front of them. */
 export function InstallApplicationsDialog() {
@@ -23,7 +24,6 @@ export function InstallApplicationsDialog() {
   const title = useI18n('applications.dialog.install.title');
   const searchPlaceholder = useI18n('applications.dialog.install.search');
   const clearLabel = useI18n('applications.dialog.install.searchClear');
-  const uploadLabel = useI18n('applications.dialog.install.upload');
 
   const [query, setQuery] = useState('');
   const [confirming, setConfirming] = useState<MarketRow | undefined>(undefined);
@@ -109,8 +109,7 @@ export function InstallApplicationsDialog() {
                   <SearchField.Clear />
                 </SearchField>
 
-                {/* TODO: [#61] Install by upload. Disabled until then, as the row buttons are. */}
-                <Button variant="solid" size="lg" label={uploadLabel} endIcon={Upload} disabled />
+                <UploadJarButton onFiles={(files) => void runJarUpload(files)} />
               </div>
 
               <Dialog.Body>
