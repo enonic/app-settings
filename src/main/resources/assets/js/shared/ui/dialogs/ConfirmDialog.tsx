@@ -21,17 +21,18 @@ export function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   const title = useI18n('browse.confirm.title');
-  const yesLabel = useI18n('browse.dialog.yes');
-  const noLabel = useI18n('browse.dialog.no');
+  const confirmLabel = useI18n('browse.dialog.confirm');
+  const cancelLabel = useI18n('browse.dialog.cancel');
   const closeLabel = useI18n('browse.dialog.close');
 
   return (
     <ModalDialog
       open={open}
       title={title}
-      primaryLabel={yesLabel}
+      primaryLabel={confirmLabel}
       primaryDisabled={confirmDisabled}
-      cancelLabel={noLabel}
+      cancelLabel={cancelLabel}
+      cancelVariant="outline"
       closeLabel={closeLabel}
       onClose={onClose}
       onPrimary={onConfirm}

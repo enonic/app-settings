@@ -38,6 +38,8 @@ export type {
   IdProvidersState,
   IdProviderUserCountsState,
 } from './model/id-providers.store';
+export { deletePrincipals } from './model/principal-commands';
+export type { DeletablePrincipal, PrincipalSectionScope } from './model/principal-commands';
 export { derivePrincipalName, isIllegalPrincipalName } from './model/principal-name';
 export {
   idProviderOf,
