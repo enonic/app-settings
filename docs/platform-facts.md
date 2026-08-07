@@ -251,6 +251,22 @@ no roles at all. `getAllMemberships` returns groups as well, so filtering by typ
   persists it and `createUserFromNode` never reads one, so it is the builder default. The `Active`/`Inactive`
   cell the mockups draw has no source.
 
+## A `modify*` editor cannot clear a field by omitting it
+
+`ModifyRoleHandler.updateRole` reads the map the editor returned and assigns each field **only when the
+converted value is non-null**:
+
+```java
+final String description = Converters.convert( map.get( "description" ), String.class );
+if ( description != null ) { target.description = description; }
+```
+
+So `undefined` means "leave it alone", not "clear it", and an editor that drops a field silently keeps the
+old value. **The empty string is what clears one** — it converts to `""`, which is non-null. `ModifyUserHandler`
+and `ModifyGroupHandler` are written the same way, so this holds for every principal edit, and it is invisible
+to a unit test that asserts on its own editor rather than on what the platform does with the result. The read
+side maps `""` back to absent (`nonEmpty`), so nothing downstream has to know.
+
 ## `findUsers` sorts; `findPrincipals` cannot
 
 The two go through different code entirely, and the asymmetry decides how the Users section is built.

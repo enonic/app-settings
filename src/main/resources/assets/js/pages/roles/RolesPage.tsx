@@ -111,7 +111,7 @@ export function RolesPage() {
         sort={<BrowseSort options={sortOptions} value={sort} onChange={setRolesSort} />}
       />
 
-      <RoleEditorDialog />
+      <RoleEditorDialog onSaved={() => void loadRolesScreen()} />
       <RoleDeleteDialog activeKey={section.activeKey} onCloseItem={closeItem} />
     </>
   );

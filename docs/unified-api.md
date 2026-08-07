@@ -529,6 +529,30 @@ mutations after it follow:
   route's params against its own literal path, and a screen reading several domains keeps its loader on the
   page — so the policy is written once and the calls stay where they belong.
 
+#### Role mutations ([#58](https://github.com/enonic/app-settings/issues/58))
+
+`createRole` and `updateRole` sit beside the query fields in `principal/role.fields.ts`, so a domain's
+whole schema surface stays in one file.
+
+- **Members travel as the whole list, never as a delta**, and the resolver diffs it against `getMembers`
+  before calling `addMembers` / `removeMembers`. The client sends what it displays; the server works out
+  the difference it can actually verify. The cost is last-write-wins when two administrators re-staff one
+  role at once, which for a handful of operators beats asking the client to compute a diff.
+- **The list argument is non-null**, because an argument that went missing would read as "hold nobody" —
+  and the resolver defaults it anyway: `DataFetchingEnvironmentMapper` hands arguments to JS through the
+  same `MapGenerator` that drops an empty `interfaces` list on a bean's output.
+- **`su` cannot be taken out of `role:system.admin`.** The platform allows it and app-users refuses it;
+  the refusal is worth keeping, since the edit locks the last way back into the tool.
+- **`modifyRole` answers null for a role that is gone**, which is a failed write rather than an answer, so
+  the source throws — as does the api mapper when either mutation field comes back null.
+- **A cleared description travels as `""`, not as `undefined`** — see _A `modify*` editor cannot clear a
+  field by omitting it_ in `platform-facts.md`. Getting this wrong is invisible to a unit test that
+  asserts on its own editor, and #59 and #60 hit the same handler shape.
+- Client side, `role-commands.ts` returns a `ResultAsync` instead of notifying: the dialog stays open and
+  is the screen the save failed on. `.claude/rules/stores.md` records that as settled. The dialog also
+  waits for the member list before enabling `Save`, and merges a late answer with what was ticked while it
+  was in flight — both are the same hazard, that the whole list is what gets sent.
+
 The rest of this section is unchanged:
 
 - Bring `lib/auth/**` (19 files) + `KidGeneratorHandler`, package renamed to `com.enonic.xp.app.settings`.

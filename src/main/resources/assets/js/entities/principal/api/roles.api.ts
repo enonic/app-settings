@@ -1,6 +1,6 @@
-import type { ResultAsync } from 'neverthrow';
+import { err, ok, type ResultAsync } from 'neverthrow';
 
-import { requestGraphQlDocument, type AppError, type GraphQlRoot } from '../../../shared/api';
+import { AppError, requestGraphQlDocument, type GraphQlRoot } from '../../../shared/api';
 import type {
   PrincipalKey,
   PrincipalRef,
@@ -68,6 +68,34 @@ type RoleDetailDto = RoleDto & {
   members: PrincipalRefDto[];
 };
 
+/**
+ * The scalars a role is written with, plus the whole member list it is to hold.
+ *
+ * Not a delta: the client sends what the dialog displays and the server diffs it against `getMembers`,
+ * which is the only side that can check the difference it is about to apply.
+ */
+export type RoleInput = {
+  displayName: string;
+  description?: string;
+  members: readonly PrincipalKey[];
+};
+
+const CREATE_ROLE_DOCUMENT = `
+  mutation CreateRole($name: String!, $displayName: String!, $description: String, $members: [String!]!) {
+    createRole(name: $name, displayName: $displayName, description: $description, members: $members) {${ROLE_FIELDS}}
+  }
+`;
+
+const UPDATE_ROLE_DOCUMENT = `
+  mutation UpdateRole($key: String!, $displayName: String!, $description: String, $members: [String!]!) {
+    updateRole(key: $key, displayName: $displayName, description: $description, members: $members) {${ROLE_FIELDS}}
+  }
+`;
+
+type CreateRoleData = { createRole: RoleDto | null };
+
+type UpdateRoleData = { updateRole: RoleDto | null };
+
 export type RolesData = { roles: RoleDto[] | null };
 
 /** `role` is null for a key nothing answers to, which is an answer rather than a failure. */
@@ -87,9 +115,28 @@ export function fetchRoleDetail(
   );
 }
 
+export function sendRoleCreation(name: string, input: RoleInput): ResultAsync<Role, AppError> {
+  return requestGraphQlDocument<CreateRoleData>(CREATE_ROLE_DOCUMENT, {
+    name,
+    ...input,
+  }).andThen(({ createRole }) => written(createRole));
+}
+
+export function sendRoleUpdate(key: string, input: RoleInput): ResultAsync<Role, AppError> {
+  return requestGraphQlDocument<UpdateRoleData>(UPDATE_ROLE_DOCUMENT, {
+    key,
+    ...input,
+  }).andThen(({ updateRole }) => written(updateRole));
+}
+
 //
 // * Helpers
 //
+
+// ! A write that answered null is a failure, unlike a read of one item: nothing says whether it happened.
+function written(dto: RoleDto | null) {
+  return dto == null ? err(new AppError('The role was not written')) : ok(toRole(dto));
+}
 
 // An empty string is absence, not a value: the details panel falls back on a missing description
 // and would otherwise render a blank field.

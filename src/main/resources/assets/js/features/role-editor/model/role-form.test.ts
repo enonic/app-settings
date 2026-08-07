@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Role } from '../../../entities/principal';
+import type { PrincipalRef, Role } from '../../../entities/principal';
 import {
   initialRoleForm,
+  mergeRoleMembers,
   nextRoleForm,
   roleNameOf,
+  sameRoleForm,
   validateRoleForm,
   type RoleForm,
 } from './role-form';
@@ -146,5 +148,66 @@ describe('validateRoleForm', () => {
       name: 'roles.dialog.nameRequired',
       displayName: 'roles.dialog.displayNameRequired',
     });
+  });
+});
+
+describe('mergeRoleMembers', () => {
+  function member(key: string, displayName: string): PrincipalRef {
+    return { key: key as PrincipalRef['key'], type: 'user', displayName };
+  }
+
+  const su = member('user:system:su', 'Super User');
+  const jane = member('user:system:jane', 'Jane');
+
+  it('takes the loaded list when the form has been left alone', () => {
+    expect(mergeRoleMembers([su], [])).toEqual([su]);
+  });
+
+  // ! The regression this exists to prevent: `Save` sends the whole list, so a member ticked while the
+  // ! answer was in flight would otherwise be dropped — and dropping it removes it from the role.
+  it('keeps what was ticked while the list was still loading', () => {
+    expect(mergeRoleMembers([su], [jane])).toEqual([su, jane]);
+  });
+
+  it('lists a member held by both sides once', () => {
+    expect(mergeRoleMembers([su, jane], [jane])).toEqual([su, jane]);
+  });
+
+  it('answers an empty list for a role nobody holds and nobody added', () => {
+    expect(mergeRoleMembers([], [])).toEqual([]);
+  });
+});
+
+describe('sameRoleForm', () => {
+  const su = { key: 'user:system:su', type: 'user', displayName: 'Super User' } as PrincipalRef;
+  const jane = { key: 'user:system:jane', type: 'user', displayName: 'Jane' } as PrincipalRef;
+
+  it('reports an untouched form as unchanged', () => {
+    expect(sameRoleForm(form(), form())).toBe(true);
+  });
+
+  it('sees a renamed role', () => {
+    expect(sameRoleForm(form(), form({ displayName: 'Shop Manager' }))).toBe(false);
+  });
+
+  it('sees a re-described role, and a cleared description too', () => {
+    expect(sameRoleForm(form(), form({ description: 'Something else' }))).toBe(false);
+    expect(sameRoleForm(form({ description: 'Runs the shop' }), form({ description: '' }))).toBe(
+      false,
+    );
+  });
+
+  // The command trims before sending, so a change that survives trimming is the only kind there is.
+  it('ignores whitespace the save would trim away', () => {
+    expect(sameRoleForm(form(), form({ displayName: '  Store Manager  ' }))).toBe(true);
+  });
+
+  it('sees a member added and a member removed', () => {
+    expect(sameRoleForm(form({ members: [su] }), form({ members: [su, jane] }))).toBe(false);
+    expect(sameRoleForm(form({ members: [su, jane] }), form({ members: [su] }))).toBe(false);
+  });
+
+  it('ignores the order members are held in, which is not part of the role', () => {
+    expect(sameRoleForm(form({ members: [su, jane] }), form({ members: [jane, su] }))).toBe(true);
   });
 });

@@ -86,8 +86,11 @@ stays with its domain.
   `application-commands.ts` reloads the list instead as soon as there are two.
 - **It returns `Promise<void>` only when nothing can act on the outcome**, which is what a toolbar action
   is. A caller that must branch — a dialog staying open on failure, a wizard needing the created key —
-  gets a `Result` and branches on it, while the notification still happens inside the command so the
-  outcome cannot be silently dropped. The first wizard settles that shape; nothing else may.
+  gets a `ResultAsync` and branches on it. `role-commands.ts` settled that shape: a save hands the
+  failure back and does **not** notify, because the dialog is still open and is the screen the save
+  failed on, and two reports of one failure is one too many. The rule it does not escape is that the
+  failure must land somewhere the user is looking — a caller that cannot show it takes the
+  `Promise<void>` form and lets the command notify.
 - **Silence on success is not a rule, visibility is.** Start and Stop say nothing because the row's state
   cell changes under the user. A command whose effect the screen does not show — and Delete of a row on
   another page is one — notifies instead.
