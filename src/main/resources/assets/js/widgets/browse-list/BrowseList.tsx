@@ -25,6 +25,8 @@ export type BrowseListProps = {
   onSelectionChange: (keys: ReadonlySet<string>) => void;
   /** The row the user moved to, `undefined` when the active row was clicked again. */
   onActiveChange: (key: string | undefined) => void;
+  /** A row was double-clicked. Undefined where the section declared no row action. */
+  onRowActivate?: (key: string) => void;
   status: BrowseListStatus;
   emptyLabel?: string;
   /** Paging is the entity store's job; the list only reports it hit the end. */
@@ -42,6 +44,7 @@ export function BrowseList({
   selectedKeys,
   onSelectionChange,
   onActiveChange,
+  onRowActivate,
   status,
   emptyLabel,
   hasMore,
@@ -176,6 +179,7 @@ export function BrowseList({
             }
             onSelectedChange={handleSelectedChange}
             onClick={(key) => applyRowTarget(key, rowClickTarget(key, selectedKeys, activeKey))}
+            onActivate={(key) => onRowActivate?.(key)}
             onContextMenu={(key) =>
               applyRowTarget(key, contextMenuTarget(key, selectedKeys, activeKey))
             }

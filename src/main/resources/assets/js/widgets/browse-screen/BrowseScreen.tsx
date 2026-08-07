@@ -12,13 +12,18 @@ import { BrowseList } from '../browse-list/BrowseList';
 import { BrowseListContextMenu } from '../browse-list/BrowseListContextMenu';
 import { BrowseListHeader } from '../browse-list/BrowseListHeader';
 import { BrowseSearch } from '../browse-search/BrowseSearch';
-import type { ActionContext, SectionAction } from '../browse-toolbar/actions';
+import {
+  rowActivationAction,
+  type ActionContext,
+  type SectionAction,
+} from '../browse-toolbar/actions';
 import { BrowseToolbar } from '../browse-toolbar/BrowseToolbar';
 
 export type BrowseScreenProps<T> = {
   actions: readonly SectionAction<T>[];
   context: ActionContext<T>;
   rows: readonly BrowseRow[];
+  itemAt: (key: string) => T | undefined;
   status: BrowseListStatus;
   activeKey?: string;
   selectedKeys: ReadonlySet<string>;
@@ -49,6 +54,7 @@ export function BrowseScreen<T>({
   actions,
   context,
   rows,
+  itemAt,
   status,
   activeKey,
   selectedKeys,
@@ -68,6 +74,27 @@ export function BrowseScreen<T>({
 }: BrowseScreenProps<T>) {
   const noMatchesLabel = useI18n('browse.list.noMatches');
   const labelledActions = useLabelled(actions);
+
+  /**
+   * A double click acts on the row it hit, so the context is built from that row rather than read off
+   * the screen — the clicks under it have just cleared the ticks and toggled the active row. The
+   * action's own `enabled` still decides, and the row stays on show, since it is the one being worked on.
+   */
+  const handleRowActivate = (key: string): void => {
+    const active = itemAt(key);
+    if (active === undefined) {
+      return;
+    }
+
+    const ctx = { selected: [], active };
+    const action = rowActivationAction(actions, ctx);
+    if (action === undefined) {
+      return;
+    }
+
+    onActiveChange(key);
+    void action.run(ctx);
+  };
 
   const handleSelectAllChange = (checked: boolean): void => {
     onSelectionChange(checked ? new Set(selectableKeys(rows)) : new Set());
@@ -95,6 +122,7 @@ export function BrowseScreen<T>({
               selectedKeys={selectedKeys}
               onSelectionChange={onSelectionChange}
               onActiveChange={onActiveChange}
+              onRowActivate={handleRowActivate}
               status={status}
               emptyLabel={query.trim() ? noMatchesLabel : emptyLabel}
               hasMore={hasMore}

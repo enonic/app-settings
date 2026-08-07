@@ -65,7 +65,8 @@ src/main/resources/
     schema/
       generator.ts                   the one schemaGenerator (module singleton)
       index.ts                       createSchema — the only place roots are assembled
-      query.ts                       root fields, one entry per domain
+      query.ts                       read root fields, one entry per domain
+      mutation.ts                    write root fields, composed the same way
     application/
       application.types.ts           GraphQL object types
       application.fields.ts          the root fields this domain contributes
@@ -80,8 +81,10 @@ src/main/resources/
   types/graphql.d.ts
 ```
 
-No `mutation.ts` yet: GraphQL forbids an object type with no fields, so the Mutation root arrives with
-the first lifecycle mutation rather than shipping empty.
+The Mutation root waited for its first field, because GraphQL forbids an object type with no fields; it
+arrived with `deletePrincipals` ([#57](https://github.com/enonic/app-settings/issues/57)). A domain
+contributes `<domain>MutationFields` from the same `*.fields.ts` as its query fields, so a domain's whole
+schema surface stays in one file.
 
 **`*.source.ts` is the only file that knows where data comes from.** An XP lib call today, a Java bean
 call tomorrow, a lib call again when XP grows one — swapping never touches `*.types.ts` or
@@ -497,6 +500,58 @@ Type names are global to a schema and lib-graphql only rejects a duplicate when 
 assembled, i.e. at module load, so one clash 500s every query rather than the new one. The `idProviders`
 root field forced `applicationInfo`'s own `IdProvider` to become `ApplicationIdProvider`, and the
 `lib-graphql` double in `src/test/mocks/` now throws on a repeat name so any schema test is the check.
+
+#### Writes ([#57](https://github.com/enonic/app-settings/issues/57))
+
+`deletePrincipals(keys)` is the Mutation root's first field and the one three sections share — a user, a
+group and a role are all deleted by handing `deletePrincipal` a principal key. It is also the shape the
+mutations after it follow:
+
+- **A batch answers per key, not as one verdict.** `PrincipalDeletion` is `{ key, deleted, reason }`, and a
+  refused key is data rather than a field error. It has to be: lib-graphql drops the error `path`, so a
+  batch reporting refusals as errors could say only that something went wrong, never which key it was.
+  `reason` is what the client renders — an unexplained refusal is the one outcome an administrator cannot
+  act on.
+- **`deletePrincipal` distinguishes its failures by how it fails.** `DeletePrincipalHandler` swallows
+  `PrincipalNotFoundException` into `false`, so `false` means nothing answers to the key; a key
+  `PrincipalKey.from` will not parse throws, and so do `su`, `anonymous` and `role:system.admin`, which it
+  refuses outright. The source catches per key, so one bad key does not cost the others their outcome.
+- **No server-side guard on system principals**, deliberately: the UI's `isReservedRole` / `isSystemUser`
+  refusals stay as they are, and making the platform's refusal an enforced rule of ours is #42 D1.
+- **Client side**: `api/principal-deletion.api.ts` sends the whole document with variables on
+  `requestGraphQlDocument` — a root and a selection cannot express a mutation — and one request carries
+  every key, since requests into this app are serialized. `model/principal-commands.ts` owns the policy:
+  `notifyError` per refused key, untick what is gone, close the details route if it was showing one of
+  them, and reload the list. It reloads even when every key was refused, because `deleted: false` also
+  covers a row someone else already deleted.
+- **The section lends the command what is not a domain's**: its loader, its `closeItem`, its active key and
+  its selection store. The same split `useBrowseSection` already makes for navigation — the router types a
+  route's params against its own literal path, and a screen reading several domains keeps its loader on the
+  page — so the policy is written once and the calls stay where they belong.
+
+#### Role mutations ([#58](https://github.com/enonic/app-settings/issues/58))
+
+`createRole` and `updateRole` sit beside the query fields in `principal/role.fields.ts`, so a domain's
+whole schema surface stays in one file.
+
+- **Members travel as the whole list, never as a delta**, and the resolver diffs it against `getMembers`
+  before calling `addMembers` / `removeMembers`. The client sends what it displays; the server works out
+  the difference it can actually verify. The cost is last-write-wins when two administrators re-staff one
+  role at once, which for a handful of operators beats asking the client to compute a diff.
+- **The list argument is non-null**, because an argument that went missing would read as "hold nobody" —
+  and the resolver defaults it anyway: `DataFetchingEnvironmentMapper` hands arguments to JS through the
+  same `MapGenerator` that drops an empty `interfaces` list on a bean's output.
+- **`su` cannot be taken out of `role:system.admin`.** The platform allows it and app-users refuses it;
+  the refusal is worth keeping, since the edit locks the last way back into the tool.
+- **`modifyRole` answers null for a role that is gone**, which is a failed write rather than an answer, so
+  the source throws — as does the api mapper when either mutation field comes back null.
+- **A cleared description travels as `""`, not as `undefined`** — see _A `modify*` editor cannot clear a
+  field by omitting it_ in `platform-facts.md`. Getting this wrong is invisible to a unit test that
+  asserts on its own editor, and #59 and #60 hit the same handler shape.
+- Client side, `role-commands.ts` returns a `ResultAsync` instead of notifying: the dialog stays open and
+  is the screen the save failed on. `.claude/rules/stores.md` records that as settled. The dialog also
+  waits for the member list before enabling `Save`, and merges a late answer with what was ticked while it
+  was in flight — both are the same hazard, that the whole list is what gets sent.
 
 The rest of this section is unchanged:
 

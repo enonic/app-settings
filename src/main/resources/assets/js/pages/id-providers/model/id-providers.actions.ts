@@ -36,6 +36,7 @@ export const ID_PROVIDER_ACTIONS: readonly SectionAction<IdProvider>[] = [
     id: 'edit',
     labelKey: 'idProviders.action.edit',
     enabled: (ctx) => actionTargets(ctx).length === 1,
+    activatedByRow: true,
     run: (ctx) => {
       const [target] = actionTargets(ctx);
       if (target !== undefined) {

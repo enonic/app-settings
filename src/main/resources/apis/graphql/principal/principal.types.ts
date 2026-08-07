@@ -1,4 +1,11 @@
-import { GraphQLInt, GraphQLString, list, nonNull, type GraphQLType } from '/lib/graphql';
+import {
+  GraphQLBoolean,
+  GraphQLInt,
+  GraphQLString,
+  list,
+  nonNull,
+  type GraphQLType,
+} from '/lib/graphql';
 
 import { generator } from '../schema/generator';
 import { countPrincipals, listPrincipals, type PrincipalSetSource } from './id-provider.source';
@@ -26,6 +33,24 @@ export const PrincipalType: GraphQLType = generator.createObjectType({
     displayName: {
       type: nonNull(GraphQLString),
       description: 'Falls back to the name read off the key when the principal declares none.',
+    },
+  },
+});
+
+export const PrincipalDeletionType: GraphQLType = generator.createObjectType({
+  name: 'PrincipalDeletion',
+  description: 'What became of one key a delete was asked for.',
+  fields: {
+    key: {
+      type: nonNull(GraphQLString),
+      description: 'The key that was asked for, so an outcome can be matched back to its target.',
+    },
+    deleted: {
+      type: nonNull(GraphQLBoolean),
+    },
+    reason: {
+      type: GraphQLString,
+      description: 'Why the principal is still there. Null when it is gone.',
     },
   },
 });

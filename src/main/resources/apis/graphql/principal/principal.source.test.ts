@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { deletePrincipal } from '/lib/xp/auth';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { displayNameOf, localNameOf, toPrincipalItem } from './principal.source';
+import { deletePrincipals, displayNameOf, localNameOf, toPrincipalItem } from './principal.source';
+
+afterEach(() => {
+  vi.resetAllMocks();
+});
 
 describe('localNameOf', () => {
   it('drops the type prefix of a role key', () => {
@@ -45,5 +50,75 @@ describe('toPrincipalItem', () => {
 
   it('falls back to the name from the key', () => {
     expect(toPrincipalItem({ key: 'group:system:ops', type: 'group' }).displayName).toBe('ops');
+  });
+});
+
+describe('deletePrincipals', () => {
+  it('answers one outcome per key, in the order asked for', () => {
+    vi.mocked(deletePrincipal).mockReturnValue(true);
+
+    expect(deletePrincipals(['role:a', 'group:system:ops'])).toEqual([
+      { key: 'role:a', deleted: true },
+      { key: 'group:system:ops', deleted: true },
+    ]);
+  });
+
+  it('deletes each key on its own', () => {
+    vi.mocked(deletePrincipal).mockReturnValue(true);
+
+    deletePrincipals(['role:a', 'role:b']);
+
+    expect(vi.mocked(deletePrincipal).mock.calls).toEqual([['role:a'], ['role:b']]);
+  });
+
+  it('reads false as nothing answering to the key', () => {
+    vi.mocked(deletePrincipal).mockReturnValue(false);
+
+    expect(deletePrincipals(['role:gone'])).toEqual([
+      { key: 'role:gone', deleted: false, reason: 'No principal answers to [role:gone]' },
+    ]);
+  });
+
+  it('reports the platform message when a key is refused', () => {
+    vi.mocked(deletePrincipal).mockImplementation(() => {
+      throw new Error('Not allowed to delete principal [user:system:su]');
+    });
+
+    expect(deletePrincipals(['user:system:su'])).toEqual([
+      {
+        key: 'user:system:su',
+        deleted: false,
+        reason: 'Not allowed to delete principal [user:system:su]',
+      },
+    ]);
+  });
+
+  it('still names a refusal that carried no message', () => {
+    vi.mocked(deletePrincipal).mockImplementation(() => {
+      throw new Error('');
+    });
+
+    expect(deletePrincipals(['role:a'])[0]?.reason).toBe(
+      'The platform refused the delete without saying why',
+    );
+  });
+
+  it('keeps going after a key that throws', () => {
+    vi.mocked(deletePrincipal).mockImplementation((key) => {
+      if (key === 'role:not valid') {
+        throw new Error('Invalid role key');
+      }
+      return true;
+    });
+
+    expect(deletePrincipals(['role:not valid', 'role:b']).map(({ deleted }) => deleted)).toEqual([
+      false,
+      true,
+    ]);
+  });
+
+  it('asks the platform nothing for an empty list', () => {
+    expect(deletePrincipals([])).toEqual([]);
+    expect(vi.mocked(deletePrincipal)).not.toHaveBeenCalled();
   });
 });

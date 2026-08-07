@@ -1,15 +1,28 @@
 import {
+  addMembers,
+  createRole as createRolePrincipal,
   findPrincipals,
   getMembers,
   getPrincipal,
+  modifyRole,
+  removeMembers,
+  type GroupKey,
   type Principal,
   type Role,
   type RoleKey,
+  type UserKey,
 } from '/lib/xp/auth';
 
 import { byName, displayNameOf, toPrincipalItem, type PrincipalItem } from './principal.source';
 
 export type RoleSource = Role;
+
+/** A role as the dialog holds it: scalars plus the whole member list, never a delta. */
+export type RoleInput = {
+  displayName: string;
+  description?: string;
+  members: readonly string[];
+};
 
 export function listRoles(): Role[] {
   // ? count: -1 is NodeSearchService.GET_ALL_SIZE_FLAG, honoured in SearchExecutor:50 — not
@@ -57,9 +70,70 @@ export function listRoleMembers(key: RoleKey): PrincipalItem[] {
     .sort((a, b) => byName(a.displayName, b.displayName));
 }
 
+export function createRole(name: string, input: RoleInput): Role {
+  const role = createRolePrincipal({
+    name,
+    displayName: input.displayName,
+    description: input.description,
+  });
+
+  syncMembers(role.key, input.members);
+
+  return role;
+}
+
+export function updateRole(key: string, input: RoleInput): Role {
+  const role = modifyRole({
+    key: key as RoleKey,
+    // ! The empty string is what clears a description, and `undefined` would not: `ModifyRoleHandler`
+    // ! assigns a field only when the editor returned a non-null value, so an omitted one reads as
+    // ! "leave it alone" and a cleared description would silently survive the save.
+    editor: (current) => ({
+      ...current,
+      displayName: input.displayName,
+      description: input.description ?? '',
+    }),
+  });
+
+  if (role == null) {
+    throw new Error(`No role answers to [${key}]`);
+  }
+
+  syncMembers(role.key, input.members);
+
+  return role;
+}
+
 // *
 // * Helpers
 // *
+
+const ADMIN_ROLE = 'role:system.admin';
+const SUPER_USER = 'user:system:su';
+
+/**
+ * ! The client sends what it displays, so the difference is worked out here against what the platform
+ * ! actually holds. A caller sending an empty list means the role is to hold nobody — which is why the
+ * ! schema takes the list non-null: an argument that went missing would read as exactly that.
+ */
+function syncMembers(key: RoleKey, members: readonly string[]): void {
+  const current = getMembers(key).map((member) => member.key);
+  const added = members.filter((member) => !current.includes(member as UserKey | GroupKey));
+  const removed = current.filter((member) => !members.includes(member));
+
+  // ! Losing `su` from Administrators locks the last way back into the tool. app-users refuses the same
+  // ! edit, and the platform does not.
+  if (key === ADMIN_ROLE && removed.includes(SUPER_USER)) {
+    throw new Error(`Cannot remove [${SUPER_USER}] from [${ADMIN_ROLE}]`);
+  }
+
+  if (added.length > 0) {
+    addMembers(key, added as (UserKey | GroupKey)[]);
+  }
+  if (removed.length > 0) {
+    removeMembers(key, removed);
+  }
+}
 
 function isRole(principal: Principal): principal is Role {
   return principal.type === 'role';

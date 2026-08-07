@@ -74,9 +74,11 @@ export function RolesPage() {
     [items, searched, projects, selectedBuckets],
   );
 
+  const closeItem = () => void navigate({ to: '/roles', replace: true });
+
   const section = useBrowseSection({
     openItem: (key) => void navigate({ to: '/roles/$id', params: { id: key }, replace: true }),
-    closeItem: () => void navigate({ to: '/roles', replace: true }),
+    closeItem,
     items,
     status,
     selection: rolesSelection,
@@ -109,8 +111,8 @@ export function RolesPage() {
         sort={<BrowseSort options={sortOptions} value={sort} onChange={setRolesSort} />}
       />
 
-      <RoleEditorDialog />
-      <RoleDeleteDialog />
+      <RoleEditorDialog onSaved={() => void loadRolesScreen()} />
+      <RoleDeleteDialog activeKey={section.activeKey} onCloseItem={closeItem} />
     </>
   );
 }
