@@ -62,9 +62,11 @@ export function GroupsPage() {
     [items, searched, selectedProviders, providerName],
   );
 
+  const closeItem = () => void navigate({ to: '/groups', replace: true });
+
   const section = useBrowseSection({
     openItem: (key) => void navigate({ to: '/groups/$id', params: { id: key }, replace: true }),
-    closeItem: () => void navigate({ to: '/groups', replace: true }),
+    closeItem,
     items,
     status,
     selection: groupsSelection,
@@ -95,7 +97,7 @@ export function GroupsPage() {
       />
 
       <GroupEditorDialog />
-      <GroupDeleteDialog />
+      <GroupDeleteDialog activeKey={section.activeKey} onCloseItem={closeItem} />
     </>
   );
 }

@@ -1,10 +1,18 @@
 import { useStore } from '@nanostores/preact';
 
+import { deletePrincipals } from '../../entities/principal';
 import { PrincipalLabel } from '../../entities/principal/ui/PrincipalLabel';
 import { DeleteConfirmDialog } from '../../shared/ui/dialogs/DeleteConfirmDialog';
 import { groupsDeletion } from './model/deletion.store';
+import { loadGroupsScreen } from './model/groups.screen';
+import { groupsSelection } from './model/selection.store';
 
-export function GroupDeleteDialog() {
+export type GroupDeleteDialogProps = {
+  activeKey?: string;
+  onCloseItem: () => void;
+};
+
+export function GroupDeleteDialog({ activeKey, onCloseItem }: GroupDeleteDialogProps) {
   const targets = useStore(groupsDeletion.$payload);
 
   return (
@@ -14,9 +22,18 @@ export function GroupDeleteDialog() {
         key: group.key,
         label: <PrincipalLabel principal={group} />,
       }))}
-      // TODO: [#57] Enabled once `deletePrincipals` and its command exist.
-      confirmDisabled
       onClose={groupsDeletion.close}
+      onConfirm={() => {
+        const confirmed = targets ?? [];
+        groupsDeletion.close();
+
+        void deletePrincipals(confirmed, {
+          resync: () => void loadGroupsScreen(),
+          closeItem: onCloseItem,
+          activeKey,
+          selection: groupsSelection,
+        });
+      }}
     />
   );
 }

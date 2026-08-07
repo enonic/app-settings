@@ -59,9 +59,11 @@ export function UsersPage() {
     [providerCounts, idProviders],
   );
 
+  const closeItem = () => void navigate({ to: '/users', replace: true });
+
   const section = useBrowseSection({
     openItem: (key) => void navigate({ to: '/users/$id', params: { id: key }, replace: true }),
-    closeItem: () => void navigate({ to: '/users', replace: true }),
+    closeItem,
     items,
     status,
     selection: usersSelection,
@@ -108,7 +110,7 @@ export function UsersPage() {
       />
 
       <UserEditorDialog />
-      <UserDeleteDialog />
+      <UserDeleteDialog activeKey={section.activeKey} onCloseItem={closeItem} />
     </>
   );
 }
