@@ -1,0 +1,89 @@
+import { Button, Skeleton } from '@enonic/ui';
+
+import type { MarketApplicationsState } from '../../../entities/market';
+import { useI18n } from '../../../shared/i18n';
+import type { MarketInstall } from '../model/install.store';
+import type { MarketRow } from '../model/market-rows';
+import { MarketApplicationRow } from './MarketApplicationRow';
+
+export type MarketApplicationListProps = {
+  status: MarketApplicationsState['status'];
+  rows: readonly MarketRow[];
+  searching: boolean;
+  /**
+   * The installs in flight, by market key. Read once here rather than per row: a progress event would
+   * otherwise re-render every row on the list.
+   */
+  installs: Readonly<Record<string, MarketInstall>>;
+  onInstall: (row: MarketRow) => void;
+  onRetry: () => void;
+};
+
+const SKELETON_ROWS = 8;
+
+/** What Enonic Market offers, or why there is nothing to offer. */
+export function MarketApplicationList({
+  status,
+  rows,
+  searching,
+  installs,
+  onInstall,
+  onRetry,
+}: MarketApplicationListProps) {
+  const errorLabel = useI18n('applications.dialog.install.error');
+  const emptyLabel = useI18n('applications.dialog.install.empty');
+  const noMatchesLabel = useI18n('applications.dialog.install.noMatches');
+  const retryLabel = useI18n('applications.dialog.install.retry');
+
+  if (status === 'loading') {
+    return (
+      <div className="flex flex-col gap-1.5" aria-busy="true">
+        {Array.from({ length: SKELETON_ROWS }, (_, index) => (
+          <Skeleton.Group key={index} className="flex items-center gap-2.5 px-2.5 py-2">
+            <Skeleton shape="rectangle" className="size-6 shrink-0" />
+            <div className="flex flex-col gap-1">
+              <Skeleton shape="rectangle" className="h-5 w-36" />
+              <Skeleton shape="rectangle" className="h-4 w-24" />
+            </div>
+          </Skeleton.Group>
+        ))}
+      </div>
+    );
+  }
+  if (status === 'error') {
+    return (
+      <div className="flex flex-col items-center gap-4 py-10">
+        <p role="alert" className="text-error text-sm">
+          {errorLabel}
+        </p>
+        <Button variant="outline" label={retryLabel} onClick={onRetry} />
+      </div>
+    );
+  }
+
+  if (rows.length === 0 && searching) {
+    return <p className="text-subtle px-2.5 py-10 text-center text-sm">{noMatchesLabel}</p>;
+  }
+
+  if (rows.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-10">
+        <p className="text-subtle text-sm">{emptyLabel}</p>
+        <Button variant="outline" label={retryLabel} onClick={onRetry} />
+      </div>
+    );
+  }
+
+  return (
+    <div role="list" className="flex flex-col">
+      {rows.map((row) => (
+        <MarketApplicationRow
+          key={row.key}
+          row={row}
+          install={installs[row.key]}
+          onInstall={onInstall}
+        />
+      ))}
+    </div>
+  );
+}

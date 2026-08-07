@@ -9,6 +9,7 @@ import {
   loadApplications,
 } from '../../entities/application';
 import { loadMarketApplications, useMarketApplications } from '../../entities/market';
+import { InstallApplicationsDialog } from '../../features/install-applications/ui/InstallApplicationsDialog';
 import { UninstallApplicationsDialog } from '../../features/uninstall-applications/ui/UninstallApplicationsDialog';
 import { i18n, useI18n } from '../../shared/i18n';
 import { sortByDisplayName, type SortDirection } from '../../widgets/browse-list/browse-sort';
@@ -119,6 +120,7 @@ export function ApplicationsPage() {
         sort={<BrowseSort options={sortOptions} value={sort} onChange={setApplicationsSort} />}
       />
 
+      <InstallApplicationsDialog />
       <UninstallApplicationsDialog />
     </>
   );

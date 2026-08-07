@@ -15,11 +15,14 @@ export type {
   IdProviderInstance,
   IdProviderMode,
 } from './model/application.types';
+export type { InstalledApplication } from './api/applications.api';
 export {
+  installApplication,
   startApplications,
   stopApplications,
   uninstallApplications,
 } from './model/application-commands';
+export type { InstallApplicationParams } from './model/application-commands';
 export type { ApplicationInfoEntry } from './model/application-info.store';
 export {
   start as startApplicationsService,

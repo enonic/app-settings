@@ -1,11 +1,13 @@
-import type { ResultAsync } from 'neverthrow';
+import { errAsync, type ResultAsync } from 'neverthrow';
 
 import {
-  type AppError,
+  AppError,
   type GraphQlRoot,
   requestGraphQl,
   requestGraphQlDocument,
+  requestJson,
 } from '../../../shared/api';
+import { $config } from '../../../shared/config';
 import type { Application, ApplicationState } from '../model/application.types';
 
 // The last five are the details panel's, not a row's: they are scalars off the application and
@@ -60,6 +62,29 @@ type ApplicationsResult = { applications: ApplicationRowDto[] };
 
 type ApplicationResult = { application: ApplicationRowDto | null };
 
+// The wire shape of XP core's `server:app/installUrl` answer (ApplicationInfoJson): the application
+// as it now stands installed. Its key is core's, which need not be the key the market listed it as.
+type InstalledApplicationDto = {
+  key: string;
+  version: string;
+};
+
+export type InstallFromUrlParams = {
+  /** A download url out of the market catalogue. */
+  url: string;
+  /**
+   * The checksum the market published for that download. Core requires one unless the installation
+   * turned `installUrl.checksumRequired` off, and the market has none for a release from before XP 8
+   * — so this is optional here and core, which knows its own configuration, is what refuses.
+   */
+  sha512?: string;
+};
+
+export type InstalledApplication = {
+  key: string;
+  version: string;
+};
+
 export function fetchApplications(signal?: AbortSignal): ResultAsync<Application[], AppError> {
   return requestGraphQl<ApplicationsResult>(APPLICATIONS_ROOT, { signal }).map(({ applications }) =>
     applications.map(toApplication),
@@ -73,6 +98,23 @@ export function fetchApplication(
   return requestGraphQlDocument<ApplicationResult>(APPLICATION_DOCUMENT, { key }, signal).map(
     ({ application }) => (application == null ? undefined : toApplication(application)),
   );
+}
+
+/** Installs an application from a url through XP's `server:app` api. */
+export function postInstallApplicationFromUrl({
+  url,
+  sha512,
+}: InstallFromUrlParams): ResultAsync<InstalledApplication, AppError> {
+  const endpoint = $config.get()?.apis.serverApp.installUrl;
+
+  if (endpoint == null) {
+    return errAsync(new AppError('Tool config read before the app finished starting'));
+  }
+
+  return requestJson<InstalledApplicationDto>(endpoint, {
+    method: 'POST',
+    body: { URL: url, ...(sha512 != null && { sha512 }) },
+  }).map(({ key, version }) => ({ key, version }));
 }
 
 // *

@@ -23,12 +23,9 @@ export function reconnectDelay(attempt: number): number {
 }
 
 export const SYSTEM_REPO = 'system-repo';
-
 export const IDENTITY_PATH = '/identity';
-
 export const APPLICATION_EVENT = 'application';
-
-const PROGRESS_EVENT_TYPE = 'PROGRESS';
+export const PROGRESS_EVENT_TYPE = 'PROGRESS';
 
 const NODE_EVENT_PREFIX = 'node.';
 
@@ -95,7 +92,7 @@ export function isPrincipalNode(node: ServerEventNode): boolean {
 
 export function isRelevantServerEvent(event: ServerEvent): boolean {
   if (event.type === APPLICATION_EVENT) {
-    return event.data?.eventType !== PROGRESS_EVENT_TYPE;
+    return true;
   }
   if (!event.type.startsWith(NODE_EVENT_PREFIX)) {
     return false;

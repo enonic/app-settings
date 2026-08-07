@@ -20,6 +20,7 @@ const config: ToolConfig = {
       start: '/_/server:app/start',
       stop: '/_/server:app/stop',
       uninstall: '/_/server:app/uninstall',
+      installUrl: '/_/server:app/installUrl',
     },
   },
 };
