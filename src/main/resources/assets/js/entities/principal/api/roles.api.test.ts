@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { $config, setConfig, type ToolConfig } from '../../../shared/config';
-import { fetchRoleDetail, ROLES_ROOT, toRoles } from './roles.api';
+import type { PrincipalKey } from '../model/principal.types';
+import {
+  fetchRoleDetail,
+  ROLES_ROOT,
+  sendRoleCreation,
+  sendRoleUpdate,
+  toRoles,
+} from './roles.api';
 
 const config = {
   appId: 'com.enonic.xp.app.settings',
@@ -146,5 +153,114 @@ describe('fetchRoleDetail', () => {
     const result = await fetchRoleDetail('role:system.admin');
 
     expect(result.isErr()).toBe(true);
+  });
+});
+
+describe('sendRoleCreation', () => {
+  beforeEach(() => {
+    setConfig(config);
+    sent = undefined;
+  });
+
+  afterEach(() => {
+    $config.set(undefined);
+    vi.restoreAllMocks();
+  });
+
+  it('sends every value as a variable, never through the query text', async () => {
+    respondWith({ data: { createRole: wireRole({ key: 'role:editors' }) } });
+
+    await sendRoleCreation('editors', {
+      displayName: 'Editors',
+      description: 'Edits things',
+      members: ['user:system:su' as PrincipalKey],
+    });
+
+    expect(sent?.variables).toEqual({
+      name: 'editors',
+      displayName: 'Editors',
+      description: 'Edits things',
+      members: ['user:system:su'],
+    });
+    expect(sent?.query).not.toContain('Editors');
+  });
+
+  it('maps the role the server wrote', async () => {
+    respondWith({ data: { createRole: wireRole({ key: 'role:editors' }) } });
+
+    const role = (
+      await sendRoleCreation('editors', { displayName: 'Editors', members: [] })
+    )._unsafeUnwrap();
+
+    expect(role).toEqual({
+      type: 'role',
+      key: 'role:editors',
+      displayName: 'Administrator',
+      description: 'Full access',
+      modifiedTime: '2026-08-01T10:00:00Z',
+    });
+  });
+
+  // ! Unlike a read, a null here says nothing about whether the role exists now.
+  it('fails when the field came back null', async () => {
+    respondWith({ data: { createRole: null } });
+
+    expect(
+      (await sendRoleCreation('editors', { displayName: 'Editors', members: [] })).isErr(),
+    ).toBe(true);
+  });
+
+  it('fails with the message the server gave', async () => {
+    respondWith({ errors: [{ message: 'Role [role:editors] already exists' }] });
+
+    const result = await sendRoleCreation('editors', { displayName: 'Editors', members: [] });
+
+    expect(result._unsafeUnwrapErr().message).toBe('Role [role:editors] already exists');
+  });
+});
+
+describe('sendRoleUpdate', () => {
+  beforeEach(() => {
+    setConfig(config);
+    sent = undefined;
+  });
+
+  afterEach(() => {
+    $config.set(undefined);
+    vi.restoreAllMocks();
+  });
+
+  it('sends the key and the whole member list the role is to hold', async () => {
+    respondWith({ data: { updateRole: wireRole() } });
+
+    await sendRoleUpdate('role:system.admin', {
+      displayName: 'Administrator',
+      members: ['user:system:su' as PrincipalKey, 'group:system:ops' as PrincipalKey],
+    });
+
+    expect(sent?.variables).toEqual({
+      key: 'role:system.admin',
+      displayName: 'Administrator',
+      description: undefined,
+      members: ['user:system:su', 'group:system:ops'],
+    });
+  });
+
+  it('carries an emptied member list rather than dropping it', async () => {
+    respondWith({ data: { updateRole: wireRole() } });
+
+    await sendRoleUpdate('role:system.admin', { displayName: 'Administrator', members: [] });
+
+    expect(sent?.variables).toMatchObject({ members: [] });
+  });
+
+  it('fails when the field came back null', async () => {
+    respondWith({ data: { updateRole: null } });
+
+    expect(
+      (
+        await sendRoleUpdate('role:system.admin', { displayName: 'Administrator', members: [] })
+      ).isErr(),
+    ).toBe(true);
   });
 });

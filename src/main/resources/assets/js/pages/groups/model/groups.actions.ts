@@ -17,6 +17,7 @@ export const GROUP_ACTIONS: readonly SectionAction<Group>[] = [
     id: 'edit',
     labelKey: 'groups.action.edit',
     enabled: (ctx) => actionTargets(ctx).length === 1,
+    activatedByRow: true,
     run: (ctx) => {
       const [target] = actionTargets(ctx);
       if (target !== undefined) {

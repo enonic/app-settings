@@ -43,6 +43,20 @@ export function roleNameOf(role: Role): string {
   return role.key.slice('role:'.length);
 }
 
+/**
+ * ! The member list arrives after the dialog opens, and the picker is live in the meantime. Assigning the
+ * ! answer over the form would drop whatever was ticked while it was in flight — and since `Save` sends
+ * ! the whole list, dropping it means removing those members from the role.
+ */
+export function mergeRoleMembers(
+  loaded: readonly PrincipalRef[],
+  edited: readonly PrincipalRef[],
+): PrincipalRef[] {
+  const known = new Set(loaded.map(({ key }) => key));
+
+  return [...loaded, ...edited.filter(({ key }) => !known.has(key))];
+}
+
 export function nextRoleForm(
   previous: RoleForm,
   next: RoleForm,
@@ -58,6 +72,21 @@ export function nextRoleForm(
   }
 
   return { values: { ...next, name: derivePrincipalName(next.displayName) }, nameEdited: false };
+}
+
+/**
+ * Whether the form still says what was saved.
+ *
+ * Compared the way the form is sent: the scalars trimmed, since the command trims them, and the members
+ * as a set, since their order is not part of what a role holds.
+ */
+export function sameRoleForm(saved: RoleForm, edited: RoleForm): boolean {
+  return (
+    saved.name.trim() === edited.name.trim() &&
+    saved.displayName.trim() === edited.displayName.trim() &&
+    saved.description.trim() === edited.description.trim() &&
+    sameMembers(saved.members, edited.members)
+  );
 }
 
 export function validateRoleForm(form: RoleForm, mode: RoleEditorPayload['mode']): RoleFormErrors {
@@ -77,4 +106,14 @@ export function validateRoleForm(form: RoleForm, mode: RoleEditorPayload['mode']
   }
 
   return errors;
+}
+
+function sameMembers(saved: readonly PrincipalRef[], edited: readonly PrincipalRef[]): boolean {
+  if (saved.length !== edited.length) {
+    return false;
+  }
+
+  const keys = new Set(saved.map(({ key }) => key));
+
+  return edited.every(({ key }) => keys.has(key));
 }
