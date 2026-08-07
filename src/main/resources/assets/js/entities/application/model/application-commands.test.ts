@@ -10,7 +10,13 @@ import {
   postStopApplications,
   postUninstallApplications,
 } from '../api/application-lifecycle.api';
-import { startApplications, stopApplications, uninstallApplications } from './application-commands';
+import { postInstallApplicationFromUrl } from '../api/applications.api';
+import {
+  installApplication,
+  startApplications,
+  stopApplications,
+  uninstallApplications,
+} from './application-commands';
 import type { Application } from './application.types';
 import { loadApplication, loadApplications } from './applications.load';
 
@@ -18,6 +24,13 @@ vi.mock('../api/application-lifecycle.api', () => ({
   postStartApplications: vi.fn(),
   postStopApplications: vi.fn(),
   postUninstallApplications: vi.fn(),
+}));
+
+// Only the one call is stubbed: the module also carries the reads, and the loader beside it is what
+// this file asserts against.
+vi.mock('../api/applications.api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../api/applications.api')>()),
+  postInstallApplicationFromUrl: vi.fn(),
 }));
 
 vi.mock('./applications.load', () => ({
@@ -46,9 +59,14 @@ beforeEach(() => {
       'applications.notify.stopFailed': 'Could not stop {0}',
       'applications.notify.uninstalled': '{0} was uninstalled',
       'applications.notify.uninstallFailed': 'Could not uninstall {0}',
+      'applications.notify.installed': '{0} was installed',
+      'applications.notify.installFailed': 'Could not install {0}: {1}',
+      'applications.notify.updated': '{0} was updated',
+      'applications.notify.updateFailed': 'Could not update {0}: {1}',
     },
     'en',
   );
+  vi.mocked(postInstallApplicationFromUrl).mockReset();
   vi.mocked(postStartApplications).mockReset();
   vi.mocked(postStopApplications).mockReset();
   vi.mocked(postUninstallApplications).mockReset();
@@ -136,6 +154,73 @@ describe('stopApplications', () => {
     await stopApplications([booster]);
 
     expect(notificationTexts()).toEqual(['Could not stop Booster']);
+  });
+});
+
+describe('installApplication', () => {
+  const params = {
+    displayName: 'Booster',
+    url: 'https://repo.enonic.com/booster-3.0.1.jar',
+    sha512: 'abc',
+  };
+  const installed = { key: 'com.enonic.app.booster', version: '3.0.1' };
+
+  it('names what was installed and refetches the row core created', async () => {
+    vi.mocked(postInstallApplicationFromUrl).mockReturnValue(okAsync(installed));
+
+    const result = await installApplication(params);
+
+    expect(postInstallApplicationFromUrl).toHaveBeenCalledWith({
+      url: params.url,
+      sha512: params.sha512,
+    });
+    expect(notificationTexts()).toEqual(['Booster was installed']);
+    // Core's key, not the market's: they need not be the same, so the response decides.
+    expect(loadApplication).toHaveBeenCalledWith(installed.key);
+    expect(result._unsafeUnwrap()).toEqual(installed);
+  });
+
+  // Core publishes INSTALLED and STARTED before it answers, so a live socket has already refetched.
+  it('leaves the refetch to the server events while the socket is up', async () => {
+    $serverEventsConnected.set(true);
+    vi.mocked(postInstallApplicationFromUrl).mockReturnValue(okAsync(installed));
+
+    await installApplication(params);
+
+    expect(notificationTexts()).toEqual(['Booster was installed']);
+    expect(loadApplication).not.toHaveBeenCalled();
+  });
+
+  it('says updated rather than installed for an update', async () => {
+    vi.mocked(postInstallApplicationFromUrl).mockReturnValue(okAsync(installed));
+
+    await installApplication({ ...params, updating: true });
+
+    expect(notificationTexts()).toEqual(['Booster was updated']);
+  });
+
+  // The allowlist and the checksum requirement are core's, and its message is the only thing that
+  // says which of them refused — hence the reason in the phrase.
+  it('reports the reason core gave, and refetches nothing', async () => {
+    vi.mocked(postInstallApplicationFromUrl).mockReturnValue(
+      errAsync(new AppError('SHA512 checksum is required for installUrl')),
+    );
+
+    const result = await installApplication(params);
+
+    expect(notificationTexts()).toEqual([
+      'Could not install Booster: SHA512 checksum is required for installUrl',
+    ]);
+    expect(loadApplication).not.toHaveBeenCalled();
+    expect(result.isErr()).toBe(true);
+  });
+
+  it('reports a failed update as an update', async () => {
+    vi.mocked(postInstallApplicationFromUrl).mockReturnValue(errAsync(new AppError('Conflict')));
+
+    await installApplication({ ...params, updating: true });
+
+    expect(notificationTexts()).toEqual(['Could not update Booster: Conflict']);
   });
 });
 

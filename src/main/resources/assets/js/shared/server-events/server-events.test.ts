@@ -114,13 +114,13 @@ describe('isRelevantServerEvent', () => {
     expect(isRelevantServerEvent({ type: 'application' })).toBe(true);
   });
 
-  it('rejects the per-percent PROGRESS burst fired while an app downloads', () => {
+  it('accepts the per-percent PROGRESS burst fired while an app downloads', () => {
     expect(
       isRelevantServerEvent({
         type: 'application',
         data: { eventType: 'PROGRESS', applicationUrl: 'https://host/app.jar', progress: 42 },
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('accepts any node event under /identity in the system repo', () => {
@@ -200,7 +200,6 @@ describe('connectToServerEvents', () => {
     FakeWebSocket.last?.message(nodeEvent('com.enonic.cms.default'));
     FakeWebSocket.last?.message(nodeEvent('system-repo', '/repository/com.enonic.cms.foo'));
     FakeWebSocket.last?.message({ type: 'task.updated' });
-    FakeWebSocket.last?.message({ type: 'application', data: { eventType: 'PROGRESS' } });
     FakeWebSocket.last?.message('{not json');
 
     expect(listener).not.toHaveBeenCalled();
