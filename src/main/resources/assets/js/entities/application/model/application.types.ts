@@ -7,6 +7,7 @@ export type Application = {
   version?: string;
   state: ApplicationState;
   system: boolean;
+  local: boolean;
   icon?: string;
   modifiedTime?: string;
   minSystemVersion?: string;

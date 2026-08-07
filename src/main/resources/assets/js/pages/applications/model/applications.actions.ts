@@ -3,35 +3,36 @@ import {
   startApplications,
   stopApplications,
 } from '../../../entities/application';
+import { openUninstallDialog } from '../../../features/uninstall-applications';
 import {
   type ActionContext,
   actionTargets,
   type SectionAction,
 } from '../../../widgets/browse-toolbar/actions';
-import { isStartable, isStoppable } from './application-lifecycle';
+import { isStartable, isStoppable, isUninstallable } from './application-lifecycle';
 
 /**
- * ! Install and Uninstall are in the mockup toolbar and belong to #3, so they stay visible and
- * ! disabled: a button that is enabled and does nothing reads as a broken tool.
+ * ! Install is in the mockup toolbar and belongs to #3, so it stays visible and disabled: a button
+ * ! that is enabled and does nothing reads as a broken tool.
  *
- * TODO: [#3] Install by url and upload, and Uninstall — which must exclude a locally deployed
- * TODO: application as well as a platform one, and needs `local` added to the schema for that.
+ * TODO: [#3] Install by upload.
  */
 const PENDING = {
   enabled: (): boolean => false,
   run: (): void => undefined,
 };
 
-/**
- * The targets an action applies to, out of everything it was pointed at. A mixed selection is not
- * refused: Start starts the stopped ones, as app-applications does, and leaves the rest alone.
- */
 function startTargets(ctx: ActionContext<Application>): readonly Application[] {
   return actionTargets(ctx).filter(isStartable);
 }
 
 function stopTargets(ctx: ActionContext<Application>): readonly Application[] {
   return actionTargets(ctx).filter(isStoppable);
+}
+
+function uninstallable(ctx: ActionContext<Application>): boolean {
+  const targets = actionTargets(ctx);
+  return targets.length > 0 && targets.every(isUninstallable);
 }
 
 export const APPLICATION_ACTIONS: readonly SectionAction<Application>[] = [
@@ -43,7 +44,8 @@ export const APPLICATION_ACTIONS: readonly SectionAction<Application>[] = [
   {
     id: 'uninstall',
     labelKey: 'applications.action.uninstall',
-    ...PENDING,
+    enabled: uninstallable,
+    run: (ctx) => openUninstallDialog(actionTargets(ctx)),
   },
   {
     id: 'start',

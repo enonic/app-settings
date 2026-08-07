@@ -71,7 +71,10 @@ src/main/resources/
       application.fields.ts          the root fields this domain contributes
       application.source.ts          data access
       application-info.{types,source}.ts
+    market/
+      market.{types,fields,source}.ts  the one outbound call — Enonic Market over lib-http-client
     principal/                       (Phase 3)
+  lib/market.ts                      where the market is; app config, no bean
   lib/icon.ts        lib/macro.ts    __.newBean wrappers — one per Java package of the same name
   lib/task.ts        lib/api.ts
   lib/admin-tool.ts  lib/webapp.ts
@@ -101,6 +104,7 @@ Segment rules, mirroring `.claude/rules/structure.md`:
 
 ```
 src/main/java/com/enonic/app/settings/
+  lib/application/     IsLocalApplicationHandler
   lib/icon/            EncodeApplicationIconHandler
   lib/macro/           ListMacrosHandler, MacroDescriptorMapper
   lib/task/            ListTaskDescriptorsHandler, TaskDescriptorMapper
@@ -357,6 +361,10 @@ and `applicationInfo(key)` with thirteen lazy fields, on `lib-app`, `lib-schema`
 `/lib/webapp`, `/lib/idprovider`. `../app-applications`' Java has no remaining behaviour this app cannot
 produce, and `FormMapper` was never needed — no section renders a form.
 
+A ninth bean arrived later with Uninstall (#39): `/lib/application`'s `isLocalApplication` backs
+`Application.local`, which the toolbar needs because XP refuses to uninstall a deploy-directory
+application and no JS lib reports which those are — see `docs/platform-facts.md`.
+
 **Schema shape:**
 
 - **Two root fields rather than one type.** Keeping the descriptor branches on a separate type makes them
@@ -409,6 +417,41 @@ produce, and `FormMapper` was never needed — no section renders a form.
   `idprovider.yaml` takes out the whole details panel rather than one section.
 - Skipped deliberately: `mount` and `allowedPrincipals` on apis, `apiMounts` and `schemaConfig` on tools.
   app-applications serializes all of them and renders none.
+
+**The market arrived last, with #39**, and it is the only field in the schema backed by an outbound
+HTTP call. `marketApplications` on `/lib/http-client` answers what Enonic Market offers for the running
+XP, and the placement question Phase 4 held open is settled with it: the call runs here rather than in
+the browser. app-applications fetches the market from the client, which costs it a hand-rolled
+`Content-Security-Policy` on the tool controller, a second transport outside its request plumbing, and
+three version comparators that disagree. Behind the schema there is one comparator, no CSP for the data
+path, and the market url stays server-side.
+
+- **`MarketApplication` carries `installedVersion` and `updateAvailable`**, resolved against
+  `lib-app`'s `list()`. Mixing an installed-side fact into a market type is deliberate: it is the
+  question both consumers ask — the row's available-version cell and the install dialog's
+  install-versus-update state — and answering it here is what keeps the comparator single. A client
+  computing it would be a second implementation the day the cell is written.
+- **`latest` is an object, not a version string**, because the install dialog needs the `downloadUrl`
+  and `sha512` that go to `server:app/installUrl`. `versions` holds every supported release, newest
+  first; an application with no supported version is dropped, which is what keeps `latest` non-null.
+- **The whole cost is on the server, and `versions` is where that is easy to lose.** The market hands
+  over every application's full history — measured 2026-08-07: 419 entries across the 24 applications on
+  offer for XP 8, 76 of them Data Toolbox's, 44 Guillotine's — and **the minimum rule drops none of
+  them**, because an application reaching the query at all has one release declaring 8.x and every
+  earlier release declares a minimum this XP meets. So the field is the whole history minus nothing, and
+  `market.api.ts` deliberately does not select it: the browser gets `latest` alone — 24 objects and 15 kB
+  against 84 kB. No consumer needs more, the install dialog on #67 included: it installs `latest`, so
+  there is no version picker to feed. The field stays on the schema because it costs nothing there;
+  select it when something renders a version list, and then select only what it renders. The filter
+  facts, including why `first` is mandatory and why "supported" is read as a minimum, are in
+  `platform-facts.md`.
+- **Timeouts are 5 s connect and 10 s read**, against app-applications' 30 s. One JS thread, and
+  `requestGraphQl` holds one request in flight: a slow market must not become a slow Settings tool. That
+  is also why a screen asks for its own rows before the catalogue — whichever is asked for first holds
+  the other back, and only one of the two is what the user opened the section for.
+- **No cache on either side yet.** The client slice loads once per session through
+  `ensureMarketApplications()`; if that turns out to be too many outbound calls, `lib-cache` goes behind
+  `market.source.ts` and nothing above it changes.
 
 **Deliberately not in this phase**, because none of it is API-layer work: `"server:app"` in `main.yaml`
 with its five urls through `lib/config.ts`, an `application(key)` root field for `/applications/$id`
@@ -538,10 +581,11 @@ patterns are visible. None of them blocks Phase 3.
 - **Connections and cursors.** app-users hand-rolls offset-int cursors; `/lib/graphql-connection` ships
   base64 ones. For a few hundred principals, plain `start`/`count`/`total` may be enough. Decide with
   batching — the two share a shape.
-- **Market call placement.** Currently a browser `fetch` to `market.enonic.com/api/graphql`, which forces
-  a hand-rolled CSP built from `substring(0, indexOf('/', 9))` and has three divergent version
-  comparators. Moving it behind the schema collapses all of that, at the cost of an outbound HTTP call
-  from XP. This is also the last Applications data gap — "available version".
+- ~~**Market call placement.**~~ **Done in #39**, behind the schema — see the market notes under Phase 2.
+  What is left of the Applications data gap is UI, not data: the row's available-version cell and the
+  install dialog both read `marketApplications`, and neither exists yet. The market's own icons stay
+  remote urls, so the dialog will need a `Content-Security-Policy` with `img-src` on the tool
+  controller, which today sets no CSP header at all.
 - **Extraction to a shared library.** Request plumbing, formatting helpers and parts of this API surface
   are the same problem Content Studio v6 solves separately (`CLAUDE.md`). Keep anything written here
   portable in the meantime — no reaching into this app's config, stores or i18n keys beyond what props

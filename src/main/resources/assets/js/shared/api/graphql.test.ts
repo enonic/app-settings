@@ -13,7 +13,11 @@ const config = {
   apis: {
     events: 'ws:/_/admin:event',
     graphql: '/_/app:graphql',
-    serverApp: { start: '/_/server:app/start', stop: '/_/server:app/stop' },
+    serverApp: {
+      start: '/_/server:app/start',
+      stop: '/_/server:app/stop',
+      uninstall: '/_/server:app/uninstall',
+    },
   },
 } satisfies ToolConfig;
 

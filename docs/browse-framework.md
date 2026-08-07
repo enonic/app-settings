@@ -111,11 +111,11 @@ widgets/browse-list/BrowseListHeader.tsx    select all, refresh, filter and sort
 widgets/browse-list/header-controls.ts      the classes those three controls share, labels included
 widgets/browse-list/InertHeaderControl.tsx  the greyed stand-in for a control a section has not supplied
 widgets/browse-list/BrowseListContextMenu.tsx  the action list on right-click
-widgets/item-label/ItemLabel.tsx            icon + title + subtitle, shared with the details panel
 widgets/browse-search/BrowseSearch.tsx      the composed SearchField
 widgets/details-panel/DetailsPanel.tsx      Empty / Header / Section / Subsection / Field / List
 widgets/details-panel/details-panel.ts      withCount, filledSections, detailsEmptyLabelKey
 widgets/details-panel/DetailsEmpty.tsx      the column with nothing to show
+shared/ui/ItemLabel.tsx                     icon + title + subtitle, shared with the details panel
 shared/selection                            createSelectionStore<K>()
 shared/search                               createSearchStore()
 shared/detail                               createDetailLoader<T>() — the details panel's keyed load
@@ -219,6 +219,12 @@ Rules:
 - A refusal is expressed **inside `enabled`**, never re-checked in `run`, and it names the rule it
   comes from — `isReservedRole` for Delete, not a global flag (§ 3.5).
 - `run` calls a command from `entities/` or opens a `features/` dialog. No fetch in the widget.
+- **An action that needs confirming opens the dialog through a store, not through component state.**
+  The action list is a module constant, so `run` cannot reach a `useState` in the page: the feature slice
+  owns a dialog store holding what the dialog is asking about, the page mounts the component, and the
+  component renders nothing while that store is empty. `features/uninstall-applications/` is the worked
+  example, and the shell it composes comes from `shared/ui/dialogs` — the copy and what confirming does
+  stay in the feature.
 - **An action targets `actionTargets(ctx)`, not `ctx.selected`.** With rows ticked it is the ticked
   set; with none, the active row — Content Studio's "current items". So highlighting a row, or
   right-clicking one, is enough to act on it, and the toolbar and the row menu agree by construction.
@@ -322,7 +328,8 @@ Rules:
   | List header controls   | `gap-2.5` apart, each `px-4.5`, text at the 16px of size `md`; `@max-xl:px-2.5`     |
   | Select all             | `h-10 pl-2.5` so its box lines up with the rows', 18px on the label text only       |
   | Scroll container       | `gap-y-1.5`, no padding                                                             |
-  | Row                    | `gap-2.5 px-2.5 py-1`, `hover:bg-surface-neutral-hover`                             |
+  | Row                    | `min-h-12 gap-2.5 px-2.5 py-1`, `hover:bg-surface-neutral-hover`                    |
+  | Meta cell              | `text-right text-sm`, `gap-5` apart; `min-w-28`, `min-w-20` on the last             |
   | Selected row           | `bg-surface-selected text-alt hover:bg-surface-selected-hover`, `data-tone=inverse` |
 
   Search, list header and list bring no outer padding at all: the 20px around and between them comes
@@ -331,8 +338,14 @@ Rules:
   The columns must sit on `surface-neutral`, not on the app's `surface-primary`: `surface-selected` is
   `grey-800` in both themes, which disappears against the `grey-900` app background in the dark theme.
   The label block is `ItemLabel` — `size-6` icon, `leading-5.5` title, `text-sm leading-4.5
-text-subtle` subtitle — and it lives in `widgets/item-label/` because the details panel needs the same
-  block.
+text-subtle` subtitle — and it lives in `shared/ui/` because the details panel needs the same block.
+  The subtitle is optional, which is why the row carries `min-h-12`: an application with no description
+  would otherwise sit two lines' worth shorter than the row above it. Meta cells carry `min-w-28` for
+  the same reason in the other direction: sized by their own text they are not columns, and `6.0.0`
+  lands nowhere near `2.0.0.SNAPSHOT` in the row above. The last cell takes a narrower `min-w-20`: it
+  is anchored to the row's right edge, so a version's worth of width would only strand it away from
+  the column before it — but it cannot go without a floor either, since `Stopped` is wider than
+  `Started` and that difference moves every column to its left.
 
 - The whole row is the click target. The checkbox is a child of the row, so its handler calls
   `stopPropagation()` — ticking a row must not move `active` — and it stays out of the tab order, as
@@ -373,17 +386,16 @@ text-subtle` subtitle — and it lives in `widgets/item-label/` because the deta
 The two controls the mockups show beside `Select all` and `Refresh` are wired where a section has
 supplied them, and render as an inert button where it has not:
 
-| Control                 | v1 state                                                               |
-| ----------------------- | ---------------------------------------------------------------------- |
-| `Type to search` field  | working in every section that loads whole                              |
-| `Filter list` button    | working in Roles, Groups and ID Providers; `disabled` where no entries |
-| `Sort after` button     | working in Roles, Groups and ID Providers; `disabled` where no options |
-| `Select all`, `Refresh` | fully working                                                          |
+| Control                 | v1 state                                            |
+| ----------------------- | --------------------------------------------------- |
+| `Type to search` field  | working in every section that loads whole           |
+| `Filter list` button    | working in all five sections; `disabled` where none |
+| `Sort after` button     | working in all five sections; `disabled` where none |
+| `Select all`, `Refresh` | fully working                                       |
 
 A section supplies both through the slots in `BrowseListHeaderProps`, and the widgets behind them —
 `BrowseFilter` and `BrowseSort` — stay section-agnostic: an entry is `{ id, label, count }` and an
-option is `{ id, label }`. Supply nothing and the header renders its inert button — Applications has no
-browse screen at all yet, `ApplicationsPage` being a bare `SectionPage`.
+option is `{ id, label }`. Supply nothing and the header renders its inert button.
 
 **A narrow header drops the labels and keeps the icons.** Below `36rem` of header width — a comfortable
 width for the current labels, with room to spare — `Refresh`, `Filter` and `Sort` are icons alone,
@@ -435,8 +447,19 @@ projects load reclassified every project role at once, so a ticked project bucke
 vanishing from the menu. The loaded list contributes labels and the buckets that own no row yet; when it
 is missing, the id stands in as the label.
 
-Sorting offers display name ascending and descending and nothing else, since none of the three carries
-another orderable field. `modifiedTime` would be the candidate for Roles and Groups and never arrives:
+**Applications is the one section whose unticked filter narrows, and it is deliberate.** It offers a
+single entry, `System applications`, and it is an include toggle rather than a bucket: unticked — the
+default — hides the applications XP itself ships, ticked shows the whole list. Those rows are noise for
+an admin managing their own applications, which is why app-applications hid them behind the same toggle,
+off by default; the empty selection every section starts and returns to is what expresses "hidden" here,
+so nothing about the store or `resetOnLeave` is special-cased. The one rule that inverts with it is the
+dropping of empty entries: the entry is offered whatever its count and never passes through
+`visibleEntries`, because an absent entry would go on hiding rows with no control left on screen to
+reveal them — the same failure the rule above prevents, arriving from the other direction — and a
+checkbox appearing and vanishing as the user types is worse than one reading zero.
+
+Sorting offers display name ascending and descending and nothing else. `modifiedTime` would be the
+candidate for Roles and Groups and never arrives:
 `PrincipalNodeTranslator` does not copy it off the node, which is a defect on the XP side rather than a
 shape to design around — see `docs/platform-facts.md`.
 
@@ -667,9 +690,10 @@ Decided:
 2. The two columns are a draggable split view with a `300px` minimum each; the width is remembered in
    `localStorage`. No collapse toggle in v1 — the mockups have none, and dragging covers it.
 3. Item route stays `/{section}/$id` with hash history.
-4. Search filters client-side wherever the section loads whole; `Filter list` and `Sort after` stay
-   inert until they are designed (§ 3.6). The last row meta cell is provenance; the undefined `Info` /
-   `More info` cells are left out until they mean something.
+4. Search filters client-side wherever the section loads whole; `Filter list` and `Sort after` are
+   supplied by all five sections now, and the slots stay inert for a section that supplies neither
+   (§ 3.6). The last row meta cell is provenance; the undefined `Info` / `More info` cells are left out
+   until they mean something.
 5. No ID-provider tree — ID Providers is a flat section like the others.
 
 Still open, needs design or product input:
@@ -678,13 +702,18 @@ Still open, needs design or product input:
    platform has no such flag. Candidate readings: bound to an application _and_ that application is
    started; has an `idProviderConfig`; mounted on a vhost (`lib/xp/vhost.list()` exposes
    `idProviderKeys`).
-7. **Functionality present today that the mockups drop** — both in Applications only: the "show only
+7. **Functionality present today that the mockups drop** — in Applications only: the "show only
    selected" toggle, inherited from lib-admin-ui's `ListBoxToolbar` (app-users extends the plain
-   `Toolbar` and has none), and the "show system applications" toggle in `ApplicationsListToolbar`,
-   off by default. Issue #3 promises to rebuild all of app-applications, so dropping them has to be
-   deliberate.
-8. **Where "available version" comes from.** The Applications rows show installed _and_ available
-   version, but today that second number comes from a live GraphQL call to market.enonic.com, not from
-   any XP lib. Either it is out of v1 scope or the market call is part of #3's backend.
+   `Toolbar` and has none). Issue #3 promises to rebuild all of app-applications, so dropping it has to
+   be deliberate. The other half of this question is closed: `ApplicationsListToolbar`'s "show system
+   applications" toggle came back as the section's one filter entry, off by default as it was (§ 3.6).
+8. ~~**Where "available version" comes from.**~~ Answered and built (#39): `marketApplications` reads
+   Enonic Market server-side and hands back `latest`, `installedVersion` and `updateAvailable` per
+   application, `entities/market/` caches it for the session, and the row's version cell reads
+   `Installed: 1.2.0` with `(available: 1.4.0)` under it wherever the market offers something newer. The
+   cell is the one consumer that makes staleness visible — `updateAvailable` is resolved server-side, so
+   an install or update leaves it wrong until the catalogue is read again. Refresh reads it again, which
+   is why the section's `reload` loads both; picking it up without being asked would need a
+   `market.service.ts` on `application` server events, and that is the open follow-up.
 9. **Where the rest of #7 lives** — service accounts, public keys and permission reports have no
    place in the mockups. Second pass of the Users section.

@@ -12,8 +12,9 @@ paths:
 **An `api/` segment is the only place in the frontend that talks to the server** —
 `entities/<domain>/api/*.api.ts` for one domain, and `pages/<section>/api/*.api.ts` for the one query a
 screen spanning several domains needs. Nothing else calls `fetch`, and no component does I/O: widgets and
-components call commands. Three entity slices exist: `application`, `principal` with a file per
-subdomain, and `project`.
+components call commands. Four entity slices exist: `application`, `principal` with a file per
+subdomain, `project`, and `market` — what Enonic Market offers, which is a different domain from what
+this instance has installed.
 
 Client code runs in the browser: it can only reach the server over HTTP. `/lib/xp/*` is available to
 server-side code alone, so an api file talks to an endpoint, never to an XP lib.

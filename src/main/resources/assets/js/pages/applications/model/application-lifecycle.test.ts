@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { Application, ApplicationState } from '../../../entities/application';
 import { $config, setConfig, type ToolConfig } from '../../../shared/config';
-import { isStartable, isStoppable } from './application-lifecycle';
+import { isStartable, isStoppable, isUninstallable } from './application-lifecycle';
 
 const OWN_APP = 'com.enonic.xp.app.settings';
 
@@ -15,12 +15,21 @@ const config = {
   apis: {
     events: 'ws:/_/admin:event',
     graphql: '/_/app:graphql',
-    serverApp: { start: '/_/server:app/start', stop: '/_/server:app/stop' },
+    serverApp: {
+      start: '/_/server:app/start',
+      stop: '/_/server:app/stop',
+      uninstall: '/_/server:app/uninstall',
+    },
   },
 } satisfies ToolConfig;
 
-function application(key: string, state: ApplicationState, system = false): Application {
-  return { key, displayName: key, version: '1.0.0', state, system };
+function application(
+  key: string,
+  state: ApplicationState,
+  system = false,
+  local = false,
+): Application {
+  return { key, displayName: key, version: '1.0.0', state, system, local };
 }
 
 beforeEach(() => {
@@ -57,5 +66,29 @@ describe('isStoppable', () => {
 
   it('refuses the application this tool runs from', () => {
     expect(isStoppable(application(OWN_APP, 'STARTED'))).toBe(false);
+  });
+});
+
+describe('isUninstallable', () => {
+  it('accepts an installed application whatever state it is in', () => {
+    expect(isUninstallable(application('com.enonic.app.booster', 'STARTED'))).toBe(true);
+    expect(isUninstallable(application('com.enonic.app.fathom', 'STOPPED'))).toBe(true);
+  });
+
+  it('refuses a platform-bundled application', () => {
+    expect(isUninstallable(application('com.enonic.xp.app.system', 'STARTED', true))).toBe(false);
+  });
+
+  // XP throws for one of these, so an enabled button could only ever fail. On a development
+  // instance every deployed application is local, which is what makes this the common case.
+  it('refuses an application installed from the deploy directory', () => {
+    expect(isUninstallable(application('com.enonic.app.features', 'STARTED', false, true))).toBe(
+      false,
+    );
+  });
+
+  // Refused by key, not only because this app happens to ship as a system app.
+  it('refuses the application this tool runs from', () => {
+    expect(isUninstallable(application(OWN_APP, 'STARTED'))).toBe(false);
   });
 });

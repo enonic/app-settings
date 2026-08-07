@@ -13,7 +13,7 @@ vi.mock('../api/applications.api', () => ({
 }));
 
 function application(key: string): Application {
-  return { key, displayName: key, version: '1.0.0', state: 'STARTED', system: false };
+  return { key, displayName: key, version: '1.0.0', state: 'STARTED', system: false, local: false };
 }
 
 const booster = application('com.enonic.app.booster');

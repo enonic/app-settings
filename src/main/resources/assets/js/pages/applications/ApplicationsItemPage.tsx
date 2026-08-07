@@ -11,7 +11,7 @@ import { ApplicationDetails } from './application-details/ApplicationDetails';
 export function ApplicationsItemPage() {
   const { id } = useParams({ strict: false });
   const { status, application } = useApplication(id);
-  const info = useApplicationInfo(id);
+  const info = useApplicationInfo(id, application?.state);
 
   /*
    * ! Three states, not two. The panel reads its application out of the list, so `loading` means the

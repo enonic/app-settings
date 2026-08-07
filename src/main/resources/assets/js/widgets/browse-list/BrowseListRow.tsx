@@ -20,8 +20,13 @@ export type BrowseListRowProps = {
 
 // Row geometry and states follow Content Studio's content tree rows.
 const ROW_CLASS =
-  'group focus-visible:ring-ring relative flex items-center gap-2.5 px-2.5 py-1 ' +
+  'group focus-visible:ring-ring relative flex min-h-12 items-center gap-2.5 px-2.5 py-1 ' +
   'outline-none focus-visible:ring-2 focus-visible:ring-inset';
+
+const META_CLASS =
+  'text-subtle group-data-[tone=inverse]:text-alt text-right text-sm whitespace-nowrap';
+const META_COLUMN_CLASS = 'min-w-28';
+const META_LAST_COLUMN_CLASS = 'min-w-20';
 
 export function BrowseListRow({
   row,
@@ -88,7 +93,10 @@ export function BrowseListRow({
           {meta.map((cell, index) => (
             <span
               key={index}
-              className="text-subtle group-data-[tone=inverse]:text-alt text-sm whitespace-nowrap"
+              className={cn(
+                META_CLASS,
+                index < meta.length - 1 ? META_COLUMN_CLASS : META_LAST_COLUMN_CLASS,
+              )}
             >
               {cell}
             </span>

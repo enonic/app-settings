@@ -330,6 +330,37 @@ controller included. **Batching root fields into one document is the only way to
   thread, which is why several root fields in one document are safe on GraalJS — and why they cost the
   sum of their time.
 
+## Enonic Market is a headless site, and its data has five traps
+
+Not XP itself, but the same kind of fact: what the market answers, as opposed to what the code
+reading it assumes. Everything here was checked by querying `https://market.enonic.com/api/graphql`
+directly (POST, no auth, introspectable), which is also how to re-check it.
+
+- **The url is nobody's platform service.** app-applications publishes it from an OSGi component of
+  its own — `MarketConfigService`, `configurationPid = "com.enonic.xp.market"`, default
+  `https://market.enonic.com/api/graphql` — so there is no XP API to ask. This app reads its own
+  `app.config['marketApiUrl']` instead, which is `lib/market.ts`.
+- **`queryDsl` defaults to ten results.** Omit `first` and the market silently answers ten of the
+  twenty-four applications that currently claim XP 8 support — the same truncation `findPrincipals`
+  has with its default `count`. Always pass `first`.
+- **`supportedVersions` is a minimum, never a range**, and it arrives as a list even with one entry.
+  Nothing in the data says a release stopped working, so "runs on this XP" can only be read as
+  "its declared minimum is not newer than we are" — which means an application whose 7.x line is
+  numbered above its 8.x line offers a 7-era jar as its newest supported release. app-applications
+  reads it the same way; `supportsXpVersion` in `market.source.ts` carries the note.
+- **Versions come back unordered** — Guillotine lists `8.0.0` between two 7.x entries, Data Toolbox
+  puts `3.0.0` among the `2.2.x`. Latest comes from a comparator, never from position.
+- **`sha512` is null on every release from before XP 8**, and `pageUrl` is relative
+  (`/vendors/enonic/guillotine`) while `icon.attachmentUrl(type: absolute)` is absolute. `vendor` is a
+  content id, not a name, so it is useless without a second query.
+
+## `admin.getVersion()` is the XP version; `app.version` is ours
+
+app-applications passes `app.version` to the browser as `xpVersion`, which is correct only because it
+ships with the distribution and shares its version. This app is versioned separately, so anything
+comparing against the running platform — the market filter is the case — has to call
+`getVersion()` from `/lib/xp/admin`. It carries the build suffix (`8.1.0-SNAPSHOT`).
+
 ## Pin every `@enonic-types` dependency
 
 npm's `latest` tag is **7.16.7** for all of them even though 8.0.3 exists. Unpinned means 7.x types

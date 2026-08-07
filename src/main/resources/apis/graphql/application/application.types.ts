@@ -1,3 +1,4 @@
+import { isLocalApplication } from '/lib/application';
 import { GraphQLBoolean, GraphQLString, nonNull, type GraphQLType } from '/lib/graphql';
 
 import { generator } from '../schema/generator';
@@ -36,6 +37,13 @@ export const ApplicationType: GraphQLType = generator.createObjectType({
     system: {
       type: nonNull(GraphQLBoolean),
       description: 'True for an application bundled with the platform.',
+    },
+    local: {
+      type: nonNull(GraphQLBoolean),
+      description:
+        "True for an application installed from this instance's deploy directory. XP refuses to uninstall one.",
+      resolve: (env: { source: ApplicationSource }) =>
+        isLocalApplication({ application: env.source.key }),
     },
     modifiedTime: {
       type: GraphQLString,
