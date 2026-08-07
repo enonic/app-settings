@@ -1,4 +1,4 @@
-import { Button, cn, Dialog, IconButton } from '@enonic/ui';
+import { Button, cn, Dialog, IconButton, type ButtonVariant } from '@enonic/ui';
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -15,6 +15,8 @@ export type ModalDialogProps = {
   primaryLabel: string;
   primaryDisabled?: boolean;
   cancelLabel: string;
+  /** `outline` gives the two answers of a question equal weight; a form's Cancel stays quiet. */
+  cancelVariant?: ButtonVariant;
   closeLabel: string;
   children?: ReactNode;
   onClose: () => void;
@@ -30,6 +32,7 @@ export function ModalDialog({
   primaryLabel,
   primaryDisabled,
   cancelLabel,
+  cancelVariant = 'text',
   closeLabel,
   children,
   onClose,
@@ -102,7 +105,7 @@ export function ModalDialog({
           <Dialog.Body className="-mx-2 flex flex-col gap-7 px-2 py-1">{children}</Dialog.Body>
 
           <Dialog.Footer>
-            <Button variant="text" label={cancelLabel} onClick={onClose} />
+            <Button variant={cancelVariant} label={cancelLabel} onClick={onClose} />
             <Button
               variant="solid"
               label={primaryLabel}
