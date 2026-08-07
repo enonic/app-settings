@@ -3,6 +3,7 @@ import type { ResultAsync } from 'neverthrow';
 import type { AppError } from '../../../shared/api';
 import { i18n } from '../../../shared/i18n';
 import { notifyError, notifySuccess } from '../../../shared/notifications';
+import { $serverEventsConnected } from '../../../shared/server-events';
 import {
   type LifecycleOutcome,
   postStartApplications,
@@ -57,15 +58,13 @@ async function runLifecycleAction(
     ({ failedKeys }) => {
       failedKeys.forEach((key) => notifyError(i18n(failureKey, nameOf(applications, key))));
 
+      const changedKeys = keys.filter((key) => !failedKeys.includes(key));
+
       if (successKey != null) {
-        keys
-          .filter((key) => !failedKeys.includes(key))
-          .forEach((key) => notifySuccess(i18n(successKey, nameOf(applications, key))));
+        changedKeys.forEach((key) => notifySuccess(i18n(successKey, nameOf(applications, key))));
       }
 
-      // Also after a partial failure: the rows that did change state must not wait for the
-      // websocket event, and refetching an unchanged one is harmless.
-      resync(keys);
+      resyncWithoutEvents(changedKeys);
     },
     () => {
       keys.forEach((key) => notifyError(i18n(failureKey, nameOf(applications, key))));
@@ -74,11 +73,16 @@ async function runLifecycleAction(
 }
 
 /**
- * ! One request, not one per key. Requests into this app are serialized — see `shared/api/graphql`
- * ! — so a per-key refetch of a bulk action would cost as many round trips as it had targets, and
- * ! the lifecycle events arriving for the same keys would queue behind them.
+ * Refetches only where no lifecycle event will. XP publishes STARTED/STOPPED from inside the call
+ * serving this request, so a live socket has already refetched through `applications.service`.
+ *
+ * ! One request, not one per key: requests into this app are serialized.
  */
-function resync(keys: readonly string[]): void {
+function resyncWithoutEvents(keys: readonly string[]): void {
+  if (keys.length === 0 || $serverEventsConnected.get()) {
+    return;
+  }
+
   if (keys.length === 1 && keys[0] != null) {
     void loadApplication(keys[0]);
     return;

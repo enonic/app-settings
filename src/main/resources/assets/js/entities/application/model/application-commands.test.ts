@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../../shared/api';
 import { setPhrases } from '../../../shared/i18n';
 import { $notifications, clearNotifications } from '../../../shared/notifications';
+import { $serverEventsConnected } from '../../../shared/server-events';
 import {
   postStartApplications,
   postStopApplications,
@@ -35,8 +36,10 @@ function notificationTexts(): string[] {
   return $notifications.get().map(({ text }) => text);
 }
 
+// The resync only runs with the socket down, so every test asserting it says so.
 beforeEach(() => {
   clearNotifications();
+  $serverEventsConnected.set(false);
   setPhrases(
     {
       'applications.notify.startFailed': 'Could not start {0}',
@@ -77,13 +80,36 @@ describe('startApplications', () => {
     expect(loadApplication).not.toHaveBeenCalled();
   });
 
-  it('names the application the server refused to start, and resyncs anyway', async () => {
+  it('names the application the server refused to start, and resyncs only the one that started', async () => {
     vi.mocked(postStartApplications).mockReturnValue(okAsync({ failedKeys: [fathom.key] }));
 
     await startApplications([booster, fathom]);
 
     expect(notificationTexts()).toEqual(['Could not start Fathom']);
-    expect(loadApplications).toHaveBeenCalledTimes(1);
+    expect(loadApplication).toHaveBeenCalledWith(booster.key);
+    expect(loadApplications).not.toHaveBeenCalled();
+  });
+
+  it('refetches nothing when the server refused every target', async () => {
+    vi.mocked(postStartApplications).mockReturnValue(
+      okAsync({ failedKeys: [booster.key, fathom.key] }),
+    );
+
+    await startApplications([booster, fathom]);
+
+    expect(loadApplication).not.toHaveBeenCalled();
+    expect(loadApplications).not.toHaveBeenCalled();
+  });
+
+  it('leaves the refetch to the server event while the socket is up', async () => {
+    $serverEventsConnected.set(true);
+    vi.mocked(postStartApplications).mockReturnValue(okAsync({ failedKeys: [] }));
+
+    await startApplications([booster]);
+
+    expect(postStartApplications).toHaveBeenCalledWith([booster.key]);
+    expect(loadApplication).not.toHaveBeenCalled();
+    expect(loadApplications).not.toHaveBeenCalled();
   });
 
   it('reports every target when the request itself fails, and refetches nothing', async () => {
@@ -130,7 +156,7 @@ describe('uninstallApplications', () => {
     await uninstallApplications([booster, fathom]);
 
     expect(notificationTexts()).toEqual(['Could not uninstall Fathom', 'Booster was uninstalled']);
-    expect(loadApplications).toHaveBeenCalledTimes(1);
+    expect(loadApplication).toHaveBeenCalledWith(booster.key);
   });
 
   it('claims nothing was uninstalled when the request itself fails', async () => {
