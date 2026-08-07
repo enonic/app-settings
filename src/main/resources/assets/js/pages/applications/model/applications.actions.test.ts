@@ -6,10 +6,7 @@ import {
   startApplications,
   stopApplications,
 } from '../../../entities/application';
-import {
-  $uninstallTargets,
-  closeUninstallDialog,
-} from '../../../features/uninstall-applications/model/uninstall-dialog.store';
+import { $uninstallTargets, closeUninstallDialog } from '../../../features/uninstall-applications';
 import { $config, setConfig, type ToolConfig } from '../../../shared/config';
 import type { ActionContext, SectionAction } from '../../../widgets/browse-toolbar/actions';
 import { APPLICATION_ACTIONS } from './applications.actions';

@@ -3,7 +3,7 @@ import {
   startApplications,
   stopApplications,
 } from '../../../entities/application';
-import { openUninstallDialog } from '../../../features/uninstall-applications/model/uninstall-dialog.store';
+import { openUninstallDialog } from '../../../features/uninstall-applications';
 import {
   type ActionContext,
   actionTargets,

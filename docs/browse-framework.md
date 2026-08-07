@@ -111,13 +111,11 @@ widgets/browse-list/BrowseListHeader.tsx    select all, refresh, filter and sort
 widgets/browse-list/header-controls.ts      the classes those three controls share, labels included
 widgets/browse-list/InertHeaderControl.tsx  the greyed stand-in for a control a section has not supplied
 widgets/browse-list/BrowseListContextMenu.tsx  the action list on right-click
-widgets/item-label/ItemLabel.tsx            icon + title + subtitle, shared with the details panel
 widgets/browse-search/BrowseSearch.tsx      the composed SearchField
 widgets/details-panel/DetailsPanel.tsx      Empty / Header / Section / Subsection / Field / List
 widgets/details-panel/details-panel.ts      withCount, filledSections, detailsEmptyLabelKey
 widgets/details-panel/DetailsEmpty.tsx      the column with nothing to show
-widgets/dialog/ConfirmDialog.tsx            asks before a destructive action — not part of the browse
-                                            screen, but section-agnostic and used from features/
+shared/ui/ItemLabel.tsx                     icon + title + subtitle, shared with the details panel
 shared/selection                            createSelectionStore<K>()
 shared/search                               createSearchStore()
 shared/detail                               createDetailLoader<T>() — the details panel's keyed load
@@ -223,10 +221,10 @@ Rules:
 - `run` calls a command from `entities/` or opens a `features/` dialog. No fetch in the widget.
 - **An action that needs confirming opens the dialog through a store, not through component state.**
   The action list is a module constant, so `run` cannot reach a `useState` in the page: the feature slice
-  owns an atom holding what the dialog is asking about, the page mounts the component, and the component
-  renders nothing while that atom is empty. `features/uninstall-applications/` is the worked example, and
-  `widgets/dialog/ConfirmDialog.tsx` is the shell it composes — the copy and what confirming does stay in
-  the feature.
+  owns a dialog store holding what the dialog is asking about, the page mounts the component, and the
+  component renders nothing while that store is empty. `features/uninstall-applications/` is the worked
+  example, and the shell it composes comes from `shared/ui/dialogs` — the copy and what confirming does
+  stay in the feature.
 - **An action targets `actionTargets(ctx)`, not `ctx.selected`.** With rows ticked it is the ticked
   set; with none, the active row — Content Studio's "current items". So highlighting a row, or
   right-clicking one, is enough to act on it, and the toolbar and the row menu agree by construction.
@@ -339,8 +337,7 @@ Rules:
   The columns must sit on `surface-neutral`, not on the app's `surface-primary`: `surface-selected` is
   `grey-800` in both themes, which disappears against the `grey-900` app background in the dark theme.
   The label block is `ItemLabel` — `size-6` icon, `leading-5.5` title, `text-sm leading-4.5
-text-subtle` subtitle — and it lives in `widgets/item-label/` because the details panel needs the same
-  block.
+text-subtle` subtitle — and it lives in `shared/ui/` because the details panel needs the same block.
 
 - The whole row is the click target. The checkbox is a child of the row, so its handler calls
   `stopPropagation()` — ticking a row must not move `active` — and it stays out of the tab order, as
