@@ -5,7 +5,7 @@ import { ensureMarketApplications } from '../../../entities/market';
 
 export function useApplicationsScreen(): void {
   useEffect(() => {
-    void ensureMarketApplications();
     void ensureApplications();
+    void ensureMarketApplications();
   }, []);
 }

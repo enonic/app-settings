@@ -18,7 +18,6 @@ export type MarketApplication = {
   iconUrl?: string;
   pageUrl?: string;
   latest: MarketApplicationVersion;
-  versions: readonly MarketApplicationVersion[];
   installedVersion?: string;
   updateAvailable: boolean;
 };

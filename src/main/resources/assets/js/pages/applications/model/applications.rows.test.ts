@@ -23,7 +23,7 @@ function marketApplication(
   updateAvailable: boolean,
 ): MarketApplication {
   const latest = { version: latestVersion, downloadUrl: `https://repo.enonic.com/${key}.jar` };
-  return { key, displayName: key, latest, versions: [latest], updateAvailable };
+  return { key, displayName: key, latest, updateAvailable };
 }
 
 describe('toApplicationRow', () => {

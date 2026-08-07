@@ -8,7 +8,7 @@ import {
   ApplicationVersions,
   loadApplications,
 } from '../../entities/application';
-import { useMarketApplications } from '../../entities/market';
+import { loadMarketApplications, useMarketApplications } from '../../entities/market';
 import { UninstallApplicationsDialog } from '../../features/uninstall-applications/ui/UninstallApplicationsDialog';
 import { i18n, useI18n } from '../../shared/i18n';
 import { sortByDisplayName, type SortDirection } from '../../widgets/browse-list/browse-sort';
@@ -96,7 +96,10 @@ export function ApplicationsPage() {
           />
         ),
       ),
-    reload: () => void loadApplications(),
+    reload: () => {
+      void loadApplications();
+      void loadMarketApplications();
+    },
   });
 
   return (

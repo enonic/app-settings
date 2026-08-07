@@ -32,20 +32,6 @@ const guillotine = {
     sha512: '521cb05a',
     versionDate: '2026-06-05',
   },
-  versions: [
-    {
-      version: '8.0.0',
-      downloadUrl: 'https://repo.enonic.com/public/guillotine-8.0.0.jar',
-      sha512: '521cb05a',
-      versionDate: '2026-06-05',
-    },
-    {
-      version: '7.3.4',
-      downloadUrl: 'https://repo.enonic.com/public/guillotine-7.3.4.jar',
-      sha512: null,
-      versionDate: null,
-    },
-  ],
   installedVersion: '7.3.4',
   updateAvailable: true,
 };
@@ -83,20 +69,6 @@ describe('fetchMarketApplications', () => {
           sha512: '521cb05a',
           versionDate: '2026-06-05',
         },
-        versions: [
-          {
-            version: '8.0.0',
-            downloadUrl: 'https://repo.enonic.com/public/guillotine-8.0.0.jar',
-            sha512: '521cb05a',
-            versionDate: '2026-06-05',
-          },
-          {
-            version: '7.3.4',
-            downloadUrl: 'https://repo.enonic.com/public/guillotine-7.3.4.jar',
-            sha512: undefined,
-            versionDate: undefined,
-          },
-        ],
         installedVersion: '7.3.4',
         updateAvailable: true,
       },
@@ -120,6 +92,11 @@ describe('fetchMarketApplications', () => {
     expect(MARKET_APPLICATIONS_ROOT.field).toBe('marketApplications');
     expect(MARKET_APPLICATIONS_ROOT.args).toBeUndefined();
     expect(MARKET_APPLICATIONS_ROOT.variables).toBeUndefined();
+  });
+
+  it('asks for the newest release and leaves the version history on the server', () => {
+    expect(MARKET_APPLICATIONS_ROOT.selection).toContain('latest');
+    expect(MARKET_APPLICATIONS_ROOT.selection).not.toContain('versions');
   });
 
   it('fails with the message when the market could not be reached', async () => {

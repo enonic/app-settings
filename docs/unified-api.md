@@ -434,12 +434,21 @@ path, and the market url stays server-side.
 - **`latest` is an object, not a version string**, because the install dialog needs the `downloadUrl`
   and `sha512` that go to `server:app/installUrl`. `versions` holds every supported release, newest
   first; an application with no supported version is dropped, which is what keeps `latest` non-null.
-- **The whole cost is on the server.** The market hands over every application's full version history —
-  43 entries for Guillotine, 85 for Data Toolbox — and the browser receives one or two per application.
-  The filter facts, including why `first` is mandatory and why "supported" is read as a minimum, are in
+- **The whole cost is on the server, and `versions` is where that is easy to lose.** The market hands
+  over every application's full history — measured 2026-08-07: 419 entries across the 24 applications on
+  offer for XP 8, 76 of them Data Toolbox's, 44 Guillotine's — and **the minimum rule drops none of
+  them**, because an application reaching the query at all has one release declaring 8.x and every
+  earlier release declares a minimum this XP meets. So the field is the whole history minus nothing, and
+  `market.api.ts` deliberately does not select it: the browser gets `latest` alone — 24 objects and 15 kB
+  against 84 kB. No consumer needs more, the install dialog on #67 included: it installs `latest`, so
+  there is no version picker to feed. The field stays on the schema because it costs nothing there;
+  select it when something renders a version list, and then select only what it renders. The filter
+  facts, including why `first` is mandatory and why "supported" is read as a minimum, are in
   `platform-facts.md`.
 - **Timeouts are 5 s connect and 10 s read**, against app-applications' 30 s. One JS thread, and
-  `requestGraphQl` holds one request in flight: a slow market must not become a slow Settings tool.
+  `requestGraphQl` holds one request in flight: a slow market must not become a slow Settings tool. That
+  is also why a screen asks for its own rows before the catalogue — whichever is asked for first holds
+  the other back, and only one of the two is what the user opened the section for.
 - **No cache on either side yet.** The client slice loads once per session through
   `ensureMarketApplications()`; if that turns out to be too many outbound calls, `lib-cache` goes behind
   `market.source.ts` and nothing above it changes.

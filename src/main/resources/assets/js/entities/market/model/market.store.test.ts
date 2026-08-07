@@ -15,7 +15,6 @@ function marketApplication(key: string): MarketApplication {
     key,
     displayName: key,
     latest: { version: '8.0.0', downloadUrl: `https://repo.enonic.com/${key}-8.0.0.jar` },
-    versions: [{ version: '8.0.0', downloadUrl: `https://repo.enonic.com/${key}-8.0.0.jar` }],
     updateAvailable: false,
   };
 }

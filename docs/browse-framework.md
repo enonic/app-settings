@@ -712,7 +712,8 @@ Still open, needs design or product input:
    application, `entities/market/` caches it for the session, and the row's version cell reads
    `Installed: 1.2.0` with `(available: 1.4.0)` under it wherever the market offers something newer. The
    cell is the one consumer that makes staleness visible — `updateAvailable` is resolved server-side, so
-   an install or update leaves it wrong until the catalogue reloads, and a `market.service.ts` on
-   `application` server events is the open follow-up.
+   an install or update leaves it wrong until the catalogue is read again. Refresh reads it again, which
+   is why the section's `reload` loads both; picking it up without being asked would need a
+   `market.service.ts` on `application` server events, and that is the open follow-up.
 9. **Where the rest of #7 lives** — service accounts, public keys and permission reports have no
    place in the mockups. Second pass of the Users section.

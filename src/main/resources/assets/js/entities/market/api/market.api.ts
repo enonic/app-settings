@@ -3,21 +3,18 @@ import type { ResultAsync } from 'neverthrow';
 import { type AppError, type GraphQlRoot, requestGraphQl } from '../../../shared/api';
 import type { MarketApplication, MarketApplicationVersion } from '../model/market.types';
 
-const VERSION_FIELDS = `
-  version
-  downloadUrl
-  sha512
-  versionDate
-`;
-
 const MARKET_APPLICATIONS_SELECTION = `{
   key
   displayName
   description
   iconUrl
   pageUrl
-  latest {${VERSION_FIELDS}}
-  versions {${VERSION_FIELDS}}
+  latest {
+    version
+    downloadUrl
+    sha512
+    versionDate
+  }
   installedVersion
   updateAvailable
 }`;
@@ -41,7 +38,6 @@ type MarketApplicationDto = {
   iconUrl: string | null;
   pageUrl: string | null;
   latest: MarketApplicationVersionDto;
-  versions: MarketApplicationVersionDto[];
   installedVersion: string | null;
   updateAvailable: boolean;
 };
@@ -73,7 +69,6 @@ function toMarketApplication(dto: MarketApplicationDto): MarketApplication {
     iconUrl: dto.iconUrl ?? undefined,
     pageUrl: dto.pageUrl ?? undefined,
     latest: toVersion(dto.latest),
-    versions: dto.versions.map(toVersion),
     installedVersion: dto.installedVersion ?? undefined,
     updateAvailable: dto.updateAvailable,
   };
