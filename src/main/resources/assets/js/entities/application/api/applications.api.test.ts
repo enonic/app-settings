@@ -4,6 +4,7 @@ import { $config, setConfig, type ToolConfig } from '../../../shared/config';
 import {
   fetchApplication,
   fetchApplications,
+  postInstallApplicationFromFile,
   postInstallApplicationFromUrl,
 } from './applications.api';
 
@@ -226,13 +227,18 @@ describe('postInstallApplicationFromUrl', () => {
     respondWith({
       key: 'com.enonic.app.booster',
       version: '3.0.1',
+      title: 'Booster',
       state: 'started',
       local: false,
     });
 
     const result = await postInstallApplicationFromUrl({ url: DOWNLOAD_URL, sha512: 'abc' });
 
-    expect(result._unsafeUnwrap()).toEqual({ key: 'com.enonic.app.booster', version: '3.0.1' });
+    expect(result._unsafeUnwrap()).toEqual({
+      key: 'com.enonic.app.booster',
+      version: '3.0.1',
+      displayName: 'Booster',
+    });
   });
 
   // The reason a refused install is worth naming: core's message is what tells an operator whether
@@ -257,5 +263,94 @@ describe('postInstallApplicationFromUrl', () => {
 
     expect(result.isErr()).toBe(true);
     expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('postInstallApplicationFromFile', () => {
+  const jar = new File(['jar bytes'], 'booster-3.0.1.jar');
+
+  const sent: { url?: string; formData?: FormData } = {};
+
+  // The upload goes over XHR rather than fetch, so this stubs the constructor the helper reaches for.
+  function respondWithUpload(status: number, responseText: string): void {
+    const xhr = {
+      status,
+      statusText: status === 200 ? 'OK' : 'Bad Request',
+      responseText,
+      upload: {} as { onprogress?: (event: unknown) => void },
+      onload: undefined as (() => void) | undefined,
+      onerror: undefined as (() => void) | undefined,
+      open(_method: string, url: string) {
+        sent.url = url;
+      },
+      send(body: FormData) {
+        sent.formData = body;
+        xhr.onload?.();
+      },
+    };
+
+    vi.stubGlobal('XMLHttpRequest', function XhrStub() {
+      return xhr;
+    });
+  }
+
+  beforeEach(() => {
+    setConfig(config);
+  });
+
+  afterEach(() => {
+    $config.set(undefined);
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  // ! Core reads this one field name and answers `Missing file item` for any other.
+  it('posts the jar to the install endpoint under the field name core binds', async () => {
+    respondWithUpload(200, '{"key":"com.enonic.app.booster","version":"3.0.1","title":"Booster"}');
+
+    await postInstallApplicationFromFile({ file: jar });
+
+    expect(sent.url).toBe('/_/server:app/install');
+    expect(sent.formData?.get('file')).toBe(jar);
+  });
+
+  it('answers with the application core built out of the jar', async () => {
+    respondWithUpload(200, '{"key":"com.enonic.app.booster","version":"3.0.1","title":"Booster"}');
+
+    const result = await postInstallApplicationFromFile({ file: jar });
+
+    expect(result._unsafeUnwrap()).toEqual({
+      key: 'com.enonic.app.booster',
+      version: '3.0.1',
+      displayName: 'Booster',
+    });
+  });
+
+  // Core omits a null title rather than sending one, so an app with no descriptor title has none.
+  it('names an application without a descriptor title by its key', async () => {
+    respondWithUpload(200, '{"key":"com.enonic.app.booster","version":"3.0.1"}');
+
+    const result = await postInstallApplicationFromFile({ file: jar });
+
+    expect(result._unsafeUnwrap().displayName).toBe('com.enonic.app.booster');
+  });
+
+  it('fails with the reason core gave for refusing the jar', async () => {
+    respondWithUpload(400, '{"message":"Missing file item"}');
+
+    const result = await postInstallApplicationFromFile({ file: jar });
+
+    expect(result._unsafeUnwrapErr().message).toBe('Missing file item');
+  });
+
+  it('fails before the request when the tool config has not been read', async () => {
+    $config.set(undefined);
+    respondWithUpload(200, '{}');
+    sent.url = undefined;
+
+    const result = await postInstallApplicationFromFile({ file: jar });
+
+    expect(result.isErr()).toBe(true);
+    expect(sent.url).toBeUndefined();
   });
 });

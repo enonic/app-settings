@@ -10,13 +10,18 @@ import {
   postStopApplications,
   postUninstallApplications,
 } from '../api/application-lifecycle.api';
-import { postInstallApplicationFromUrl } from '../api/applications.api';
+import {
+  postInstallApplicationFromFile,
+  postInstallApplicationFromUrl,
+} from '../api/applications.api';
 import {
   installApplication,
   startApplications,
   stopApplications,
   uninstallApplications,
+  uploadApplication,
 } from './application-commands';
+import { $applicationUploads } from './application-uploads.store';
 import type { Application } from './application.types';
 import { loadApplication, loadApplications } from './applications.load';
 
@@ -31,6 +36,7 @@ vi.mock('../api/application-lifecycle.api', () => ({
 vi.mock('../api/applications.api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/applications.api')>()),
   postInstallApplicationFromUrl: vi.fn(),
+  postInstallApplicationFromFile: vi.fn(),
 }));
 
 vi.mock('./applications.load', () => ({
@@ -63,10 +69,13 @@ beforeEach(() => {
       'applications.notify.installFailed': 'Could not install {0}: {1}',
       'applications.notify.updated': '{0} was updated',
       'applications.notify.updateFailed': 'Could not update {0}: {1}',
+      'applications.notify.uploadFailed': 'Could not install {0}: {1}',
     },
     'en',
   );
+  $applicationUploads.set({});
   vi.mocked(postInstallApplicationFromUrl).mockReset();
+  vi.mocked(postInstallApplicationFromFile).mockReset();
   vi.mocked(postStartApplications).mockReset();
   vi.mocked(postStopApplications).mockReset();
   vi.mocked(postUninstallApplications).mockReset();
@@ -163,7 +172,11 @@ describe('installApplication', () => {
     url: 'https://repo.enonic.com/booster-3.0.1.jar',
     sha512: 'abc',
   };
-  const installed = { key: 'com.enonic.app.booster', version: '3.0.1' };
+  const installed = {
+    key: 'com.enonic.app.booster',
+    version: '3.0.1',
+    displayName: 'Booster',
+  };
 
   it('names what was installed and refetches the row core created', async () => {
     vi.mocked(postInstallApplicationFromUrl).mockReturnValue(okAsync(installed));
@@ -221,6 +234,73 @@ describe('installApplication', () => {
     await installApplication({ ...params, updating: true });
 
     expect(notificationTexts()).toEqual(['Could not update Booster: Conflict']);
+  });
+});
+
+describe('uploadApplication', () => {
+  const jar = new File(['jar bytes'], 'booster-3.0.1.jar');
+  const installed = {
+    key: 'com.enonic.app.booster',
+    version: '3.0.1',
+    displayName: 'Booster',
+  };
+
+  // A jar's file name need not resemble the application inside it, so success names core's answer.
+  it('names the application core built, not the file it came in', async () => {
+    vi.mocked(postInstallApplicationFromFile).mockReturnValue(okAsync(installed));
+
+    const result = await uploadApplication(jar);
+
+    expect(notificationTexts()).toEqual(['Booster was installed']);
+    expect(loadApplication).toHaveBeenCalledWith(installed.key);
+    expect(result._unsafeUnwrap()).toEqual(installed);
+  });
+
+  it('holds the upload while it runs and drops it once it has finished', async () => {
+    const inFlight: Record<string, unknown>[] = [];
+    vi.mocked(postInstallApplicationFromFile).mockImplementation(({ onProgress }) => {
+      onProgress?.(40);
+      inFlight.push({ ...$applicationUploads.get() });
+      return okAsync(installed);
+    });
+
+    await uploadApplication(jar);
+
+    expect(Object.values(inFlight[0] ?? {})).toEqual([
+      { fileName: 'booster-3.0.1.jar', percent: 40 },
+    ]);
+    expect($applicationUploads.get()).toEqual({});
+  });
+
+  // Core refused the jar before it became an application, so there is no name but the file's.
+  it('names the file when core would not take it, and refetches nothing', async () => {
+    vi.mocked(postInstallApplicationFromFile).mockReturnValue(
+      errAsync(new AppError('Missing file item')),
+    );
+
+    const result = await uploadApplication(jar);
+
+    expect(notificationTexts()).toEqual(['Could not install booster-3.0.1.jar: Missing file item']);
+    expect(loadApplication).not.toHaveBeenCalled();
+    expect(result.isErr()).toBe(true);
+  });
+
+  it('drops the upload after a failure too, so no row is left behind', async () => {
+    vi.mocked(postInstallApplicationFromFile).mockReturnValue(errAsync(new AppError('Conflict')));
+
+    await uploadApplication(jar);
+
+    expect($applicationUploads.get()).toEqual({});
+  });
+
+  it('leaves the refetch to the server events while the socket is up', async () => {
+    $serverEventsConnected.set(true);
+    vi.mocked(postInstallApplicationFromFile).mockReturnValue(okAsync(installed));
+
+    await uploadApplication(jar);
+
+    expect(notificationTexts()).toEqual(['Booster was installed']);
+    expect(loadApplication).not.toHaveBeenCalled();
   });
 });
 

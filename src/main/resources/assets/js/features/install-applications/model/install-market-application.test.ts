@@ -28,7 +28,11 @@ function row(overrides: Partial<MarketRow> = {}): MarketRow {
   };
 }
 
-const installed = { key: 'com.enonic.app.booster', version: '3.0.1' };
+const installed = {
+  key: 'com.enonic.app.booster',
+  version: '3.0.1',
+  displayName: 'Booster',
+};
 
 beforeEach(() => {
   $marketInstalls.set({});

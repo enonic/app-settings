@@ -21,8 +21,11 @@ export {
   startApplications,
   stopApplications,
   uninstallApplications,
+  uploadApplication,
 } from './model/application-commands';
 export type { InstallApplicationParams } from './model/application-commands';
+export { $applicationUploads } from './model/application-uploads.store';
+export type { ApplicationUpload } from './model/application-uploads.store';
 export type { ApplicationInfoEntry } from './model/application-info.store';
 export {
   start as startApplicationsService,

@@ -10,7 +10,12 @@ import {
   postStopApplications,
   postUninstallApplications,
 } from '../api/application-lifecycle.api';
-import { type InstalledApplication, postInstallApplicationFromUrl } from '../api/applications.api';
+import {
+  type InstalledApplication,
+  postInstallApplicationFromFile,
+  postInstallApplicationFromUrl,
+} from '../api/applications.api';
+import { beginUpload, endUpload, receiveUploadProgress } from './application-uploads.store';
 import type { Application } from './application.types';
 import { loadApplication, loadApplications } from './applications.load';
 
@@ -21,6 +26,7 @@ const TEXT = {
   uninstallFailed: 'applications.notify.uninstallFailed',
   installed: 'applications.notify.installed',
   installFailed: 'applications.notify.installFailed',
+  uploadFailed: 'applications.notify.uploadFailed',
   updated: 'applications.notify.updated',
   updateFailed: 'applications.notify.updateFailed',
 } as const;
@@ -69,6 +75,29 @@ export async function installApplication({
         i18n(updating ? TEXT.updateFailed : TEXT.installFailed, displayName, error.message),
       ),
   );
+
+  return result;
+}
+
+export async function uploadApplication(
+  file: File,
+): Promise<Result<InstalledApplication, AppError>> {
+  const id = beginUpload(file.name);
+
+  const result = await postInstallApplicationFromFile({
+    file,
+    onProgress: (percent) => receiveUploadProgress(id, percent),
+  });
+
+  result.match(
+    ({ key, displayName }) => {
+      notifySuccess(i18n(TEXT.installed, displayName));
+      resyncWithoutEvents([key]);
+    },
+    (error) => notifyError(i18n(TEXT.uploadFailed, file.name, error.message)),
+  );
+
+  endUpload(id);
 
   return result;
 }
