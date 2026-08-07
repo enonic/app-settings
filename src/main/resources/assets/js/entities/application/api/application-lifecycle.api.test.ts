@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { $config, setConfig, type ToolConfig } from '../../../shared/config';
-import { postStartApplications, postStopApplications } from './application-lifecycle.api';
+import {
+  postStartApplications,
+  postStopApplications,
+  postUninstallApplications,
+} from './application-lifecycle.api';
 
 const config = {
   appId: 'com.enonic.xp.app.settings',
@@ -12,7 +16,12 @@ const config = {
   apis: {
     events: 'ws:/_/admin:event',
     graphql: '/_/app:graphql',
-    serverApp: { start: '/_/server:app/start', stop: '/_/server:app/stop' },
+    serverApp: {
+      start: '/_/server:app/start',
+      stop: '/_/server:app/stop',
+      uninstall: '/_/server:app/uninstall',
+      installUrl: '/_/server:app/installUrl',
+    },
   },
 } satisfies ToolConfig;
 
@@ -73,5 +82,25 @@ describe('postStopApplications', () => {
     await postStopApplications(['a']);
 
     expect(globalThis.fetch).toHaveBeenCalledWith('/_/server:app/stop', expect.anything());
+  });
+});
+
+describe('postUninstallApplications', () => {
+  it('posts to the uninstall url', async () => {
+    respondWith({ results: [] });
+
+    await postUninstallApplications(['a']);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/_/server:app/uninstall', expect.anything());
+  });
+
+  // A deploy-directory application is refused per key, not per request: the UI cannot know it is
+  // local, so this is the only place that failure shows up.
+  it('reports a refused application as a failed key', async () => {
+    respondWith({ results: [{ id: 'a', success: false }] });
+
+    const result = await postUninstallApplications(['a']);
+
+    expect(result._unsafeUnwrap()).toEqual({ failedKeys: ['a'] });
   });
 });

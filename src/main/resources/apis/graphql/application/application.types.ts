@@ -1,3 +1,4 @@
+import { isLocalApplication } from '/lib/application';
 import { GraphQLBoolean, GraphQLString, nonNull, type GraphQLType } from '/lib/graphql';
 
 import { generator } from '../schema/generator';
@@ -18,7 +19,6 @@ export const ApplicationType: GraphQLType = generator.createObjectType({
     },
     displayName: {
       type: nonNull(GraphQLString),
-      description: 'Descriptor title, falling back to the key when the app declares none.',
       // TODO: [#8] Localize through titleI18nKey once the i18n bundle of the target app is read.
       resolve: (env: { source: ApplicationSource }) => displayNameOf(env.source),
     },
@@ -35,7 +35,11 @@ export const ApplicationType: GraphQLType = generator.createObjectType({
     },
     system: {
       type: nonNull(GraphQLBoolean),
-      description: 'True for an application bundled with the platform.',
+    },
+    local: {
+      type: nonNull(GraphQLBoolean),
+      resolve: (env: { source: ApplicationSource }) =>
+        isLocalApplication({ application: env.source.key }),
     },
     modifiedTime: {
       type: GraphQLString,

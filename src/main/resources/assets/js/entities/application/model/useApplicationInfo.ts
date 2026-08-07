@@ -6,6 +6,7 @@ import {
   type ApplicationInfoEntry,
   ensureApplicationInfo,
 } from './application-info.store';
+import type { ApplicationState } from './application.types';
 
 /**
  * What the application under `key` provides, loaded on first sight and served from the cache after.
@@ -14,16 +15,20 @@ import {
  * nothing about which one is on screen. Asking again for an entry that is missing is what reloads a
  * panel whose application was invalidated by a lifecycle event under it.
  */
-export function useApplicationInfo(key: string | undefined): ApplicationInfoEntry | undefined {
+export function useApplicationInfo(
+  key: string | undefined,
+  state?: ApplicationState,
+): ApplicationInfoEntry | undefined {
   const entries = useStore($applicationsInfo);
-  const entry = key == null ? undefined : entries[key];
+  const stopped = state === 'STOPPED';
+  const entry = key == null || stopped ? undefined : entries[key];
   const missing = key != null && entry === undefined;
 
   useEffect(() => {
-    if (key != null && missing) {
+    if (key != null && !stopped) {
       ensureApplicationInfo(key);
     }
-  }, [key, missing]);
+  }, [key, stopped, missing]);
 
   return entry;
 }

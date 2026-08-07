@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { $config, setConfig, type ToolConfig } from '../../../shared/config';
-import { fetchApplication, fetchApplications } from './applications.api';
+import {
+  fetchApplication,
+  fetchApplications,
+  postInstallApplicationFromUrl,
+} from './applications.api';
 
 const config = {
   appId: 'com.enonic.xp.app.settings',
@@ -12,7 +16,12 @@ const config = {
   apis: {
     events: 'ws:/_/admin:event',
     graphql: '/_/app:graphql',
-    serverApp: { start: '/_/server:app/start', stop: '/_/server:app/stop' },
+    serverApp: {
+      start: '/_/server:app/start',
+      stop: '/_/server:app/stop',
+      uninstall: '/_/server:app/uninstall',
+      installUrl: '/_/server:app/installUrl',
+    },
   },
 } satisfies ToolConfig;
 
@@ -41,6 +50,7 @@ describe('fetchApplications', () => {
             version: '1.2.0',
             state: 'STARTED',
             system: false,
+            local: false,
             icon: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
             modifiedTime: '2026-05-07T12:42:39Z',
             minSystemVersion: '7.15.0',
@@ -63,6 +73,7 @@ describe('fetchApplications', () => {
         version: '1.2.0',
         state: 'STARTED',
         system: false,
+        local: false,
         icon: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
         modifiedTime: '2026-05-07T12:42:39Z',
         minSystemVersion: '7.15.0',
@@ -84,6 +95,7 @@ describe('fetchApplications', () => {
             version: null,
             state: 'STOPPED',
             system: true,
+            local: true,
             icon: null,
             modifiedTime: null,
             minSystemVersion: null,
@@ -105,6 +117,7 @@ describe('fetchApplications', () => {
         version: undefined,
         state: 'STOPPED',
         system: true,
+        local: true,
         icon: undefined,
         modifiedTime: undefined,
         minSystemVersion: undefined,
@@ -168,5 +181,80 @@ describe('fetchApplication', () => {
     const result = await fetchApplication('com.enonic.app.gone');
 
     expect(result._unsafeUnwrap()).toBeUndefined();
+  });
+});
+
+describe('postInstallApplicationFromUrl', () => {
+  const DOWNLOAD_URL = 'https://repo.enonic.com/booster-3.0.1.jar';
+
+  beforeEach(() => {
+    setConfig(config);
+  });
+
+  afterEach(() => {
+    $config.set(undefined);
+    vi.restoreAllMocks();
+  });
+
+  it('posts the download url under the uppercase field core binds', async () => {
+    respondWith({ key: 'com.enonic.app.booster', version: '3.0.1' });
+
+    await postInstallApplicationFromUrl({ url: DOWNLOAD_URL, sha512: 'abc' });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/_/server:app/installUrl',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ URL: DOWNLOAD_URL, sha512: 'abc' }),
+      }),
+    );
+  });
+
+  it('leaves the checksum out where the market published none', async () => {
+    respondWith({ key: 'com.enonic.app.booster', version: '3.0.1' });
+
+    await postInstallApplicationFromUrl({ url: DOWNLOAD_URL });
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/_/server:app/installUrl',
+      expect.objectContaining({ body: JSON.stringify({ URL: DOWNLOAD_URL }) }),
+    );
+  });
+
+  it('answers with the key and version core installed, which the market need not have listed', async () => {
+    respondWith({
+      key: 'com.enonic.app.booster',
+      version: '3.0.1',
+      state: 'started',
+      local: false,
+    });
+
+    const result = await postInstallApplicationFromUrl({ url: DOWNLOAD_URL, sha512: 'abc' });
+
+    expect(result._unsafeUnwrap()).toEqual({ key: 'com.enonic.app.booster', version: '3.0.1' });
+  });
+
+  // The reason a refused install is worth naming: core's message is what tells an operator whether
+  // the url was outside the allowlist or the checksum was missing.
+  it('fails with the reason core gave', async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response('{"message":"SHA512 checksum is required for installUrl"}', { status: 409 }),
+      );
+
+    const result = await postInstallApplicationFromUrl({ url: DOWNLOAD_URL });
+
+    expect(result._unsafeUnwrapErr().message).toBe('SHA512 checksum is required for installUrl');
+  });
+
+  it('fails before the request when the tool config has not been read', async () => {
+    $config.set(undefined);
+    globalThis.fetch = vi.fn();
+
+    const result = await postInstallApplicationFromUrl({ url: DOWNLOAD_URL });
+
+    expect(result.isErr()).toBe(true);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });

@@ -3,7 +3,7 @@ import { errAsync, type ResultAsync } from 'neverthrow';
 import { AppError, requestJson } from '../../../shared/api';
 import { $config } from '../../../shared/config';
 
-// The wire shape of XP core's `server:app` start/stop endpoints (ApplicationApiHandler):
+// The wire shape of XP core's `server:app` start/stop/uninstall endpoints (ApplicationApiHandler):
 // one POST per action for any number of keys, answered with a per-key outcome.
 type LifecycleResultDto = {
   results: { id: string; success: boolean }[];
@@ -25,6 +25,13 @@ export function postStopApplications(
   keys: readonly string[],
 ): ResultAsync<LifecycleOutcome, AppError> {
   return postLifecycleAction($config.get()?.apis.serverApp.stop, keys);
+}
+
+/** Uninstalls the given applications through XP's `server:app` api. */
+export function postUninstallApplications(
+  keys: readonly string[],
+): ResultAsync<LifecycleOutcome, AppError> {
+  return postLifecycleAction($config.get()?.apis.serverApp.uninstall, keys);
 }
 
 // *

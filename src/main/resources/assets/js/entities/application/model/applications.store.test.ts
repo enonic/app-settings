@@ -13,7 +13,7 @@ import {
 } from './applications.store';
 
 function application(key: string, displayName = key): Application {
-  return { key, displayName, version: '1.0.0', state: 'STARTED', system: false };
+  return { key, displayName, version: '1.0.0', state: 'STARTED', system: false, local: false };
 }
 
 const booster = application('com.enonic.app.booster', 'Booster');

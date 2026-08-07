@@ -18,6 +18,8 @@ const config: ToolConfig = {
     serverApp: {
       start: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/start',
       stop: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/stop',
+      uninstall: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/uninstall',
+      installUrl: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/installUrl',
     },
   },
 };
@@ -73,6 +75,8 @@ describe('getConfig', () => {
     expect(getConfig(['en']).apis.serverApp).toEqual({
       start: '/_/server:app/start',
       stop: '/_/server:app/stop',
+      uninstall: '/_/server:app/uninstall',
+      installUrl: '/_/server:app/installUrl',
     });
   });
 });
