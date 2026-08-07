@@ -328,7 +328,8 @@ Rules:
   | List header controls   | `gap-2.5` apart, each `px-4.5`, text at the 16px of size `md`; `@max-xl:px-2.5`     |
   | Select all             | `h-10 pl-2.5` so its box lines up with the rows', 18px on the label text only       |
   | Scroll container       | `gap-y-1.5`, no padding                                                             |
-  | Row                    | `gap-2.5 px-2.5 py-1`, `hover:bg-surface-neutral-hover`                             |
+  | Row                    | `min-h-12 gap-2.5 px-2.5 py-1`, `hover:bg-surface-neutral-hover`                    |
+  | Meta cell              | `text-right text-sm`, `gap-5` apart; `min-w-28`, `min-w-20` on the last             |
   | Selected row           | `bg-surface-selected text-alt hover:bg-surface-selected-hover`, `data-tone=inverse` |
 
   Search, list header and list bring no outer padding at all: the 20px around and between them comes
@@ -338,6 +339,13 @@ Rules:
   `grey-800` in both themes, which disappears against the `grey-900` app background in the dark theme.
   The label block is `ItemLabel` — `size-6` icon, `leading-5.5` title, `text-sm leading-4.5
 text-subtle` subtitle — and it lives in `shared/ui/` because the details panel needs the same block.
+  The subtitle is optional, which is why the row carries `min-h-12`: an application with no description
+  would otherwise sit two lines' worth shorter than the row above it. Meta cells carry `min-w-28` for
+  the same reason in the other direction: sized by their own text they are not columns, and `6.0.0`
+  lands nowhere near `2.0.0.SNAPSHOT` in the row above. The last cell takes a narrower `min-w-20`: it
+  is anchored to the row's right edge, so a version's worth of width would only strand it away from
+  the column before it — but it cannot go without a floor either, since `Stopped` is wider than
+  `Started` and that difference moves every column to its left.
 
 - The whole row is the click target. The checkbox is a child of the row, so its handler calls
   `stopPropagation()` — ticking a row must not move `active` — and it stays out of the tab order, as
