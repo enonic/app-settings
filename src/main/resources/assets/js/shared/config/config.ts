@@ -7,6 +7,7 @@ export type ApiUrls = {
     start: string;
     stop: string;
     uninstall: string;
+    install: string;
     installUrl: string;
   };
 };
@@ -38,6 +39,7 @@ function isToolConfig(value: unknown): value is ToolConfig {
     typeof apis.serverApp.start === 'string' &&
     typeof apis.serverApp.stop === 'string' &&
     typeof apis.serverApp.uninstall === 'string' &&
+    typeof apis.serverApp.install === 'string' &&
     typeof apis.serverApp.installUrl === 'string'
   );
 }

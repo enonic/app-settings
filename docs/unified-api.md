@@ -23,6 +23,9 @@ Settled — do not relitigate without a reason:
 
 1. **GraphQL is the single data layer**, with one deliberate binary exception (jar upload). Icons were
    the second until GraalJS ruled a binary endpoint out; they now ride the schema as a `data:` uri.
+   The exception is core's `server:app/install`, posted multipart from the browser through
+   `shared/api/upload.ts` — no app-owned endpoint and no Java, since core already owns the whole
+   application lifecycle behind the same `role:system.admin`.
 2. **XP JS libs first. Java only where no JS binding exists**, and written as `MapSerializable`
    `ScriptBean`s from the start.
 3. **Do not port app-applications' Java.** It is Jackson/JAX-RS serialization code

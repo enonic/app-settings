@@ -30,6 +30,11 @@ export function fetchApplications(signal?: AbortSignal): ResultAsync<Application
 - Everything goes through `shared/api`, which returns `ResultAsync<T, AppError>` — errors are values, not
   throws. `requestGraphQl` for reads (see the two bullets below); `requestJson` / `requestOptionalJson`
   for an app-owned endpoint that is not GraphQL, which today means none. Do not add a second http helper.
+- **`requestUploadJson` in `shared/api/upload.ts` is the one exception, and the only `XMLHttpRequest` in
+  the app.** `fetch` cannot observe upload progress and request-body streaming is Chrome-only, so the jar
+  upload — the single multipart call there is — goes over XHR. `RequestOptions.body` stays JSON-only.
+  Content Studio v6's file of the same name is the same helper: keep the two portable, and put nothing
+  else in it.
 - Wire DTOs stay inside the api segment. Map to the domain types from `model/<domain>.types.ts` before
   returning; the rest of the app never sees a DTO shape.
 - Api urls come from the tool config (`shared/config`), never hardcoded or assembled from
@@ -67,8 +72,14 @@ export function fetchApplications(signal?: AbortSignal): ResultAsync<Application
 ## Server side
 
 The app owns one HTTP API, `apis/graphql/`, listed first under `apis:` in `main.yaml` beside the foreign
-ones (`admin:event`, `admin:extension`, `com.enonic.xp.app.main:events`). A second one — the jar upload
-is the expected case, since GraphQL cannot carry it — goes in `src/main/resources/apis/<name>/` as
+ones (`server:app`, `admin:event`, `admin:extension`, `com.enonic.xp.app.main:events`).
+
+**The jar upload is not a second one.** It goes to core's `server:app/install`, which takes the jar as
+multipart under the form field `file` and is already `role:system.admin` — the same universal API this
+app calls for `installUrl`, `start`, `stop` and `uninstall`. No binary endpoint here could serve it
+anyway: GraalJS puts no bytes on the wire (`docs/platform-facts.md`).
+
+Should a second app-owned API ever be warranted, it goes in `src/main/resources/apis/<name>/` as
 `<name>.yaml` + `<name>.ts`, and follows what graphql already does:
 
 - `kind: API`, `allow: role:system.admin`, no `mount:` — an admin-tool API is authorized by being

@@ -20,6 +20,7 @@ export type ToolConfig = {
       start: string;
       stop: string;
       uninstall: string;
+      install: string;
       installUrl: string;
     };
   };
@@ -40,6 +41,7 @@ export function getConfig(locales: string[]): ToolConfig {
         start: apiUrl({ api: 'server:app', path: 'start' }),
         stop: apiUrl({ api: 'server:app', path: 'stop' }),
         uninstall: apiUrl({ api: 'server:app', path: 'uninstall' }),
+        install: apiUrl({ api: 'server:app', path: 'install' }),
         installUrl: apiUrl({ api: 'server:app', path: 'installUrl' }),
       },
     },

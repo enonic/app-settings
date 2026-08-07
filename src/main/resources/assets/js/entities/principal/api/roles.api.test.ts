@@ -23,6 +23,7 @@ const config = {
       start: '/_/server:app/start',
       stop: '/_/server:app/stop',
       uninstall: '/_/server:app/uninstall',
+      install: '/_/server:app/install',
       installUrl: '/_/server:app/installUrl',
     },
   },
