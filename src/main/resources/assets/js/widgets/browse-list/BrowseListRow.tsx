@@ -14,6 +14,8 @@ export type BrowseListRowProps = {
   highlighted: boolean;
   onSelectedChange: (key: string, checked: boolean) => void;
   onClick: (key: string) => void;
+  /** Double-click runs the section's row action, if it declared one. */
+  onActivate: (key: string) => void;
   /** Right-click retargets the row before the context menu around the list opens. */
   onContextMenu: (key: string) => void;
 };
@@ -35,6 +37,7 @@ export function BrowseListRow({
   highlighted,
   onSelectedChange,
   onClick,
+  onActivate,
   onContextMenu,
 }: BrowseListRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -64,6 +67,7 @@ export function BrowseListRow({
       data-tone={highlighted ? 'inverse' : undefined}
       tabIndex={focused ? 0 : -1}
       onClick={() => onClick(key)}
+      onDblClick={() => onActivate(key)}
       onContextMenu={() => onContextMenu(key)}
       className={cn(
         ROW_CLASS,

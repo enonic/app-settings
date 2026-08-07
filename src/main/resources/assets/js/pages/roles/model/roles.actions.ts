@@ -23,6 +23,7 @@ export const ROLE_ACTIONS: readonly SectionAction<Role>[] = [
     id: 'edit',
     labelKey: 'roles.action.edit',
     enabled: (ctx) => actionTargets(ctx).length === 1,
+    activatedByRow: true,
     run: (ctx) => {
       const [target] = actionTargets(ctx);
       if (target !== undefined) {

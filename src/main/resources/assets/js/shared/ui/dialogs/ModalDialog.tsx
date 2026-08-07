@@ -17,6 +17,8 @@ export type ModalDialogProps = {
   cancelLabel: string;
   /** `outline` gives the two answers of a question equal weight; a form's Cancel stays quiet. */
   cancelVariant?: ButtonVariant;
+  /** Why the dialog is still open, shown beside its buttons — a rejected save is the case. */
+  error?: string;
   closeLabel: string;
   children?: ReactNode;
   onClose: () => void;
@@ -33,6 +35,7 @@ export function ModalDialog({
   primaryDisabled,
   cancelLabel,
   cancelVariant = 'text',
+  error,
   closeLabel,
   children,
   onClose,
@@ -104,7 +107,13 @@ export function ModalDialog({
 
           <Dialog.Body className="-mx-2 flex flex-col gap-7 px-2 py-1">{children}</Dialog.Body>
 
-          <Dialog.Footer>
+          <Dialog.Footer className="items-center">
+            {error !== undefined && (
+              <p className="text-error mr-auto text-sm" role="alert">
+                {error}
+              </p>
+            )}
+
             <Button variant={cancelVariant} label={cancelLabel} onClick={onClose} />
             <Button
               variant="solid"

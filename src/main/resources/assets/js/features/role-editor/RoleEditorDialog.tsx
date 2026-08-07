@@ -2,22 +2,30 @@ import { useStore } from '@nanostores/preact';
 import { UserPen } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 
+import { createRole, updateRole } from '../../entities/principal';
 import { visitedErrors } from '../../shared/form';
 import { i18n, useI18n } from '../../shared/i18n';
 import { DialogIdentityHeader } from '../../shared/ui/dialogs/DialogIdentityHeader';
 import { ModalDialog } from '../../shared/ui/dialogs/ModalDialog';
-import { $roleEditDetail, showRoleForEdit } from './model/role-edit-detail';
+import { $roleEditDetail, forgetRoleEditDetail, showRoleForEdit } from './model/role-edit-detail';
 import { $roleEditor, closeRoleEditor } from './model/role-editor.store';
 import {
   initialRoleForm,
+  mergeRoleMembers,
   nextRoleForm,
+  sameRoleForm,
   validateRoleForm,
   type RoleFormField,
   type RoleForm as RoleFormValues,
 } from './model/role-form';
 import { RoleForm } from './RoleForm';
 
-export function RoleEditorDialog() {
+export type RoleEditorDialogProps = {
+  /** Puts the section's list back in step with what was written. */
+  onSaved: () => void;
+};
+
+export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
   const editor = useStore($roleEditor);
   const detail = useStore($roleEditDetail);
   const editedKey = editor?.mode === 'edit' ? editor.role.key : undefined;
@@ -26,18 +34,27 @@ export function RoleEditorDialog() {
   const editTitle = useI18n('roles.dialog.editTitle');
   const displayNameLabel = useI18n('roles.dialog.displayName');
   const displayNamePlaceholder = useI18n('roles.dialog.displayNamePlaceholder');
+  const membersFailed = useI18n('roles.dialog.membersFailed');
   const saveLabel = useI18n('browse.dialog.save');
   const cancelLabel = useI18n('browse.dialog.cancel');
   const closeLabel = useI18n('browse.dialog.close');
 
   const [values, setValues] = useState<RoleFormValues | undefined>();
+  // What the server holds, kept beside what the user is editing, so `Save` can tell the two apart.
+  const [saved, setSaved] = useState<RoleFormValues | undefined>();
   const [nameEdited, setNameEdited] = useState(false);
   const [visited, setVisited] = useState<ReadonlySet<RoleFormField>>(new Set());
+  const [saving, setSaving] = useState(false);
+  const [failure, setFailure] = useState<string | undefined>();
 
   useEffect(() => {
-    setValues(editor === undefined ? undefined : initialRoleForm(editor));
+    const opened = editor === undefined ? undefined : initialRoleForm(editor);
+    setValues(opened);
+    setSaved(opened);
     setNameEdited(false);
     setVisited(new Set());
+    setSaving(false);
+    setFailure(undefined);
     showRoleForEdit(editedKey);
   }, [editor, editedKey]);
 
@@ -48,9 +65,14 @@ export function RoleEditorDialog() {
     }
 
     setValues((current) =>
-      current === undefined || current.members.length > 0
+      current === undefined
         ? current
-        : { ...current, members: loaded.members },
+        : { ...current, members: mergeRoleMembers(loaded.members, current.members) },
+    );
+
+    // The saved state gains the members as they are held, not as they are being edited.
+    setSaved((current) =>
+      current === undefined ? current : { ...current, members: loaded.members },
     );
   }, [detail.item, editedKey]);
 
@@ -62,6 +84,12 @@ export function RoleEditorDialog() {
 
   const shownErrors = useMemo(() => visitedErrors(errors, visited), [errors, visited]);
 
+  // ! Save waits for the member list a role already has. `members` travels as the whole list, so saving
+  // ! before it arrives would send the empty one the form starts with and empty the role.
+  const membersReady = editedKey === undefined || detail.status === 'ready';
+
+  const unchanged = values !== undefined && saved !== undefined && sameRoleForm(saved, values);
+
   const handleChange = (next: RoleFormValues): void => {
     if (values === undefined || editor === undefined) {
       return;
@@ -72,17 +100,49 @@ export function RoleEditorDialog() {
     setNameEdited(change.nameEdited);
   };
 
+  const handleSave = async (): Promise<void> => {
+    if (values === undefined || editor === undefined) {
+      return;
+    }
+
+    setSaving(true);
+    setFailure(undefined);
+
+    const draft = { ...values, members: values.members.map(({ key }) => key) };
+    const written =
+      editor.mode === 'edit' ? await updateRole(editor.role.key, draft) : await createRole(draft);
+
+    written.match(
+      () => {
+        forgetRoleEditDetail();
+        closeRoleEditor();
+        onSaved();
+      },
+      (error) => {
+        setSaving(false);
+        setFailure(error.message);
+      },
+    );
+  };
+
   return (
     <ModalDialog
       open={editor !== undefined}
       title={editor?.mode === 'edit' ? editTitle : createTitle}
       size="wide"
       primaryLabel={saveLabel}
-      // TODO: [#58] Enabled by the form being error-free once the role mutations exist.
-      primaryDisabled
+      primaryDisabled={saving || !membersReady || unchanged || Object.keys(errors).length > 0}
       cancelLabel={cancelLabel}
       closeLabel={closeLabel}
-      onClose={closeRoleEditor}
+      error={failure ?? (detail.status === 'error' ? membersFailed : undefined)}
+      // ! Stays put while the write is in flight. Closing would leave the rejection with no screen to
+      // ! land on, and the command hands it back rather than notifying for exactly that reason.
+      onClose={() => {
+        if (!saving) {
+          closeRoleEditor();
+        }
+      }}
+      onPrimary={() => void handleSave()}
       header={
         values === undefined ? undefined : (
           <DialogIdentityHeader

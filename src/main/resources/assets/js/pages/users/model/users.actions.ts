@@ -16,6 +16,7 @@ export const USER_ACTIONS: readonly SectionAction<User>[] = [
     id: 'edit',
     labelKey: 'users.action.edit',
     enabled: (ctx) => actionTargets(ctx).length === 1,
+    activatedByRow: true,
     run: (ctx) => {
       const [target] = actionTargets(ctx);
       if (target !== undefined) {

@@ -71,6 +71,8 @@ export type {
   UserDetail,
   UserKey,
 } from './model/principal.types';
+export { createRole, updateRole } from './model/role-commands';
+export type { RoleDraft } from './model/role-commands';
 export { forgetRoleDetails, forgetRoles } from './model/role-detail.load';
 export { beginRolesLoad, receiveRoles } from './model/roles.store';
 export type { RolesState } from './model/roles.store';
