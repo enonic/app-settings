@@ -35,7 +35,7 @@
     "@enonic-types/global": "^8.0.3",
     "@enonic-types/lib-admin": "^8.0.3",
     "@enonic-types/lib-app": "^8.0.3",
-    "@enonic-types/lib-auth": "8.0.4-B1",
+    "@enonic-types/lib-auth": "8.0.4-B2",
     "@enonic-types/lib-i18n": "^8.0.3",
     "@enonic-types/lib-portal": "^8.0.3",
     "@enonic-types/lib-project": "^8.0.3",

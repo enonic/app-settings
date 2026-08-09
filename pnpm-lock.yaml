@@ -56,8 +56,8 @@ importers:
         specifier: ^8.0.3
         version: 8.0.3
       '@enonic-types/lib-auth':
-        specifier: 8.0.4-B1
-        version: 8.0.4-B1
+        specifier: 8.0.4-B2
+        version: 8.0.4-B2
       '@enonic-types/lib-i18n':
         specifier: ^8.0.3
         version: 8.0.3
@@ -121,8 +121,8 @@ packages:
   '@enonic-types/core@8.0.3':
     resolution: {integrity: sha512-8A5loeFE6KNV/1yEtQpWK1gAc914LdTHGl4+1HbCM4qYFq1XvjSNgFUpRnPvDP6CQXpB0j4zWsUu883ULSKTjg==}
 
-  '@enonic-types/core@8.0.4-B1':
-    resolution: {integrity: sha512-vWFb1E/QgP46JiRmLT36DqdmcxWkLFRKgk10bgOjmsNuKE3Zrqbpls60kVGLyOq5SfZpaSvIHIXvCkbtqhsq2Q==}
+  '@enonic-types/core@8.0.4-B2':
+    resolution: {integrity: sha512-gu6iXZs5Ju6jnFhtjHJFpjvpoRqa1RA0ipMIUcq6+oiX4vQ6zC7bR98mX2g9CWQKKaZKSEsGOZS3VxM9YHdskw==}
 
   '@enonic-types/global@8.0.3':
     resolution: {integrity: sha512-ZHiTuBlcCVvjL7SLnJZ0or3GXEwFN5BAYaGQnG+jv3j8WBkqa/2yG9qUif/cTIY7W2/kLgy3ZoSPxM+0ekEPrA==}
@@ -133,8 +133,8 @@ packages:
   '@enonic-types/lib-app@8.0.3':
     resolution: {integrity: sha512-0nyIV1n9HE/e8Z+4KYA0vPYrSUhRU/SsbXNzftx82Rxsnq2JGcN2ug3sud5kqMJAnvaqckC1Mlaa01I/i+Lsmw==}
 
-  '@enonic-types/lib-auth@8.0.4-B1':
-    resolution: {integrity: sha512-cfNtSuFoZZjt8pq1mi0Pz9rjF6aJDgnNweZl0jLkl55N9rQrJMz/jhzqh/muwMNrYrkJWMfZNroT9td4HZwCYg==}
+  '@enonic-types/lib-auth@8.0.4-B2':
+    resolution: {integrity: sha512-4wCGMdh9KLIpLMKIm5+vQt1v2fbU3vTefwf8SiRMjC4XaKEd8429/NVWR8YimNODfvbELg7YCqDeduI3P5Urdg==}
 
   '@enonic-types/lib-i18n@8.0.3':
     resolution: {integrity: sha512-OGOlolt4/mDrCK1BXa1+rINCJuuWGSWzaodpbCRcJslF0wKcGraOd9Pza0/SWMh+Uz/oVYadsvkSl/C3W8aKiA==}
@@ -1576,7 +1576,7 @@ snapshots:
 
   '@enonic-types/core@8.0.3': {}
 
-  '@enonic-types/core@8.0.4-B1': {}
+  '@enonic-types/core@8.0.4-B2': {}
 
   '@enonic-types/global@8.0.3':
     dependencies:
@@ -1590,9 +1590,9 @@ snapshots:
     dependencies:
       '@enonic-types/core': 8.0.3
 
-  '@enonic-types/lib-auth@8.0.4-B1':
+  '@enonic-types/lib-auth@8.0.4-B2':
     dependencies:
-      '@enonic-types/core': 8.0.4-B1
+      '@enonic-types/core': 8.0.4-B2
 
   '@enonic-types/lib-i18n@8.0.3':
     dependencies:
