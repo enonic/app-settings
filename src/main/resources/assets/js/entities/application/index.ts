@@ -21,7 +21,7 @@ export {
   startApplications,
   stopApplications,
   uninstallApplications,
-  uploadApplication,
+  uploadApplications,
 } from './model/application-commands';
 export type { InstallApplicationParams } from './model/application-commands';
 export { $applicationUploads } from './model/application-uploads.store';

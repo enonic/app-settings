@@ -1,4 +1,4 @@
-import { uploadApplication } from '../../../entities/application';
+import { uploadApplications } from '../../../entities/application';
 import { i18n } from '../../../shared/i18n';
 import { notifyError } from '../../../shared/notifications';
 import { closeInstallDialog } from './install-dialog.store';
@@ -21,9 +21,5 @@ export async function runJarUpload(files: readonly File[]): Promise<void> {
 
   closeInstallDialog();
 
-  // ! One at a time: core installs a jar on the thread serving the request, so uploading two at
-  // ! once makes both slower without either finishing sooner.
-  for (const file of accepted) {
-    await uploadApplication(file);
-  }
+  await uploadApplications(accepted);
 }

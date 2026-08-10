@@ -3,7 +3,7 @@ import { map } from 'nanostores';
 export type ApplicationUpload = {
   /** What the operator picked, and all there is to call it by until core has read the jar. */
   fileName: string;
-  /** How much of it has gone out, 0–100. Undefined until the first progress event. */
+  /** How much of it has gone out, 0–100. Undefined for a queued upload and until the first event. */
   percent?: number;
 };
 
@@ -12,14 +12,22 @@ export const $applicationUploads = map<Record<string, ApplicationUpload>>({});
 
 let lastId = 0;
 
-/** Registers an upload and answers the id everything else names it by. */
-export function beginUpload(fileName: string): string {
-  lastId += 1;
-  const id = `upload-${lastId}`;
+/**
+ * Registers a whole pick at once, so the queue shows rather than one row at a time, and answers the
+ * ids. One write, and the ids are not integer-like, so insertion order holds.
+ */
+export function queueUploads(fileNames: readonly string[]): string[] {
+  const queued: Record<string, ApplicationUpload> = {};
+  const ids = fileNames.map((fileName) => {
+    lastId += 1;
+    const id = `upload-${lastId}`;
+    queued[id] = { fileName };
+    return id;
+  });
 
-  $applicationUploads.setKey(id, { fileName });
+  $applicationUploads.set({ ...$applicationUploads.get(), ...queued });
 
-  return id;
+  return ids;
 }
 
 /** Records progress, ignoring an upload that has already finished or failed. */

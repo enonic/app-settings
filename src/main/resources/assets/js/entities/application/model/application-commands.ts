@@ -15,7 +15,7 @@ import {
   postInstallApplicationFromFile,
   postInstallApplicationFromUrl,
 } from '../api/applications.api';
-import { beginUpload, endUpload, receiveUploadProgress } from './application-uploads.store';
+import { endUpload, queueUploads, receiveUploadProgress } from './application-uploads.store';
 import type { Application } from './application.types';
 import { loadApplication, loadApplications } from './applications.load';
 
@@ -79,11 +79,23 @@ export async function installApplication({
   return result;
 }
 
+/**
+ * ! Queued together but sent one at a time: core reads and stores the jar on the thread serving the
+ * ! request, and the app this replaces uploaded with `maxConnections: 1` for the same reason.
+ */
+export async function uploadApplications(files: readonly File[]): Promise<void> {
+  const ids = queueUploads(files.map(({ name }) => name));
+
+  for (const [index, file] of files.entries()) {
+    await uploadApplication(file, ids[index]);
+  }
+}
+
+/** One jar, under the id it was queued as. */
 export async function uploadApplication(
   file: File,
+  id: string,
 ): Promise<Result<InstalledApplication, AppError>> {
-  const id = beginUpload(file.name);
-
   const result = await postInstallApplicationFromFile({
     file,
     onProgress: (percent) => receiveUploadProgress(id, percent),

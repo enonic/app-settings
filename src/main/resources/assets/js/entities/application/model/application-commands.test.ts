@@ -20,8 +20,9 @@ import {
   stopApplications,
   uninstallApplications,
   uploadApplication,
+  uploadApplications,
 } from './application-commands';
-import { $applicationUploads } from './application-uploads.store';
+import { $applicationUploads, queueUploads } from './application-uploads.store';
 import type { Application } from './application.types';
 import { loadApplication, loadApplications } from './applications.load';
 
@@ -249,7 +250,7 @@ describe('uploadApplication', () => {
   it('names the application core built, not the file it came in', async () => {
     vi.mocked(postInstallApplicationFromFile).mockReturnValue(okAsync(installed));
 
-    const result = await uploadApplication(jar);
+    const result = await uploadApplication(jar, queueUploads([jar.name])[0]);
 
     expect(notificationTexts()).toEqual(['Booster was installed']);
     expect(loadApplication).toHaveBeenCalledWith(installed.key);
@@ -264,7 +265,7 @@ describe('uploadApplication', () => {
       return okAsync(installed);
     });
 
-    await uploadApplication(jar);
+    await uploadApplication(jar, queueUploads([jar.name])[0]);
 
     expect(Object.values(inFlight[0] ?? {})).toEqual([
       { fileName: 'booster-3.0.1.jar', percent: 40 },
@@ -278,7 +279,7 @@ describe('uploadApplication', () => {
       errAsync(new AppError('Missing file item')),
     );
 
-    const result = await uploadApplication(jar);
+    const result = await uploadApplication(jar, queueUploads([jar.name])[0]);
 
     expect(notificationTexts()).toEqual(['Could not install booster-3.0.1.jar: Missing file item']);
     expect(loadApplication).not.toHaveBeenCalled();
@@ -288,7 +289,7 @@ describe('uploadApplication', () => {
   it('drops the upload after a failure too, so no row is left behind', async () => {
     vi.mocked(postInstallApplicationFromFile).mockReturnValue(errAsync(new AppError('Conflict')));
 
-    await uploadApplication(jar);
+    await uploadApplication(jar, queueUploads([jar.name])[0]);
 
     expect($applicationUploads.get()).toEqual({});
   });
@@ -297,10 +298,66 @@ describe('uploadApplication', () => {
     $serverEventsConnected.set(true);
     vi.mocked(postInstallApplicationFromFile).mockReturnValue(okAsync(installed));
 
-    await uploadApplication(jar);
+    await uploadApplication(jar, queueUploads([jar.name])[0]);
 
     expect(notificationTexts()).toEqual(['Booster was installed']);
     expect(loadApplication).not.toHaveBeenCalled();
+  });
+});
+
+describe('uploadApplications', () => {
+  const jars = ['booster.jar', 'fathom.jar', 'juke.jar'].map((name) => new File(['bytes'], name));
+
+  function uploadsPerCall(): Record<string, unknown>[][] {
+    const seen: Record<string, unknown>[][] = [];
+    vi.mocked(postInstallApplicationFromFile).mockImplementation(({ file }) => {
+      seen.push(Object.values({ ...$applicationUploads.get() }) as Record<string, unknown>[]);
+      return okAsync({ key: file.name, version: '1.0.0', displayName: file.name });
+    });
+
+    return seen;
+  }
+
+  // One going, two waiting — what the operator has to be able to see.
+  it('shows the whole pick before the first jar has gone out', async () => {
+    const seen = uploadsPerCall();
+
+    await uploadApplications(jars);
+
+    expect(seen[0]).toEqual([
+      { fileName: 'booster.jar' },
+      { fileName: 'fathom.jar' },
+      { fileName: 'juke.jar' },
+    ]);
+  });
+
+  it('sends them one at a time, in the order they were picked, and clears the list', async () => {
+    const seen = uploadsPerCall();
+
+    await uploadApplications(jars);
+
+    expect(seen.map((uploads) => uploads.length)).toEqual([3, 2, 1]);
+    expect(vi.mocked(postInstallApplicationFromFile).mock.calls.map(([{ file }]) => file.name)) //
+      .toEqual(['booster.jar', 'fathom.jar', 'juke.jar']);
+    expect($applicationUploads.get()).toEqual({});
+  });
+
+  // A name per jar, because `notify` collapses two identical texts into one.
+  it('carries on after a jar core would not take', async () => {
+    vi.mocked(postInstallApplicationFromFile)
+      .mockImplementationOnce(() => errAsync(new AppError('Missing file item')))
+      .mockImplementation(({ file }) =>
+        okAsync({ key: file.name, version: '1.0.0', displayName: file.name }),
+      );
+
+    await uploadApplications(jars);
+
+    expect(notificationTexts()).toEqual([
+      'Could not install booster.jar: Missing file item',
+      'fathom.jar was installed',
+      'juke.jar was installed',
+    ]);
+    expect($applicationUploads.get()).toEqual({});
   });
 });
 
