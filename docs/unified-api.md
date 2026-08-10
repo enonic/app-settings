@@ -577,24 +577,82 @@ mutations after it follow:
 `createRole` and `updateRole` sit beside the query fields in `principal/role.fields.ts`, so a domain's
 whole schema surface stays in one file.
 
-- **Members travel as the whole list, never as a delta**, and the resolver diffs it against `getMembers`
-  before calling `addMembers` / `removeMembers`. The client sends what it displays; the server works out
-  the difference it can actually verify. The cost is last-write-wins when two administrators re-staff one
-  role at once, which for a handful of operators beats asking the client to compute a diff.
-- **The list argument is non-null**, because an argument that went missing would read as "hold nobody" —
-  and the resolver defaults it anyway: `DataFetchingEnvironmentMapper` hands arguments to JS through the
-  same `MapGenerator` that drops an empty `interfaces` list on a bean's output.
-- **`su` cannot be taken out of `role:system.admin`.** The platform allows it and app-users refuses it;
-  the refusal is worth keeping, since the edit locks the last way back into the tool.
+- **An edit sends what moved, not what the role is to hold.** `updateRole` takes `addMembers` and
+  `removeMembers`; `createRole` takes `members`, which for an empty new role is the same thing.
+  **This reverses what #58 shipped**, and the reversal is recorded in full under _Group mutations_ below —
+  the whole-list version was replaced during #59 rather than left as a second contract for one problem.
+- **`su` cannot be taken out of `role:system.admin`.** app-users refuses it, and so does
+  `SecurityServiceImpl.removeRelationship`; ours is the earlier of the two refusals, so an edit that also
+  gained members never half-applies.
 - **`modifyRole` answers null for a role that is gone**, which is a failed write rather than an answer, so
   the source throws — as does the api mapper when either mutation field comes back null.
 - **A cleared description travels as `""`, not as `undefined`** — see _A `modify*` editor cannot clear a
   field by omitting it_ in `platform-facts.md`. Getting this wrong is invisible to a unit test that
   asserts on its own editor, and #59 and #60 hit the same handler shape.
 - Client side, `role-commands.ts` returns a `ResultAsync` instead of notifying: the dialog stays open and
-  is the screen the save failed on. `.claude/rules/stores.md` records that as settled. The dialog also
-  waits for the member list before enabling `Save`, and merges a late answer with what was ticked while it
-  was in flight — both are the same hazard, that the whole list is what gets sent.
+  is the screen the save failed on. `.claude/rules/stores.md` records that as settled.
+
+#### Group mutations, and membership as a change list ([#59](https://github.com/enonic/app-settings/issues/59))
+
+`createGroup` and `updateGroup` follow the role pattern, with two differences that come from what a group
+is — and the pattern itself changed here.
+
+**A membership argument is a change list, not the membership.** `updateGroup` takes `addMembers`,
+`removeMembers`, `addRoles`, `removeRoles`; `updateRole` takes the first two. #58 shipped the opposite —
+the client asserting the whole list, the server diffing it against `getMembers` — on the reasoning that
+the server "works out the difference it can verify". That reasoning was wrong, and it is worth writing
+down why so it is not re-adopted:
+
+- **The server verifies nothing.** There is no version, no ETag, no optimistic concurrency. It reads
+  current state and converges to what it was handed, which is not verification.
+- **A whole list reverts other people silently.** Somebody adds a member while the dialog is open; the
+  form's snapshot does not have them; saving anything at all removes them. A change list expresses intent
+  — "I added Alice" — which is the thing a client actually knows.
+- **A whole list makes every unshown category of relationship a landmine.** A group's parent groups were
+  one such category: `getMemberships` answers them, the dialog does not show them, and a naive diff would
+  have taken the group out of every parent on the first save. It needed a filter, and the next category XP
+  adds would need another. Naming only what moved makes what is not named safe by construction.
+- **Editing a description costs nothing.** No membership call, no read, whatever the size of the group.
+  Under whole-list semantics a 1000-member group loaded 1000 rows, sent 1000 keys and diffed
+  1000 × 1000 to change one string.
+- **The empty-list ambiguity disappears.** `DataFetchingEnvironmentMapper` hands arguments to JS through
+  the same `MapGenerator` that drops an empty `interfaces` list, so an empty selection can arrive as no
+  argument at all. Under whole-list semantics that is indistinguishable from "hold nobody" — the argument
+  had to be non-null and defaulted, and the failure direction was deletion. For a change list, absent and
+  empty both mean "nothing moved", so the lists are plainly nullable.
+
+What makes the change list safe rather than merely cheaper is that **the primitives are idempotent**:
+`addRelationshipToUpdateNodeParams` skips a relationship already present and the remove side filters, so
+re-applying is a no-op — see `platform-facts.md`. Nothing has to be read before writing.
+
+The rest of the group mutations:
+
+- **Memberships are written from the other end.** A membership is a relationship the role holds, so each
+  change is one `addMembers` / `removeMembers` against that role's key — the platform has no
+  `addMemberships`, and app-users emulates it the same way in `principals.js`.
+- **Creation takes the ID provider, and checks it exists.** A group key is `group:<idProvider>:<name>`, so
+  the provider is fixed for the lifetime of the group. XP would refuse a dangling one anyway, but as
+  `Cannot create node with name [x], parent '/identity/<provider>/groups' not found`; `getIdProviders` is
+  a handful of entries, and refusing up front names the thing the administrator chose.
+- **Nothing is refused that the platform does not refuse.** Unlike roles there is no `su`-shaped guard to
+  keep: app-users has none for groups either, and `group:system:administrators` being deletable is a
+  product question rather than one the platform answers.
+- **Two edges the picker must not offer**, both refused by `PrincipalRelationship`'s constructor and
+  neither visible from the JS types: a group as its own member, and the two implicit roles that can hold
+  nobody. `PrincipalPicker` gained an `excluded` set for it — see _Six membership edges the platform
+  refuses_ in `platform-facts.md`.
+- **A failure is a plain GraphQL error, and the dialog re-reads.** Per-key refusal reporting was
+  considered and dropped as over-engineering for how rarely one key of a two-or-three-key change list
+  fails. What matters is not being left with a stale base: on failure the dialog re-reads the group and
+  overwrites both lists rather than merging into them, because the next `Save` computes its change list
+  against `saved`.
+- **The dialog no longer waits for the lists before enabling `Save`.** It had to under whole-list
+  semantics — saving early would have sent the empty lists the form starts with. With a change list an
+  unloaded list yields an empty diff, so a false removal is impossible by construction rather than by
+  guard. `mergeByKey` stays, but only so the form displays the full membership.
+- `shared/form` holds the three answers a form needs about a list — `mergeByKey`, `diffByKey`, `sameKeys`
+  — all generic over `{ key: string }` and reaching for nothing above `shared`. Extraction candidates for
+  the library Content Studio v6 shares.
 
 The rest of this section is unchanged:
 

@@ -1,5 +1,6 @@
 import { type GraphQLType } from '/lib/graphql';
 
+import { groupMutationFields } from '../principal/group.fields';
 import { principalMutationFields } from '../principal/principal.fields';
 import { roleMutationFields } from '../principal/role.fields';
 import { generator } from './generator';
@@ -14,6 +15,7 @@ export const MutationType: GraphQLType = generator.createObjectType({
     'Write access to what the Settings sections manage. A field is null only when the write could not be attempted; the accompanying error says why.',
   fields: {
     ...principalMutationFields,
+    ...groupMutationFields,
     ...roleMutationFields,
   },
 });

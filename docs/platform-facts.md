@@ -239,6 +239,38 @@ reachable only with the second argument `true`. It matters for any "what does th
 administrator is normally an administrator _through_ `system:administrators`, so a direct-only read shows
 no roles at all. `getAllMemberships` returns groups as well, so filtering by type still works.
 
+## Six membership edges the platform refuses, and both writes are idempotent
+
+`addMembers` and `removeMembers` both build a `PrincipalRelationship` and hand it to
+`SecurityServiceImpl`, so every write of a member or a membership passes the same four constructor
+checks (`PrincipalRelationship:18-26`) plus two service-level ones. What they reject is not visible from
+the JS signatures and none of it is documented:
+
+- **A principal cannot be related to itself.** `'from' and 'to' cannot refer to the same principal` — so a
+  group offered as its own member is a save that cannot succeed, which is why the members picker excludes
+  the group being edited. app-users excludes it the same way.
+- **`role:system.everyone` and `role:system.authenticated` can hold nobody.**
+  `FORBIDDEN_FROM_RELATIONSHIP` (`SecurityServiceImpl:96`) rejects every relationship _from_ either, yet
+  `SecurityInitializer:76-77` creates both as ordinary role principals, so they come back from `roles`
+  like any other and a picker will happily offer them. `IMPLICIT_ROLE_KEYS` in `principal.keys.ts` is
+  that list.
+- **Role to role, group to role, and anything from a user** are refused as well. Only the second is worth
+  remembering: a group's roles are written by adding the group to each role, never the other way round.
+- **`su` cannot be removed from `role:system.admin`.** `removeRelationship` refuses it outright
+  (`SecurityServiceImpl:179-182`), so the refusal `role.source.ts` makes is now a better message rather
+  than the only guard — app-users predates the platform check. Verified against the 8.1.0-SNAPSHOT
+  checkout; the app-users comment claiming the platform allows it is stale.
+
+**Both writes are idempotent, and that is load-bearing** — it is what lets a mutation apply a change list
+without reading current membership first. `PrincipalNodeTranslator:145-166` checks whether the key is
+already in `MEMBER_KEY` before adding it, and `:168-187` rebuilds the list without the key, so removing one
+that is not there is a no-op. Re-applying a change somebody else already made costs nothing and cannot
+duplicate.
+
+**Nothing checks that the principal being added exists.** `addRelationshipToUpdateNodeParams` writes a
+string into the container's node and never reads the target, so a dangling member key is accepted silently.
+Catching it means a `getPrincipal` per added key — affordable for a change list, not for a whole one.
+
 ## A user node stores almost nothing
 
 `populateUserData` writes `email`, `login`, `authenticationHash` and `profile`; the generic part adds

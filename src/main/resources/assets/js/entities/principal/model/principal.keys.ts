@@ -48,6 +48,17 @@ export function isReservedRole(key: PrincipalKey): boolean {
   return isPlatformRole(key) || projectRoleIdOf(key) !== undefined;
 }
 
+/**
+ * The two roles nobody can be put into: membership in them is implied rather than stored.
+ *
+ * ! They read back as ordinary roles, so `roles` lists them — but `FORBIDDEN_FROM_RELATIONSHIP` rejects
+ * ! every relationship from either, so offering one offers a save that cannot succeed.
+ */
+export const IMPLICIT_ROLE_KEYS: ReadonlySet<string> = new Set([
+  'role:system.everyone',
+  'role:system.authenticated',
+]);
+
 // The two users the platform owns and lib-admin-ui's `isSystem()` refuses to delete.
 const SYSTEM_USER_KEYS = ['user:system:su', 'user:system:anonymous'];
 

@@ -230,37 +230,46 @@ describe('sendRoleUpdate', () => {
     vi.restoreAllMocks();
   });
 
-  it('sends the key and the whole member list the role is to hold', async () => {
+  it('sends the key and the two change lists', async () => {
     respondWith({ data: { updateRole: wireRole() } });
 
     await sendRoleUpdate('role:system.admin', {
       displayName: 'Administrator',
-      members: ['user:system:su' as PrincipalKey, 'group:system:ops' as PrincipalKey],
+      addMembers: ['group:system:ops' as PrincipalKey],
+      removeMembers: ['user:system:jane' as PrincipalKey],
     });
 
     expect(sent?.variables).toEqual({
       key: 'role:system.admin',
       displayName: 'Administrator',
       description: undefined,
-      members: ['user:system:su', 'group:system:ops'],
+      addMembers: ['group:system:ops'],
+      removeMembers: ['user:system:jane'],
     });
   });
 
-  it('carries an emptied member list rather than dropping it', async () => {
+  it('carries empty lists for an edit that touched no member', async () => {
     respondWith({ data: { updateRole: wireRole() } });
 
-    await sendRoleUpdate('role:system.admin', { displayName: 'Administrator', members: [] });
+    await sendRoleUpdate('role:editors', {
+      displayName: 'Editors',
+      description: 'Just this',
+      addMembers: [],
+      removeMembers: [],
+    });
 
-    expect(sent?.variables).toMatchObject({ members: [] });
+    expect(sent?.variables).toMatchObject({ addMembers: [], removeMembers: [] });
   });
 
   it('fails when the field came back null', async () => {
     respondWith({ data: { updateRole: null } });
 
-    expect(
-      (
-        await sendRoleUpdate('role:system.admin', { displayName: 'Administrator', members: [] })
-      ).isErr(),
-    ).toBe(true);
+    const result = await sendRoleUpdate('role:gone', {
+      displayName: 'Editors',
+      addMembers: [],
+      removeMembers: [],
+    });
+
+    expect(result.isErr()).toBe(true);
   });
 });

@@ -27,6 +27,8 @@ export type PrincipalPickerProps = {
    * popup. An id provider's seeded permissions are the case.
    */
   locked?: ReadonlySet<string>;
+  /** Principals kept out of the offer altogether, unlike `locked`, which shows them inert. */
+  excluded?: ReadonlySet<string>;
 };
 
 const INCOMPLETE_KEYS: Record<PrincipalType, string> = {
@@ -43,6 +45,7 @@ export function PrincipalPicker({
   placeholder,
   rowTrailing,
   locked,
+  excluded,
 }: PrincipalPickerProps) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -57,10 +60,13 @@ export function PrincipalPicker({
 
   const { status, principals, incompleteKinds } = usePrincipalSearch(query, open, kinds);
 
+  const offered =
+    excluded === undefined ? principals : principals.filter(({ key }) => !excluded.has(key));
+
   const pickedKeys = selected.map(({ key }) => key);
 
   const known = new Map<string, PrincipalRef>(
-    [...selected, ...principals].map((principal) => [principal.key, principal]),
+    [...selected, ...offered].map((principal) => [principal.key, principal]),
   );
 
   // ! Staged, not single or multiple: single closes the popup on the first click, multiple commits every
@@ -111,7 +117,7 @@ export function PrincipalPicker({
           <Combobox.Portal>
             <Combobox.Popup>
               <PrincipalOptions
-                principals={principals}
+                principals={offered}
                 status={status}
                 incompleteKinds={incompleteKinds}
                 locked={locked}

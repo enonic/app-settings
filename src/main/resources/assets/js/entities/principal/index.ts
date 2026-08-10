@@ -20,6 +20,8 @@ export { fetchRoleDetail, ROLES_ROOT, toRoles } from './api/roles.api';
 export type { RolesData } from './api/roles.api';
 export { fetchUserDetail, USERS_ROOT, toUsersPage } from './api/users.api';
 export type { UsersData, UsersPage } from './api/users.api';
+export { createGroup, updateGroup } from './model/group-commands';
+export type { GroupDraft, GroupEdit } from './model/group-commands';
 export { forgetGroupDetails, forgetGroups } from './model/group-detail.load';
 export { beginGroupsLoad, receiveGroups } from './model/groups.store';
 export type { GroupsState } from './model/groups.store';
@@ -43,6 +45,7 @@ export type { DeletablePrincipal, PrincipalSectionScope } from './model/principa
 export { derivePrincipalName, isIllegalPrincipalName } from './model/principal-name';
 export {
   idProviderOf,
+  IMPLICIT_ROLE_KEYS,
   isPlatformRole,
   isReservedRole,
   isSystemUser,
@@ -72,7 +75,7 @@ export type {
   UserKey,
 } from './model/principal.types';
 export { createRole, updateRole } from './model/role-commands';
-export type { RoleDraft } from './model/role-commands';
+export type { RoleDraft, RoleEdit } from './model/role-commands';
 export { forgetRoleDetails, forgetRoles } from './model/role-detail.load';
 export { beginRolesLoad, receiveRoles } from './model/roles.store';
 export type { RolesState } from './model/roles.store';

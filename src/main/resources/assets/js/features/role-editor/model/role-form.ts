@@ -4,7 +4,7 @@ import {
   type PrincipalRef,
   type Role,
 } from '../../../entities/principal';
-import type { FieldErrors } from '../../../shared/form';
+import { sameKeys, type FieldErrors } from '../../../shared/form';
 import type { RoleEditorPayload } from './role-editor.store';
 
 export type RoleForm = {
@@ -43,20 +43,6 @@ export function roleNameOf(role: Role): string {
   return role.key.slice('role:'.length);
 }
 
-/**
- * ! The member list arrives after the dialog opens, and the picker is live in the meantime. Assigning the
- * ! answer over the form would drop whatever was ticked while it was in flight — and since `Save` sends
- * ! the whole list, dropping it means removing those members from the role.
- */
-export function mergeRoleMembers(
-  loaded: readonly PrincipalRef[],
-  edited: readonly PrincipalRef[],
-): PrincipalRef[] {
-  const known = new Set(loaded.map(({ key }) => key));
-
-  return [...loaded, ...edited.filter(({ key }) => !known.has(key))];
-}
-
 export function nextRoleForm(
   previous: RoleForm,
   next: RoleForm,
@@ -85,7 +71,7 @@ export function sameRoleForm(saved: RoleForm, edited: RoleForm): boolean {
     saved.name.trim() === edited.name.trim() &&
     saved.displayName.trim() === edited.displayName.trim() &&
     saved.description.trim() === edited.description.trim() &&
-    sameMembers(saved.members, edited.members)
+    sameKeys(saved.members, edited.members)
   );
 }
 
@@ -106,14 +92,4 @@ export function validateRoleForm(form: RoleForm, mode: RoleEditorPayload['mode']
   }
 
   return errors;
-}
-
-function sameMembers(saved: readonly PrincipalRef[], edited: readonly PrincipalRef[]): boolean {
-  if (saved.length !== edited.length) {
-    return false;
-  }
-
-  const keys = new Set(saved.map(({ key }) => key));
-
-  return edited.every(({ key }) => keys.has(key));
 }

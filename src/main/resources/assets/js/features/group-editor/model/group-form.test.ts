@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Group } from '../../../entities/principal';
-import { initialGroupForm, nextGroupForm, validateGroupForm, type GroupForm } from './group-form';
+import type { Group, PrincipalRef } from '../../../entities/principal';
+import {
+  initialGroupForm,
+  nextGroupForm,
+  sameGroupForm,
+  validateGroupForm,
+  type GroupForm,
+} from './group-form';
 
 const group: Group = {
   type: 'group',
@@ -103,6 +109,50 @@ describe('nextGroupForm', () => {
     const next = { ...previous, idProvider: 'system' };
 
     expect(nextGroupForm(previous, next, 'create', false).values.idProvider).toBe('system');
+  });
+});
+
+describe('sameGroupForm', () => {
+  const alice = { key: 'user:store:alice', type: 'user', displayName: 'Alice' } as PrincipalRef;
+  const bob = { key: 'user:store:bob', type: 'user', displayName: 'Bob' } as PrincipalRef;
+  const admin = { key: 'role:cms.admin', type: 'role', displayName: 'CS Admin' } as PrincipalRef;
+
+  it('reports an untouched form as unchanged', () => {
+    expect(sameGroupForm(form(), form())).toBe(true);
+  });
+
+  it('sees a renamed group', () => {
+    expect(sameGroupForm(form(), form({ displayName: 'Shop Managers' }))).toBe(false);
+  });
+
+  it('sees a re-described group, and a cleared description too', () => {
+    expect(sameGroupForm(form(), form({ description: 'Something else' }))).toBe(false);
+    expect(sameGroupForm(form({ description: 'Runs the shops' }), form({ description: '' }))).toBe(
+      false,
+    );
+  });
+
+  // The command trims before sending, so a change that survives trimming is the only kind there is.
+  it('ignores whitespace the save would trim away', () => {
+    expect(sameGroupForm(form(), form({ displayName: '  Store Managers  ' }))).toBe(true);
+  });
+
+  it('sees a member added and a member removed', () => {
+    expect(sameGroupForm(form({ members: [alice] }), form({ members: [alice, bob] }))).toBe(false);
+    expect(sameGroupForm(form({ members: [alice, bob] }), form({ members: [alice] }))).toBe(false);
+  });
+
+  // The two lists are separate arguments, so a change to either has to be seen on its own.
+  it('sees a role added while the members stood still', () => {
+    expect(
+      sameGroupForm(form({ members: [alice] }), form({ members: [alice], roles: [admin] })),
+    ).toBe(false);
+  });
+
+  it('ignores the order either list is held in', () => {
+    expect(sameGroupForm(form({ members: [alice, bob] }), form({ members: [bob, alice] }))).toBe(
+      true,
+    );
   });
 });
 

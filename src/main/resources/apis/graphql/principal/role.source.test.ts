@@ -18,6 +18,7 @@ import {
   listRoleMembers,
   listRoles,
   updateRole,
+  type RoleChanges,
   type RoleInput,
 } from './role.source';
 
@@ -195,7 +196,6 @@ describe('createRole', () => {
 
   it('creates the role from the name and the scalars given', () => {
     vi.mocked(createRolePrincipal).mockReturnValue(role('role:editors', 'Editors'));
-    vi.mocked(getMembers).mockReturnValue([]);
 
     createRole('editors', input({ description: 'Edits things' }));
 
@@ -208,7 +208,6 @@ describe('createRole', () => {
 
   it('gives the new role every member listed', () => {
     vi.mocked(createRolePrincipal).mockReturnValue(role('role:editors', 'Editors'));
-    vi.mocked(getMembers).mockReturnValue([]);
 
     createRole('editors', input({ members: ['user:system:su', 'group:system:ops'] }));
 
@@ -220,7 +219,6 @@ describe('createRole', () => {
 
   it('touches no membership for a role created with nobody in it', () => {
     vi.mocked(createRolePrincipal).mockReturnValue(role('role:editors', 'Editors'));
-    vi.mocked(getMembers).mockReturnValue([]);
 
     createRole('editors', input());
 
@@ -231,15 +229,14 @@ describe('createRole', () => {
   it('answers the role the platform created', () => {
     const created = role('role:editors', 'Editors');
     vi.mocked(createRolePrincipal).mockReturnValue(created);
-    vi.mocked(getMembers).mockReturnValue([]);
 
     expect(createRole('editors', input())).toBe(created);
   });
 });
 
 describe('updateRole', () => {
-  function input(overrides: Partial<RoleInput> = {}): RoleInput {
-    return { displayName: 'Editors', members: [], ...overrides };
+  function changes(overrides: Partial<RoleChanges> = {}): RoleChanges {
+    return { displayName: 'Editors', addMembers: [], removeMembers: [], ...overrides };
   }
 
   function modifiable(key: string) {
@@ -250,76 +247,58 @@ describe('updateRole', () => {
 
   it('writes the scalars through the editor the platform hands it', () => {
     modifiable('role:editors');
-    vi.mocked(getMembers).mockReturnValue([]);
 
     const updated = updateRole(
       'role:editors',
-      input({ displayName: 'Content editors', description: 'After' }),
+      changes({ displayName: 'Content editors', description: 'After' }),
     );
 
     expect(updated.displayName).toBe('Content editors');
     expect(updated.description).toBe('After');
   });
 
-  // ! The empty string is the only way to clear one: `ModifyRoleHandler` assigns a field only when the
-  // ! editor returned a non-null value, so `undefined` would leave the old description in place.
   it('clears a description the edit dropped, with an empty string rather than nothing', () => {
     modifiable('role:editors');
-    vi.mocked(getMembers).mockReturnValue([]);
 
-    expect(updateRole('role:editors', input()).description).toBe('');
+    expect(updateRole('role:editors', changes()).description).toBe('');
   });
 
-  // ! The whole list arrives, so the difference is the server's to work out — the client never sends
-  // ! an add-list and a remove-list.
-  it('adds what the list gained and removes what it lost', () => {
+  it('reads no membership at all when the member list did not move', () => {
     modifiable('role:editors');
-    vi.mocked(getMembers).mockReturnValue([
-      user('user:system:su', 'Super User'),
-      group('group:system:ops', 'Ops'),
-    ]);
 
-    updateRole('role:editors', input({ members: ['user:system:su', 'group:system:writers'] }));
+    updateRole('role:editors', changes({ description: 'Just the description' }));
+
+    expect(vi.mocked(getMembers)).not.toHaveBeenCalled();
+    expect(vi.mocked(addMembers)).not.toHaveBeenCalled();
+    expect(vi.mocked(removeMembers)).not.toHaveBeenCalled();
+  });
+
+  it('applies exactly the members it was told moved', () => {
+    modifiable('role:editors');
+
+    updateRole(
+      'role:editors',
+      changes({ addMembers: ['group:system:writers'], removeMembers: ['group:system:ops'] }),
+    );
 
     expect(vi.mocked(addMembers)).toHaveBeenCalledWith('role:editors', ['group:system:writers']);
     expect(vi.mocked(removeMembers)).toHaveBeenCalledWith('role:editors', ['group:system:ops']);
   });
 
-  it('asks for no membership change when the list is unchanged', () => {
-    modifiable('role:editors');
-    vi.mocked(getMembers).mockReturnValue([user('user:system:su', 'Super User')]);
-
-    updateRole('role:editors', input({ members: ['user:system:su'] }));
-
-    expect(vi.mocked(addMembers)).not.toHaveBeenCalled();
-    expect(vi.mocked(removeMembers)).not.toHaveBeenCalled();
-  });
-
-  it('empties a role whose member list arrives empty', () => {
-    modifiable('role:editors');
-    vi.mocked(getMembers).mockReturnValue([user('user:system:su', 'Super User')]);
-
-    updateRole('role:editors', input({ members: [] }));
-
-    expect(vi.mocked(removeMembers)).toHaveBeenCalledWith('role:editors', ['user:system:su']);
-  });
-
-  // ! Losing `su` from Administrators locks the last way back into the tool, and the platform allows it.
   it('refuses to take the super user out of the administrators role', () => {
     modifiable('role:system.admin');
-    vi.mocked(getMembers).mockReturnValue([user('user:system:su', 'Super User')]);
 
-    expect(() => updateRole('role:system.admin', input({ members: [] }))).toThrow(
-      'Cannot remove [user:system:su] from [role:system.admin]',
-    );
+    expect(() =>
+      updateRole('role:system.admin', changes({ removeMembers: ['user:system:su'] })),
+    ).toThrow('Cannot remove [user:system:su] from [role:system.admin]');
     expect(vi.mocked(removeMembers)).not.toHaveBeenCalled();
+    expect(vi.mocked(addMembers)).not.toHaveBeenCalled();
   });
 
   it('lets the administrators role change in every other way', () => {
     modifiable('role:system.admin');
-    vi.mocked(getMembers).mockReturnValue([user('user:system:su', 'Super User')]);
 
-    updateRole('role:system.admin', input({ members: ['user:system:su', 'group:system:ops'] }));
+    updateRole('role:system.admin', changes({ addMembers: ['group:system:ops'] }));
 
     expect(vi.mocked(addMembers)).toHaveBeenCalledWith('role:system.admin', ['group:system:ops']);
   });
@@ -327,7 +306,7 @@ describe('updateRole', () => {
   it('fails for a role nothing answers to any more', () => {
     vi.mocked(modifyRole).mockReturnValue(null);
 
-    expect(() => updateRole('role:gone', input())).toThrow('No role answers to [role:gone]');
-    expect(vi.mocked(getMembers)).not.toHaveBeenCalled();
+    expect(() => updateRole('role:gone', changes())).toThrow('No role answers to [role:gone]');
+    expect(vi.mocked(addMembers)).not.toHaveBeenCalled();
   });
 });
