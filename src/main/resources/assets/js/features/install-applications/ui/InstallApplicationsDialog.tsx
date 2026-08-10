@@ -1,14 +1,17 @@
-import { cn, Dialog, SearchField } from '@enonic/ui';
+import { cn, Dialog, SearchField, Tab } from '@enonic/ui';
 import { useStore } from '@nanostores/preact';
+import { Box } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'preact/hooks';
 
 import { loadMarketApplications, useMarketApplications } from '../../../entities/market';
 import { useI18n } from '../../../shared/i18n';
 import { type ServerEvent, useServerEvent } from '../../../shared/server-events';
+import { DropZone } from '../../../shared/ui/DropZone';
 import { $installDialogOpen, closeInstallDialog } from '../model/install-dialog.store';
 import { marketInstallIntent, runMarketInstall } from '../model/install-market-application';
 import { toInstallProgress } from '../model/install-progress';
 import { $marketInstalls, receiveInstallProgress } from '../model/install.store';
+import { JAR_ACCEPT } from '../model/jar-files';
 import {
   type MarketRow,
   searchMarketRows,
@@ -18,7 +21,9 @@ import {
 import { runJarUpload } from '../model/upload-applications';
 import { ConfirmMajorUpdate } from './ConfirmMajorUpdate';
 import { MarketApplicationList } from './MarketApplicationList';
-import { UploadJarButton } from './UploadJarButton';
+
+const MARKET_TAB = 'market';
+const UPLOAD_TAB = 'upload';
 
 /** Where an application comes from: Enonic Market, or a jar the operator has in front of them. */
 export function InstallApplicationsDialog() {
@@ -29,7 +34,11 @@ export function InstallApplicationsDialog() {
   const title = useI18n('applications.dialog.install.title');
   const searchPlaceholder = useI18n('applications.dialog.install.search');
   const clearLabel = useI18n('applications.dialog.install.searchClear');
+  const marketLabel = useI18n('applications.dialog.install.market');
+  const uploadLabel = useI18n('applications.dialog.install.upload');
+  const uploadHint = useI18n('applications.dialog.install.uploadHint');
 
+  const [tab, setTab] = useState<string>(MARKET_TAB);
   const [query, setQuery] = useState('');
   const [confirming, setConfirming] = useState<MarketRow | undefined>(undefined);
 
@@ -51,6 +60,7 @@ export function InstallApplicationsDialog() {
       return;
     }
 
+    setTab(MARKET_TAB);
     setQuery('');
     setConfirming(undefined);
     closeInstallDialog();
@@ -84,7 +94,9 @@ export function InstallApplicationsDialog() {
         <Dialog.Overlay />
 
         <Dialog.Content
-          className={cn('gap-6', confirming ? 'max-w-160' : 'max-w-4xl')}
+          // A fixed height while browsing: the drop zone fills what it is given, and the dialog must
+          // not resize as the tabs switch.
+          className={cn('gap-6', confirming ? 'max-w-160' : 'h-176 max-w-4xl')}
           onEscapeKeyDown={(event) => {
             if (confirming) {
               event.preventDefault();
@@ -102,32 +114,46 @@ export function InstallApplicationsDialog() {
             <>
               <Dialog.DefaultHeader title={title} withClose />
 
-              <div className="flex shrink-0 items-center gap-4">
-                <SearchField
-                  value={query}
-                  onChange={setQuery}
-                  placeholder={searchPlaceholder}
-                  clearLabel={clearLabel}
-                  className="flex-1"
-                >
-                  <SearchField.Icon />
-                  <SearchField.Input aria-label={searchPlaceholder} />
-                  <SearchField.Clear />
-                </SearchField>
+              <Tab.Root value={tab} onValueChange={setTab} className="min-h-0 flex-1 gap-6">
+                <Tab.List>
+                  <Tab.Trigger value={MARKET_TAB}>{marketLabel}</Tab.Trigger>
+                  <Tab.Trigger value={UPLOAD_TAB}>{uploadLabel}</Tab.Trigger>
+                </Tab.List>
 
-                <UploadJarButton onFiles={(files) => void runJarUpload(files)} />
-              </div>
+                <Tab.Content value={MARKET_TAB} className="mt-0 flex min-h-0 flex-1 flex-col gap-6">
+                  <SearchField
+                    value={query}
+                    onChange={setQuery}
+                    placeholder={searchPlaceholder}
+                    clearLabel={clearLabel}
+                  >
+                    <SearchField.Icon />
+                    <SearchField.Input aria-label={searchPlaceholder} />
+                    <SearchField.Clear />
+                  </SearchField>
 
-              <Dialog.Body>
-                <MarketApplicationList
-                  status={status}
-                  rows={visible}
-                  searching={query.trim().length > 0}
-                  installs={installs}
-                  onInstall={handleInstall}
-                  onRetry={() => void loadMarketApplications()}
-                />
-              </Dialog.Body>
+                  <Dialog.Body>
+                    <MarketApplicationList
+                      status={status}
+                      rows={visible}
+                      searching={query.trim().length > 0}
+                      installs={installs}
+                      onInstall={handleInstall}
+                      onRetry={() => void loadMarketApplications()}
+                    />
+                  </Dialog.Body>
+                </Tab.Content>
+
+                <Tab.Content value={UPLOAD_TAB} className="mt-0 min-h-0 flex-1">
+                  <DropZone
+                    accept={JAR_ACCEPT}
+                    multiple
+                    icon={<Box size={28} strokeWidth={1.5} aria-hidden />}
+                    hint={uploadHint}
+                    onFiles={(files) => void runJarUpload(files)}
+                  />
+                </Tab.Content>
+              </Tab.Root>
             </>
           )}
         </Dialog.Content>
