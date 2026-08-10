@@ -52,6 +52,16 @@ describe('toApplicationRow', () => {
     expect(row.meta).toEqual(['Stopped']);
   });
 
+  // Selection and `Select all` key off this; navigation and the details column do not.
+  it('refuses the tick on an application XP ships', () => {
+    expect(toApplicationRow(application({ system: true })).selectable).toBe(false);
+  });
+
+  it('leaves an installed application selectable, local or not', () => {
+    expect(toApplicationRow(application()).selectable).toBe(true);
+    expect(toApplicationRow(application({ local: true })).selectable).toBe(true);
+  });
+
   it('carries no meta at all when there is nothing to put in it', () => {
     const row = toApplicationRow(application());
 

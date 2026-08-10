@@ -54,5 +54,8 @@ export function toApplicationRow(
     subtitle: application.description,
     icon,
     meta: meta.length === 0 ? undefined : meta,
+    // An application XP ships is not the operator's to act on, so its row opens and navigates like any
+    // other but cannot be ticked.
+    selectable: !application.system,
   };
 }

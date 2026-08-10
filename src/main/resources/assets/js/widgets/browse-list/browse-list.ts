@@ -12,9 +12,21 @@ export type BrowseRow = {
   meta?: readonly ReactNode[];
   /** Transient row: no navigation, no checkbox. Progress goes in `meta`. */
   disabled?: boolean;
+  /**
+   * An item that is not the operator's to act on: the row opens and navigates as any other, and its
+   * checkbox is greyed out. Defaults to selectable, as `@enonic/ui`'s own `TreeList` row does.
+   */
+  selectable?: boolean;
 };
 
+/** The rows a tick or `Select all` may reach. */
 export function selectableKeys(rows: readonly BrowseRow[]): string[] {
+  return rows.filter((row) => !row.disabled && row.selectable !== false).map((row) => row.key);
+}
+
+// The wider set: an unselectable row is still a row, so the arrows and the tab stop have to land on
+// it. Only a transient one is out.
+function navigableKeys(rows: readonly BrowseRow[]): string[] {
   return rows.filter((row) => !row.disabled).map((row) => row.key);
 }
 
@@ -126,7 +138,7 @@ export function tabbableRowKey(
   rows: readonly BrowseRow[],
   activeKey: string | undefined,
 ): string | undefined {
-  const keys = selectableKeys(rows);
+  const keys = navigableKeys(rows);
   return activeKey !== undefined && keys.includes(activeKey) ? activeKey : keys[0];
 }
 
@@ -136,7 +148,7 @@ export function nextRowKey(
   activeKey: string | undefined,
   pressedKey: string,
 ): string | undefined {
-  const keys = selectableKeys(rows);
+  const keys = navigableKeys(rows);
   if (keys.length === 0) {
     return undefined;
   }
