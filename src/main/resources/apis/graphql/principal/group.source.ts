@@ -1,16 +1,41 @@
 import {
+  addMembers,
+  createGroup as createGroupPrincipal,
   findPrincipals,
+  getIdProviders,
   getMembers,
   getMemberships,
   getPrincipal,
+  modifyGroup,
+  removeMembers,
   type Group,
   type GroupKey,
   type Principal,
+  type RoleKey,
+  type UserKey,
 } from '/lib/xp/auth';
 
 import { byName, displayNameOf, toPrincipalItem, type PrincipalItem } from './principal.source';
 
 export type GroupSource = Group;
+
+/** What a new group is created with. Both lists are additions: a group starts out holding nobody. */
+export type GroupInput = {
+  displayName: string;
+  description?: string;
+  members: readonly string[];
+  roles: readonly string[];
+};
+
+/** What an edit changes about a group: the scalars, and only the membership that moved. */
+export type GroupChanges = {
+  displayName: string;
+  description?: string;
+  addMembers: readonly string[];
+  removeMembers: readonly string[];
+  addRoles: readonly string[];
+  removeRoles: readonly string[];
+};
 
 export function listGroups(): Group[] {
   // ? count: -1 is NodeSearchService.GET_ALL_SIZE_FLAG, honoured in SearchExecutor:50 — not
@@ -63,9 +88,72 @@ export function listGroupRoles(key: GroupKey): PrincipalItem[] {
     .sort((a, b) => byName(a.displayName, b.displayName));
 }
 
+export function createGroup(idProvider: string, name: string, input: GroupInput): Group {
+  requireIdProvider(idProvider);
+
+  const group = createGroupPrincipal({
+    idProvider,
+    name,
+    displayName: input.displayName,
+    description: input.description,
+  });
+
+  applyMembers(group.key, input.members, []);
+  applyRoles(group.key, input.roles, []);
+
+  return group;
+}
+
+export function updateGroup(key: string, changes: GroupChanges): Group {
+  const group = modifyGroup({
+    key: key as GroupKey,
+    // ! `ModifyGroupHandler` assigns a field only when the editor returned a non-null value, so the
+    // ! empty string is what clears a description and `undefined` would not.
+    editor: (current) => ({
+      ...current,
+      displayName: changes.displayName,
+      description: changes.description ?? '',
+    }),
+  });
+
+  if (group == null) {
+    throw new Error(`No group answers to [${key}]`);
+  }
+
+  applyMembers(group.key, changes.addMembers, changes.removeMembers);
+  applyRoles(group.key, changes.addRoles, changes.removeRoles);
+
+  return group;
+}
+
 // *
 // * Helpers
 // *
+
+// ? XP refuses a dangling provider too, but as `Cannot create node with name [x], parent
+// ? '/identity/<provider>/groups' not found` — an internal path rather than what the administrator chose.
+function requireIdProvider(key: string): void {
+  if (!getIdProviders().some((provider) => provider.key === key)) {
+    throw new Error(`No ID provider answers to [${key}]`);
+  }
+}
+
+// Nothing is read first: both writes are idempotent at the node level, see `docs/platform-facts.md`.
+function applyMembers(key: GroupKey, added: readonly string[], removed: readonly string[]): void {
+  if (added.length > 0) {
+    addMembers(key, added as (UserKey | GroupKey)[]);
+  }
+  if (removed.length > 0) {
+    removeMembers(key, removed as (UserKey | GroupKey)[]);
+  }
+}
+
+// ! A membership is a relationship the *role* holds, and the platform has no `addMemberships` — so this
+// ! is one call against each role, never one against the group.
+function applyRoles(key: GroupKey, added: readonly string[], removed: readonly string[]): void {
+  added.forEach((role) => addMembers(role as RoleKey, [key]));
+  removed.forEach((role) => removeMembers(role as RoleKey, [key]));
+}
 
 function isGroup(principal: Principal): principal is Group {
   return principal.type === 'group';

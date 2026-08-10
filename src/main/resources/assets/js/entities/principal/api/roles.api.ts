@@ -68,27 +68,30 @@ type RoleDetailDto = RoleDto & {
   members: PrincipalRefDto[];
 };
 
-/**
- * The scalars a role is written with, plus the whole member list it is to hold.
- *
- * Not a delta: the client sends what the dialog displays and the server diffs it against `getMembers`,
- * which is the only side that can check the difference it is about to apply.
- */
+/** What a new role is created with. `members` is additions: a role starts out held by nobody. */
 export type RoleInput = {
   displayName: string;
   description?: string;
   members: readonly PrincipalKey[];
 };
 
+/** What an edit changes about a role: the two lists are what moved, not what the role is to hold. */
+export type RoleChanges = {
+  displayName: string;
+  description?: string;
+  addMembers: readonly PrincipalKey[];
+  removeMembers: readonly PrincipalKey[];
+};
+
 const CREATE_ROLE_DOCUMENT = `
-  mutation CreateRole($name: String!, $displayName: String!, $description: String, $members: [String!]!) {
+  mutation CreateRole($name: String!, $displayName: String!, $description: String, $members: [String!]) {
     createRole(name: $name, displayName: $displayName, description: $description, members: $members) {${ROLE_FIELDS}}
   }
 `;
 
 const UPDATE_ROLE_DOCUMENT = `
-  mutation UpdateRole($key: String!, $displayName: String!, $description: String, $members: [String!]!) {
-    updateRole(key: $key, displayName: $displayName, description: $description, members: $members) {${ROLE_FIELDS}}
+  mutation UpdateRole($key: String!, $displayName: String!, $description: String, $addMembers: [String!], $removeMembers: [String!]) {
+    updateRole(key: $key, displayName: $displayName, description: $description, addMembers: $addMembers, removeMembers: $removeMembers) {${ROLE_FIELDS}}
   }
 `;
 
@@ -122,10 +125,10 @@ export function sendRoleCreation(name: string, input: RoleInput): ResultAsync<Ro
   }).andThen(({ createRole }) => written(createRole));
 }
 
-export function sendRoleUpdate(key: string, input: RoleInput): ResultAsync<Role, AppError> {
+export function sendRoleUpdate(key: string, changes: RoleChanges): ResultAsync<Role, AppError> {
   return requestGraphQlDocument<UpdateRoleData>(UPDATE_ROLE_DOCUMENT, {
     key,
-    ...input,
+    ...changes,
   }).andThen(({ updateRole }) => written(updateRole));
 }
 

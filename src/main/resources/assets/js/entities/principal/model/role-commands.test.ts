@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppError } from '../../../shared/api';
 import { sendRoleCreation, sendRoleUpdate } from '../api/roles.api';
 import type { PrincipalKey, Role } from './principal.types';
-import { createRole, updateRole, type RoleDraft } from './role-commands';
+import { createRole, updateRole, type RoleDraft, type RoleEdit } from './role-commands';
 
 vi.mock('../api/roles.api', () => ({
   sendRoleCreation: vi.fn(),
@@ -77,22 +77,36 @@ describe('createRole', () => {
 });
 
 describe('updateRole', () => {
+  function edit(overrides: Partial<RoleEdit> = {}): RoleEdit {
+    return {
+      displayName: 'Editors',
+      description: '',
+      addMembers: [],
+      removeMembers: [],
+      ...overrides,
+    };
+  }
+
   it('writes against the key it was given, never the typed name', async () => {
-    await updateRole('role:system.admin' as PrincipalKey, draft({ name: 'ignored' }));
+    await updateRole('role:system.admin' as PrincipalKey, edit());
 
     expect(sendRoleUpdate).toHaveBeenCalledWith('role:system.admin', {
       displayName: 'Editors',
       description: undefined,
-      members: [],
+      addMembers: [],
+      removeMembers: [],
     });
   });
 
-  it('carries an emptied member list, which is how a role is cleared', async () => {
-    await updateRole('role:editors' as PrincipalKey, draft({ members: [] }));
+  it('passes the two change lists through untouched', async () => {
+    const addMembers = ['group:system:writers'] as PrincipalKey[];
+    const removeMembers = ['group:system:ops'] as PrincipalKey[];
+
+    await updateRole('role:editors' as PrincipalKey, edit({ addMembers, removeMembers }));
 
     expect(sendRoleUpdate).toHaveBeenCalledWith(
       'role:editors',
-      expect.objectContaining({ members: [] }),
+      expect.objectContaining({ addMembers, removeMembers }),
     );
   });
 });

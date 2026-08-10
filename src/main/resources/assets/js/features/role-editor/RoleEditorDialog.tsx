@@ -3,7 +3,7 @@ import { UserPen } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 
 import { createRole, updateRole } from '../../entities/principal';
-import { visitedErrors } from '../../shared/form';
+import { diffByKey, mergeByKey, visitedErrors } from '../../shared/form';
 import { i18n, useI18n } from '../../shared/i18n';
 import { DialogIdentityHeader } from '../../shared/ui/dialogs/DialogIdentityHeader';
 import { ModalDialog } from '../../shared/ui/dialogs/ModalDialog';
@@ -11,7 +11,6 @@ import { $roleEditDetail, forgetRoleEditDetail, showRoleForEdit } from './model/
 import { $roleEditor, closeRoleEditor } from './model/role-editor.store';
 import {
   initialRoleForm,
-  mergeRoleMembers,
   nextRoleForm,
   sameRoleForm,
   validateRoleForm,
@@ -46,6 +45,9 @@ export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
   const [visited, setVisited] = useState<ReadonlySet<RoleFormField>>(new Set());
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | undefined>();
+  // ! Set when a save failed: the re-read that follows overwrites rather than merges, since the next
+  // ! `Save` diffs against `saved`.
+  const [resyncing, setResyncing] = useState(false);
 
   useEffect(() => {
     const opened = editor === undefined ? undefined : initialRoleForm(editor);
@@ -55,26 +57,41 @@ export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
     setVisited(new Set());
     setSaving(false);
     setFailure(undefined);
+    setResyncing(false);
     showRoleForEdit(editedKey);
   }, [editor, editedKey]);
 
   useEffect(() => {
     const loaded = detail.item;
     if (loaded === undefined || loaded.key !== editedKey) {
+      // A re-read that answered nothing settles the flag anyway.
+      if (resyncing && detail.status !== 'loading') {
+        setResyncing(false);
+      }
+      return;
+    }
+
+    if (resyncing) {
+      setValues((current) =>
+        current === undefined ? current : { ...current, members: loaded.members },
+      );
+      setSaved((current) =>
+        current === undefined ? current : { ...current, members: loaded.members },
+      );
+      setResyncing(false);
       return;
     }
 
     setValues((current) =>
       current === undefined
         ? current
-        : { ...current, members: mergeRoleMembers(loaded.members, current.members) },
+        : { ...current, members: mergeByKey(loaded.members, current.members) },
     );
 
-    // The saved state gains the members as they are held, not as they are being edited.
     setSaved((current) =>
       current === undefined ? current : { ...current, members: loaded.members },
     );
-  }, [detail.item, editedKey]);
+  }, [detail.item, detail.status, editedKey, resyncing]);
 
   const errors = useMemo(
     () =>
@@ -83,10 +100,6 @@ export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
   );
 
   const shownErrors = useMemo(() => visitedErrors(errors, visited), [errors, visited]);
-
-  // ! Save waits for the member list a role already has. `members` travels as the whole list, so saving
-  // ! before it arrives would send the empty one the form starts with and empty the role.
-  const membersReady = editedKey === undefined || detail.status === 'ready';
 
   const unchanged = values !== undefined && saved !== undefined && sameRoleForm(saved, values);
 
@@ -108,9 +121,17 @@ export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
     setSaving(true);
     setFailure(undefined);
 
-    const draft = { ...values, members: values.members.map(({ key }) => key) };
+    const members = diffByKey(saved?.members ?? [], values.members);
+
     const written =
-      editor.mode === 'edit' ? await updateRole(editor.role.key, draft) : await createRole(draft);
+      editor.mode === 'edit'
+        ? await updateRole(editor.role.key, {
+            displayName: values.displayName,
+            description: values.description,
+            addMembers: members.added,
+            removeMembers: members.removed,
+          })
+        : await createRole({ ...values, members: values.members.map(({ key }) => key) });
 
     written.match(
       () => {
@@ -121,6 +142,12 @@ export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
       (error) => {
         setSaving(false);
         setFailure(error.message);
+        // Whatever part of the edit landed, the picker must show what the role now holds.
+        if (editedKey !== undefined) {
+          setResyncing(true);
+          forgetRoleEditDetail();
+          showRoleForEdit(editedKey);
+        }
       },
     );
   };
@@ -131,7 +158,7 @@ export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
       title={editor?.mode === 'edit' ? editTitle : createTitle}
       size="wide"
       primaryLabel={saveLabel}
-      primaryDisabled={saving || !membersReady || unchanged || Object.keys(errors).length > 0}
+      primaryDisabled={saving || unchanged || Object.keys(errors).length > 0}
       cancelLabel={cancelLabel}
       closeLabel={closeLabel}
       error={failure ?? (detail.status === 'error' ? membersFailed : undefined)}

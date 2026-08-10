@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { $config, setConfig, type ToolConfig } from '../../../shared/config';
-import { fetchGroupDetail, GROUPS_ROOT, toGroups } from './groups.api';
+import type { PrincipalKey } from '../model/principal.types';
+import {
+  fetchGroupDetail,
+  GROUPS_ROOT,
+  sendGroupCreation,
+  sendGroupUpdate,
+  toGroups,
+} from './groups.api';
 
 const config = {
   appId: 'com.enonic.xp.app.settings',
@@ -130,6 +137,151 @@ describe('fetchGroupDetail', () => {
     respondWith({ errors: [{ message: 'Memberships are unreadable' }] });
 
     const result = await fetchGroupDetail('group:system:administrators');
+
+    expect(result.isErr()).toBe(true);
+  });
+});
+
+describe('sendGroupCreation', () => {
+  beforeEach(() => {
+    setConfig(config);
+    sent = undefined;
+  });
+
+  afterEach(() => {
+    $config.set(undefined);
+    vi.restoreAllMocks();
+  });
+
+  it('sends every value as a variable, never through the query text', async () => {
+    respondWith({ data: { createGroup: wireGroup({ key: 'group:store:managers' }) } });
+
+    await sendGroupCreation('store', 'managers', {
+      displayName: 'Managers',
+      description: 'Runs the shops',
+      members: ['user:store:alice' as PrincipalKey],
+      roles: ['role:cms.admin' as PrincipalKey],
+    });
+
+    expect(sent?.variables).toEqual({
+      idProvider: 'store',
+      name: 'managers',
+      displayName: 'Managers',
+      description: 'Runs the shops',
+      members: ['user:store:alice'],
+      roles: ['role:cms.admin'],
+    });
+    expect(sent?.query).not.toContain('Managers');
+  });
+
+  it('maps the group the server wrote', async () => {
+    respondWith({ data: { createGroup: wireGroup({ key: 'group:store:managers' }) } });
+
+    const group = (
+      await sendGroupCreation('store', 'managers', {
+        displayName: 'Managers',
+        members: [],
+        roles: [],
+      })
+    )._unsafeUnwrap();
+
+    expect(group).toEqual({
+      type: 'group',
+      key: 'group:store:managers',
+      displayName: 'Administrators',
+      description: 'The admins',
+    });
+  });
+
+  // ! Unlike a read, a null here says nothing about whether the group exists now.
+  it('fails when the field came back null', async () => {
+    respondWith({ data: { createGroup: null } });
+
+    const result = await sendGroupCreation('store', 'managers', {
+      displayName: 'Managers',
+      members: [],
+      roles: [],
+    });
+
+    expect(result.isErr()).toBe(true);
+  });
+
+  it('fails with the message the server gave', async () => {
+    respondWith({ errors: [{ message: 'No ID provider answers to [gone]' }] });
+
+    const result = await sendGroupCreation('gone', 'managers', {
+      displayName: 'Managers',
+      members: [],
+      roles: [],
+    });
+
+    expect(result._unsafeUnwrapErr().message).toBe('No ID provider answers to [gone]');
+  });
+});
+
+describe('sendGroupUpdate', () => {
+  beforeEach(() => {
+    setConfig(config);
+    sent = undefined;
+  });
+
+  afterEach(() => {
+    $config.set(undefined);
+    vi.restoreAllMocks();
+  });
+
+  function changes(overrides: Record<string, unknown> = {}) {
+    return {
+      displayName: 'Managers',
+      addMembers: [],
+      removeMembers: [],
+      addRoles: [],
+      removeRoles: [],
+      ...overrides,
+    };
+  }
+
+  it('sends the key and the four change lists', async () => {
+    respondWith({ data: { updateGroup: wireGroup() } });
+
+    await sendGroupUpdate(
+      'group:store:managers',
+      changes({
+        addMembers: ['user:store:bob' as PrincipalKey],
+        removeMembers: ['user:store:alice' as PrincipalKey],
+        addRoles: ['role:cms.expert' as PrincipalKey],
+        removeRoles: ['role:cms.admin' as PrincipalKey],
+      }),
+    );
+
+    expect(sent?.variables).toEqual({
+      key: 'group:store:managers',
+      displayName: 'Managers',
+      description: undefined,
+      addMembers: ['user:store:bob'],
+      removeMembers: ['user:store:alice'],
+      addRoles: ['role:cms.expert'],
+      removeRoles: ['role:cms.admin'],
+    });
+  });
+
+  it('carries no key at all for an edit that touched neither list', async () => {
+    respondWith({ data: { updateGroup: wireGroup() } });
+
+    await sendGroupUpdate('group:store:managers', changes({ description: 'Just this' }));
+
+    expect(sent?.variables).toMatchObject({
+      addMembers: [],
+      removeMembers: [],
+      addRoles: [],
+      removeRoles: [],
+    });
+  });
+
+  it('fails when the field came back null', async () => {
+    respondWith({ data: { updateGroup: null } });
+
+    const result = await sendGroupUpdate('group:store:gone', changes());
 
     expect(result.isErr()).toBe(true);
   });

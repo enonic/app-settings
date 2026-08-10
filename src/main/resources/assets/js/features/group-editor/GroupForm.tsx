@@ -1,6 +1,7 @@
 import { Input, Selector, TextArea } from '@enonic/ui';
+import { useMemo } from 'preact/hooks';
 
-import type { IdProviderName } from '../../entities/principal';
+import { IMPLICIT_ROLE_KEYS, type IdProviderName } from '../../entities/principal';
 import { PrincipalPicker } from '../../entities/principal/ui/PrincipalPicker';
 import { i18n, useI18n } from '../../shared/i18n';
 import { FieldLabel } from '../../shared/ui/FieldLabel';
@@ -11,6 +12,8 @@ export type GroupFormProps = {
   values: GroupFormValues;
   errors: GroupFormErrors;
   providers: readonly IdProviderName[];
+  /** The group being edited, which the members picker must not offer. Absent while creating. */
+  groupKey?: string;
   keyFixed: boolean;
   onChange: (values: GroupFormValues) => void;
   onBlur: (field: 'name' | 'displayName' | 'idProvider') => void;
@@ -24,6 +27,7 @@ export function GroupForm({
   values,
   errors,
   providers,
+  groupKey,
   keyFixed,
   onChange,
   onBlur,
@@ -43,6 +47,12 @@ export function GroupForm({
 
   const providerName =
     providers.find(({ key }) => key === values.idProvider)?.displayName ?? values.idProvider;
+
+  // The platform refuses a relationship whose two ends are the same principal.
+  const notItself = useMemo(
+    () => (groupKey === undefined ? undefined : new Set([groupKey])),
+    [groupKey],
+  );
 
   return (
     <>
@@ -108,6 +118,7 @@ export function GroupForm({
           kinds={['user', 'group']}
           placeholder={membersPlaceholder}
           selected={values.members}
+          excluded={notItself}
           onChange={(members) => onChange({ ...values, members })}
         />
       </FieldSection>
@@ -117,6 +128,7 @@ export function GroupForm({
           kinds={['role']}
           placeholder={rolesPlaceholder}
           selected={values.roles}
+          excluded={IMPLICIT_ROLE_KEYS}
           onChange={(roles) => onChange({ ...values, roles })}
         />
       </FieldSection>

@@ -1,6 +1,6 @@
-import type { ResultAsync } from 'neverthrow';
+import { err, ok, type ResultAsync } from 'neverthrow';
 
-import { requestGraphQlDocument, type AppError, type GraphQlRoot } from '../../../shared/api';
+import { AppError, requestGraphQlDocument, type GraphQlRoot } from '../../../shared/api';
 import type {
   Group,
   GroupDetail,
@@ -67,6 +67,40 @@ type GroupDetailDto = GroupDto & {
   roles: PrincipalRefDto[];
 };
 
+/** What a new group is created with. Both lists are additions: a group starts out holding nobody. */
+export type GroupInput = {
+  displayName: string;
+  description?: string;
+  members: readonly PrincipalKey[];
+  roles: readonly PrincipalKey[];
+};
+
+/** What an edit changes about a group: the four lists are what moved, not what the group is to hold. */
+export type GroupChanges = {
+  displayName: string;
+  description?: string;
+  addMembers: readonly PrincipalKey[];
+  removeMembers: readonly PrincipalKey[];
+  addRoles: readonly PrincipalKey[];
+  removeRoles: readonly PrincipalKey[];
+};
+
+const CREATE_GROUP_DOCUMENT = `
+  mutation CreateGroup($idProvider: String!, $name: String!, $displayName: String!, $description: String, $members: [String!], $roles: [String!]) {
+    createGroup(idProvider: $idProvider, name: $name, displayName: $displayName, description: $description, members: $members, roles: $roles) {${GROUP_FIELDS}}
+  }
+`;
+
+const UPDATE_GROUP_DOCUMENT = `
+  mutation UpdateGroup($key: String!, $displayName: String!, $description: String, $addMembers: [String!], $removeMembers: [String!], $addRoles: [String!], $removeRoles: [String!]) {
+    updateGroup(key: $key, displayName: $displayName, description: $description, addMembers: $addMembers, removeMembers: $removeMembers, addRoles: $addRoles, removeRoles: $removeRoles) {${GROUP_FIELDS}}
+  }
+`;
+
+type CreateGroupData = { createGroup: GroupDto | null };
+
+type UpdateGroupData = { updateGroup: GroupDto | null };
+
 export type GroupsData = { groups: GroupDto[] | null };
 
 /** `group` is null for a key nothing answers to, which is an answer rather than a failure. */
@@ -93,9 +127,33 @@ export function fetchGroupDetail(
   );
 }
 
+export function sendGroupCreation(
+  idProvider: string,
+  name: string,
+  input: GroupInput,
+): ResultAsync<Group, AppError> {
+  return requestGraphQlDocument<CreateGroupData>(CREATE_GROUP_DOCUMENT, {
+    idProvider,
+    name,
+    ...input,
+  }).andThen(({ createGroup }) => written(createGroup));
+}
+
+export function sendGroupUpdate(key: string, changes: GroupChanges): ResultAsync<Group, AppError> {
+  return requestGraphQlDocument<UpdateGroupData>(UPDATE_GROUP_DOCUMENT, {
+    key,
+    ...changes,
+  }).andThen(({ updateGroup }) => written(updateGroup));
+}
+
 //
 // * Helpers
 //
+
+// ! A write that answered null is a failure, unlike a read of one item: nothing says whether it happened.
+function written(dto: GroupDto | null) {
+  return dto == null ? err(new AppError('The group was not written')) : ok(toGroup(dto));
+}
 
 function toGroup(dto: GroupDto): Group {
   return {

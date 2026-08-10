@@ -5,7 +5,7 @@ import {
   principalName,
   type PrincipalRef,
 } from '../../../entities/principal';
-import type { FieldErrors } from '../../../shared/form';
+import { sameKeys, type FieldErrors } from '../../../shared/form';
 import type { GroupEditorPayload } from './group-editor.store';
 
 export type GroupForm = {
@@ -70,6 +70,24 @@ export function nextGroupForm(
   }
 
   return { values: { ...next, name: derivePrincipalName(next.displayName) }, nameEdited: false };
+}
+
+/**
+ * Whether the form still says what was saved.
+ *
+ * Compared the way the form is sent: the scalars trimmed, since the command trims them, and both lists
+ * as sets, since their order is not part of what a group holds. The provider and the name are in the
+ * key and cannot move once the group exists, so an edit that differs in nothing else is no edit.
+ */
+export function sameGroupForm(saved: GroupForm, edited: GroupForm): boolean {
+  return (
+    saved.idProvider === edited.idProvider &&
+    saved.name.trim() === edited.name.trim() &&
+    saved.displayName.trim() === edited.displayName.trim() &&
+    saved.description.trim() === edited.description.trim() &&
+    sameKeys(saved.members, edited.members) &&
+    sameKeys(saved.roles, edited.roles)
+  );
 }
 
 export function validateGroupForm(

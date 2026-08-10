@@ -96,7 +96,7 @@ export function GroupsPage() {
         sort={<BrowseSort options={sortOptions} value={sort} onChange={setGroupsSort} />}
       />
 
-      <GroupEditorDialog />
+      <GroupEditorDialog onSaved={() => void loadGroupsScreen()} />
       <GroupDeleteDialog activeKey={section.activeKey} onCloseItem={closeItem} />
     </>
   );

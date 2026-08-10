@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import type { PrincipalRef, Role } from '../../../entities/principal';
 import {
   initialRoleForm,
-  mergeRoleMembers,
   nextRoleForm,
   roleNameOf,
   sameRoleForm,
@@ -148,33 +147,6 @@ describe('validateRoleForm', () => {
       name: 'roles.dialog.nameRequired',
       displayName: 'roles.dialog.displayNameRequired',
     });
-  });
-});
-
-describe('mergeRoleMembers', () => {
-  function member(key: string, displayName: string): PrincipalRef {
-    return { key: key as PrincipalRef['key'], type: 'user', displayName };
-  }
-
-  const su = member('user:system:su', 'Super User');
-  const jane = member('user:system:jane', 'Jane');
-
-  it('takes the loaded list when the form has been left alone', () => {
-    expect(mergeRoleMembers([su], [])).toEqual([su]);
-  });
-
-  // ! The regression this exists to prevent: `Save` sends the whole list, so a member ticked while the
-  // ! answer was in flight would otherwise be dropped — and dropping it removes it from the role.
-  it('keeps what was ticked while the list was still loading', () => {
-    expect(mergeRoleMembers([su], [jane])).toEqual([su, jane]);
-  });
-
-  it('lists a member held by both sides once', () => {
-    expect(mergeRoleMembers([su, jane], [jane])).toEqual([su, jane]);
-  });
-
-  it('answers an empty list for a role nobody holds and nobody added', () => {
-    expect(mergeRoleMembers([], [])).toEqual([]);
   });
 });
 

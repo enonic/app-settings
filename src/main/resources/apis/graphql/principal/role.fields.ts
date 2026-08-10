@@ -1,13 +1,24 @@
 import { GraphQLString, list, nonNull, type GraphQLFields } from '/lib/graphql';
 
-import { createRole, getRole, listRoles, updateRole, type RoleInput } from './role.source';
+import { createRole, getRole, listRoles, updateRole, type RoleChanges } from './role.source';
 import { RoleDetailType, RoleType } from './role.types';
 
-type RoleArgs = {
+type CreateArgs = {
+  name: string;
   displayName: string;
   description?: string;
   members?: string[];
 };
+
+type UpdateArgs = {
+  key: string;
+  displayName: string;
+  description?: string;
+  addMembers?: string[];
+  removeMembers?: string[];
+};
+
+const keys = list(nonNull(GraphQLString));
 
 export const roleQueryFields: GraphQLFields = {
   roles: {
@@ -33,29 +44,37 @@ export const roleMutationFields: GraphQLFields = {
       name: nonNull(GraphQLString),
       displayName: nonNull(GraphQLString),
       description: GraphQLString,
-      members: nonNull(list(nonNull(GraphQLString))),
+      members: keys,
     },
-    resolve: (env: { args: RoleArgs & { name: string } }) =>
-      createRole(env.args.name, toRoleInput(env.args)),
+    resolve: (env: { args: CreateArgs }) =>
+      createRole(env.args.name, {
+        displayName: env.args.displayName,
+        description: env.args.description,
+        members: env.args.members ?? [],
+      }),
   },
   updateRole: {
     type: RoleType,
     description:
-      'Renames, re-describes and re-staffs a role. `members` is the whole list the role is to hold, not a delta.',
+      'Renames and re-describes a role, and applies the membership the edit changed. The two lists are what moved, not what the role is to hold — omit both and the membership is left alone.',
     args: {
       key: nonNull(GraphQLString),
       displayName: nonNull(GraphQLString),
       description: GraphQLString,
-      members: nonNull(list(nonNull(GraphQLString))),
+      addMembers: keys,
+      removeMembers: keys,
     },
-    resolve: (env: { args: RoleArgs & { key: string } }) =>
-      updateRole(env.args.key, toRoleInput(env.args)),
+    resolve: (env: { args: UpdateArgs }) => updateRole(env.args.key, toRoleChanges(env.args)),
   },
 };
 
-// ! Non-null on the schema and defaulted anyway: `DataFetchingEnvironmentMapper` hands arguments to JS
-// ! through the same `MapGenerator` that drops an empty `interfaces` list on `AdminExtensionItem`, so an
-// ! empty selection can arrive as no argument at all.
-function toRoleInput({ displayName, description, members }: RoleArgs): RoleInput {
-  return { displayName, description, members: members ?? [] };
+// ! Defaulted, because an empty list can arrive as no argument at all: `DataFetchingEnvironmentMapper`
+// ! hands arguments to JS through the same `MapGenerator` that drops an empty `interfaces` list.
+function toRoleChanges(args: UpdateArgs): RoleChanges {
+  return {
+    displayName: args.displayName,
+    description: args.description,
+    addMembers: args.addMembers ?? [],
+    removeMembers: args.removeMembers ?? [],
+  };
 }
