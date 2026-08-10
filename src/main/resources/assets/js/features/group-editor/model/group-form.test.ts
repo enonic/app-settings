@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Group, PrincipalRef } from '../../../entities/principal';
 import {
+  GROUP_FORM_FIELDS,
   initialGroupForm,
   nextGroupForm,
   sameGroupForm,
@@ -186,5 +187,19 @@ describe('validateGroupForm', () => {
   // Both are fixed once the group exists: the key holds the provider and the name.
   it('says nothing about the provider or the name while editing', () => {
     expect(validateGroupForm(form({ idProvider: '', name: '' }), 'edit')).toEqual({});
+  });
+});
+
+describe('GROUP_FORM_FIELDS', () => {
+  it('names every field the validator can complain about', () => {
+    const invalid = validateGroupForm(
+      form({ idProvider: '', name: '', displayName: '' }),
+      'create',
+    );
+
+    expect(Object.keys(invalid).length).toBeGreaterThan(0);
+    expect(Object.keys(invalid).every((field) => GROUP_FORM_FIELDS.includes(field as never))).toBe(
+      true,
+    );
   });
 });

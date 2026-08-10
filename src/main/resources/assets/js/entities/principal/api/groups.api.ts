@@ -5,6 +5,7 @@ import type {
   Group,
   GroupDetail,
   GroupKey,
+  Memberships,
   PrincipalKey,
   PrincipalRef,
 } from '../model/principal.types';
@@ -37,16 +38,30 @@ const PRINCIPAL_REF_FIELDS = `
   displayName
 `;
 
+const MEMBERSHIP_FIELDS = `
+  roles(transitive: $transitive) {${PRINCIPAL_REF_FIELDS}}
+  groups(transitive: $transitive) {${PRINCIPAL_REF_FIELDS}}
+`;
+
 /**
- * One group with its members and its roles, for the details panel. A document rather than a root, because
- * null — the key names no group — is a legitimate answer.
+ * One group with its members and its memberships, for the details panel. A document rather than a root,
+ * because null — the key names no group — is a legitimate answer.
  */
 const GROUP_DOCUMENT = `
-  query Group($key: String!) {
+  query Group($key: String!, $transitive: Boolean!) {
     group(key: $key) {${GROUP_FIELDS}
-      members {${PRINCIPAL_REF_FIELDS}}
-      roles {${PRINCIPAL_REF_FIELDS}}
+      members {${PRINCIPAL_REF_FIELDS}}${MEMBERSHIP_FIELDS}
     }
+  }
+`;
+
+/**
+ * The memberships alone, for the panel already showing the group: the transitive toggle changes only
+ * those, and re-reading the members would cost a `getMembers` call for a list that has not moved.
+ */
+const GROUP_MEMBERSHIPS_DOCUMENT = `
+  query GroupMemberships($key: String!, $transitive: Boolean!) {
+    group(key: $key) {${MEMBERSHIP_FIELDS}}
   }
 `;
 
@@ -62,10 +77,15 @@ type GroupDto = {
   description: string | null;
 };
 
-type GroupDetailDto = GroupDto & {
-  members: PrincipalRefDto[];
+type MembershipsDto = {
   roles: PrincipalRefDto[];
+  groups: PrincipalRefDto[];
 };
+
+type GroupDetailDto = GroupDto &
+  MembershipsDto & {
+    members: PrincipalRefDto[];
+  };
 
 /** What a new group is created with. Both lists are additions: a group starts out holding nobody. */
 export type GroupInput = {
@@ -106,6 +126,8 @@ export type GroupsData = { groups: GroupDto[] | null };
 /** `group` is null for a key nothing answers to, which is an answer rather than a failure. */
 type GroupDetailData = { group: GroupDetailDto | null };
 
+type GroupMembershipsData = { group: MembershipsDto | null };
+
 export function toGroups(dtos: readonly GroupDto[]): Group[] {
   return dtos.map(toGroup);
 }
@@ -113,18 +135,35 @@ export function toGroups(dtos: readonly GroupDto[]): Group[] {
 /** The group a details panel shows. `undefined` for a key nothing answers to. */
 export function fetchGroupDetail(
   key: string,
+  transitive: boolean,
   signal?: AbortSignal,
 ): ResultAsync<GroupDetail | undefined, AppError> {
-  return requestGraphQlDocument<GroupDetailData>(GROUP_DOCUMENT, { key }, signal).map(
+  return requestGraphQlDocument<GroupDetailData>(GROUP_DOCUMENT, { key, transitive }, signal).map(
     ({ group }) =>
       group == null
         ? undefined
         : {
             ...toGroup(group),
+            ...toMemberships(group),
             members: group.members.map(toPrincipalRef),
-            roles: group.roles.map(toPrincipalRef),
           },
   );
+}
+
+/**
+ * The group's roles and the groups it sits in, for a panel that already shows the group. `undefined` for
+ * a key nothing answers to.
+ */
+export function fetchGroupMemberships(
+  key: string,
+  transitive: boolean,
+  signal?: AbortSignal,
+): ResultAsync<Memberships | undefined, AppError> {
+  return requestGraphQlDocument<GroupMembershipsData>(
+    GROUP_MEMBERSHIPS_DOCUMENT,
+    { key, transitive },
+    signal,
+  ).map(({ group }) => (group == null ? undefined : toMemberships(group)));
 }
 
 export function sendGroupCreation(
@@ -161,6 +200,13 @@ function toGroup(dto: GroupDto): Group {
     key: dto.key as GroupKey,
     displayName: dto.displayName,
     description: nonEmpty(dto.description),
+  };
+}
+
+function toMemberships(dto: MembershipsDto): Memberships {
+  return {
+    roles: dto.roles.map(toPrincipalRef),
+    groups: dto.groups.map(toPrincipalRef),
   };
 }
 

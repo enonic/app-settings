@@ -510,7 +510,8 @@ interface type. Users almost certainly will.
 the one `applications` versus `applicationInfo(key)` already makes, and for the same reason: lib-graphql
 has no query-cost analysis, so a field that is merely expensive is a field someone will select. Measured
 against 113 roles and 200 groups, a list load went from 114 and 401 `lib-auth` calls to **one each**, and
-opening a panel costs 2 calls for a role and 3 for a group.
+opening a panel costs 2 calls for a role and 4 for a group — `getPrincipal`, `getMembers`, and one
+`getMemberships` for each of `roles` and `groups`.
 
 Three things about that split are worth keeping:
 
@@ -653,6 +654,67 @@ The rest of the group mutations:
 - `shared/form` holds the three answers a form needs about a list — `mergeByKey`, `diffByKey`, `sameKeys`
   — all generic over `{ key: string }` and reaching for nothing above `shared`. Extraction candidates for
   the library Content Studio v6 shares.
+
+#### User mutations and passwords ([#60](https://github.com/enonic/app-settings/issues/60))
+
+`createUser` and `updateUser` complete CRUD for the three principal domains, on the change-list contract
+#59 settled. What is specific to users is the password, the transitive split and the paging.
+
+- **A password is an argument of the mutation, not a mutation of its own.** graphql-java runs mutation
+  root fields serially but does not stop at the first error, so two fields in one document cannot give
+  "the password failed, therefore the profile was left alone" — only one resolver can. The argument
+  carries three intents: omitted **or null** leaves the password alone, a value sets it, and `''` clears it.
+  The empty string is what carries the third because it is what the platform's editors treat as a value —
+  not because null is unavailable: lib-graphql passes an explicit null argument straight through, so the
+  guard is `!= null` and the earlier claim that "the bridge drops it" was wrong. See `platform-facts.md`.
+- **The order inside `updateUser` is load-bearing: password, memberships, scalars.** There is no
+  transaction, so something is half-applied when a call fails, and the half that must never look applied
+  is the password — an administrator told the save failed may otherwise hand out a password that works, or
+  keep using one that no longer does. A rejected `modifyUser` is the realistic failure, since the platform
+  enforces email uniqueness, and it then leaves the password and memberships written; the dialog re-reads
+  so the screen stops disagreeing with the server.
+- **Creation cannot be atomic and that is the binding's fault, not ours.** `CreateUserParams` carries a
+  password and core applies it, but `CreateUserHandler` never sets one — see `platform-facts.md`. So a
+  user is created and then given a password, and a failure between the two leaves a user without one,
+  which the dialog can put right.
+- **Whitespace in a password is refused, not trimmed — and refused on both sides.** `ChangePasswordHandler`
+  strips every whitespace character, so `pass word 1A!` would be stored as `password1A!` and `'   '` would
+  normalise to `''`, which `setPassword` still hashes — leaving a user who reads back as having a password
+  that nothing can satisfy. The form validator refuses it so the strength meter judges the string that will
+  actually be stored, and the resolver refuses it because the mutation, not the form, is the API boundary.
+- **Generation stays client-side.** `crypto.getRandomValues` over an 88-character alphabet, rejected until
+  the meter accepts it. `lib/xp/auth` has `generatePassword`, and using it would put a cleartext password
+  in a response body for nothing.
+- **`transitive` is an argument with no default, passed by every caller.** The roles a user holds through
+  a group and the roles set on the user itself are different answers, and only the second can be written —
+  the relationship behind an inherited role belongs to the group. The editor asks for direct memberships,
+  the details panel defaults to direct and offers the transitive answer behind a switch, as app-users
+  does. Leaving it to a default is how the wrong answer reaches a mutation; what the dialog cannot show is
+  [#76](https://github.com/enonic/app-settings/issues/76). `GroupDetail` carries the same pair for the
+  same reason — a group sits in groups and holds roles through them — so its panel offers the same switch,
+  and `groups` there is what the group is a member _of_, never its members.
+- **A saved edit patches its row instead of reloading the list.** Users is the paged section, so a reload
+  is a first page and discards every `Load more`. `replaceUser` puts back the row the mutation answered
+  with — not a guess — and the detail cache is invalidated so the memberships re-read. A create still
+  reloads: it may belong on a page nobody has loaded, and it moves the provider counts.
+  `.claude/rules/stores.md` records the exception to "the truth comes from a refetch".
+- **`login` is never written.** `ModifyUserHandler` ignores it, so the name stays what the key carries and
+  the divergence app-users appears to allow cannot happen.
+- **Public keys are written at once, not on `Save`.** They exist only for a user that already exists, the
+  private half is handed over once and cannot be shown again, and revoking one is not something to stage —
+  so `addPublicKey` and `removePublicKey` are their own fields and the dialog re-reads after each.
+- **The `kid` is the first bean of this phase**, `lib/publickey/GenerateKidHandler`, and it has to stay
+  byte-identical to app-users': the id is persisted in the profile, so a different one would orphan every
+  key already stored on an instance being migrated. SHA-512 of the key's DER encoding truncated to 16
+  bytes, as hex — `java.util.HexFormat` rather than XP's `HexEncoder`, which is deprecated and is exactly
+  that call. No JS can do it: GraalJS has no digest, and the hash is over the parsed DER rather than the
+  PEM text.
+- **The pair is generated in the browser and the private half never leaves it.** `crypto.subtle` directly,
+  with no Web Worker — app-users wraps the same call in one, but `generateKey` is already asynchronous and
+  the browser does the work off the main thread. A private key pasted into the upload is refused client-side
+  rather than sent, because the server cannot tell the halves apart: `X509EncodedKeySpec` reads either.
+- **`removePublicKey` answers whether the key is gone**, not whether this call removed it: a `kid` nothing
+  answers to satisfies the caller's intent either way.
 
 The rest of this section is unchanged:
 

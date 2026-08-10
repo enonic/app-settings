@@ -87,7 +87,7 @@ export function GroupForm({
               </Selector.Value>
               <Selector.Icon />
             </Selector.Trigger>
-            <Selector.Content>
+            <Selector.Content portal={false}>
               <Selector.Viewport>
                 {providers.map(({ key, displayName }) => (
                   <Selector.Item key={key} value={key} textValue={displayName}>

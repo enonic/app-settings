@@ -18,7 +18,7 @@ export type {
 } from './api/id-providers.api';
 export { fetchRoleDetail, ROLES_ROOT, toRoles } from './api/roles.api';
 export type { RolesData } from './api/roles.api';
-export { fetchUserDetail, USERS_ROOT, toUsersPage } from './api/users.api';
+export { fetchUserDetail, fetchUserMemberships, USERS_ROOT, toUsersPage } from './api/users.api';
 export type { UsersData, UsersPage } from './api/users.api';
 export { createGroup, updateGroup } from './model/group-commands';
 export type { GroupDraft, GroupEdit } from './model/group-commands';
@@ -52,6 +52,8 @@ export {
   principalName,
   projectRoleIdOf,
 } from './model/principal.keys';
+export { addPublicKey, createUser, removePublicKey, updateUser } from './model/user-commands';
+export type { UserDraft, UserEdit } from './model/user-commands';
 export { forgetUserDetails, forgetUsers } from './model/user-detail.load';
 export type {
   Group,
@@ -84,6 +86,7 @@ export {
   beginUsersAppend,
   beginUsersLoad,
   receiveUsers,
+  replaceUser,
   usersAppendStart,
 } from './model/users.store';
 export type { UsersState } from './model/users.store';
@@ -95,6 +98,7 @@ export { useIdProviderNames } from './model/useIdProviderNames';
 export { useIdProviders } from './model/useIdProviders';
 export { useRole } from './model/useRole';
 export { useRoles } from './model/useRoles';
+export { useTransitiveMemberships } from './model/useTransitiveMemberships';
 export { useUser } from './model/useUser';
 export { useUsers } from './model/useUsers';
 export type { UsersView } from './model/useUsers';

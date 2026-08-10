@@ -9,7 +9,7 @@ import type { GroupDetail } from './principal.types';
  * for the selected group alone. The debounce, the cancelling and the cache are `shared/detail`'s.
  */
 const loader = createDetailLoader<GroupDetail>({
-  load: (key, signal) => fetchGroupDetail(key, signal),
+  load: (key, signal) => fetchGroupDetail(key, false, signal),
 });
 
 export const $groupDetail = loader.$detail;

@@ -1,21 +1,36 @@
+import { generateKid } from '/lib/publickey';
 import {
+  addMembers,
+  changePassword,
+  createUser as createUserPrincipal,
   findUsers,
+  getIdProviders,
   getMemberships,
   getPrincipal,
   getProfile,
+  modifyProfile,
+  modifyUser,
+  removeMembers,
   type Group,
+  type IdProvider,
   type Role,
   type User,
 } from '/lib/xp/auth';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  addPublicKey,
+  createUser,
   escapeQueryValue,
   getUser,
   listUserGroups,
   listUserPublicKeys,
   listUserRoles,
   listUsers,
+  removePublicKey,
+  updateUser,
+  type UserChanges,
+  type UserInput,
 } from './user.source';
 
 function user(name: string, displayName: string): User {
@@ -300,14 +315,14 @@ describe('getUser', () => {
 });
 
 describe('listUserRoles and listUserGroups', () => {
-  // ! Direct memberships only would show `Roles (0)` for an administrator who holds the role through
-  // ! `system:administrators`, which is how administrators are normally made.
-  it('asks for transitive memberships, so a role held through a group counts', () => {
+  it('passes the caller through to the platform, both ways', () => {
     vi.mocked(getMemberships).mockReturnValue([]);
 
-    listUserRoles('user:system:alice' as User['key']);
-
+    listUserRoles('user:system:alice' as User['key'], true);
     expect(vi.mocked(getMemberships)).toHaveBeenCalledWith('user:system:alice', true);
+
+    listUserGroups('user:system:alice' as User['key'], false);
+    expect(vi.mocked(getMemberships)).toHaveBeenCalledWith('user:system:alice', false);
   });
 
   it('splits the memberships and sorts each by display name', () => {
@@ -317,18 +332,20 @@ describe('listUserRoles and listUserGroups', () => {
       group('group:system:contributors', 'Contributors'),
     ]);
 
-    expect(listUserRoles('user:system:alice' as User['key']).map(({ key }) => key)).toEqual([
+    expect(listUserRoles('user:system:alice' as User['key'], true).map(({ key }) => key)).toEqual([
       'role:system.admin',
     ]);
     expect(
-      listUserGroups('user:system:alice' as User['key']).map(({ displayName }) => displayName),
+      listUserGroups('user:system:alice' as User['key'], true).map(
+        ({ displayName }) => displayName,
+      ),
     ).toEqual(['Contributors', 'Editors']);
   });
 
   it('answers empty for a user in nothing', () => {
     vi.mocked(getMemberships).mockReturnValue([]);
 
-    expect(listUserRoles('user:system:alice' as User['key'])).toEqual([]);
+    expect(listUserRoles('user:system:alice' as User['key'], true)).toEqual([]);
   });
 });
 
@@ -357,5 +374,358 @@ describe('listUserPublicKeys', () => {
     vi.mocked(getProfile).mockReturnValue({ publicKeys: keys });
 
     expect(listUserPublicKeys('user:system:alice')).toEqual(keys);
+  });
+});
+
+describe('createUser', () => {
+  function input(overrides: Partial<UserInput> = {}): UserInput {
+    return { displayName: 'Alice', roles: [], groups: [], ...overrides };
+  }
+
+  function providers(...keys: string[]): void {
+    vi.mocked(getIdProviders).mockReturnValue(
+      keys.map((key) => ({ key, displayName: key }) as IdProvider),
+    );
+  }
+
+  it('creates the user in the provider named, from the scalars given', () => {
+    providers('system');
+    vi.mocked(createUserPrincipal).mockReturnValue(user('alice', 'Alice'));
+
+    createUser('system', 'alice', input({ email: 'alice@example.com' }));
+
+    expect(vi.mocked(createUserPrincipal)).toHaveBeenCalledWith({
+      idProvider: 'system',
+      name: 'alice',
+      displayName: 'Alice',
+      email: 'alice@example.com',
+    });
+  });
+
+  it('sets a password when one was given, against the key the platform answered', () => {
+    providers('system');
+    vi.mocked(createUserPrincipal).mockReturnValue(user('alice', 'Alice'));
+
+    createUser('system', 'alice', input({ password: 'Str0ng!Passw0rd' }));
+
+    expect(vi.mocked(changePassword)).toHaveBeenCalledWith({
+      userKey: 'user:system:alice',
+      password: 'Str0ng!Passw0rd',
+    });
+  });
+
+  it('leaves a user without a password alone rather than clearing one', () => {
+    providers('system');
+    vi.mocked(createUserPrincipal).mockReturnValue(user('alice', 'Alice'));
+
+    createUser('system', 'alice', input());
+
+    expect(vi.mocked(changePassword)).not.toHaveBeenCalled();
+  });
+
+  it('adds every role and group listed, each against its own key', () => {
+    providers('system');
+    vi.mocked(createUserPrincipal).mockReturnValue(user('alice', 'Alice'));
+
+    createUser(
+      'system',
+      'alice',
+      input({ roles: ['role:cms.admin'], groups: ['group:system:editors'] }),
+    );
+
+    expect(vi.mocked(addMembers)).toHaveBeenCalledWith('role:cms.admin', ['user:system:alice']);
+    expect(vi.mocked(addMembers)).toHaveBeenCalledWith('group:system:editors', [
+      'user:system:alice',
+    ]);
+  });
+
+  it('refuses a provider that no longer exists, without creating anything', () => {
+    providers('store');
+
+    expect(() => createUser('gone', 'alice', input())).toThrow('No ID provider answers to [gone]');
+    expect(vi.mocked(createUserPrincipal)).not.toHaveBeenCalled();
+  });
+
+  it('answers the user the platform created', () => {
+    providers('system');
+    const created = user('alice', 'Alice');
+    vi.mocked(createUserPrincipal).mockReturnValue(created);
+
+    expect(createUser('system', 'alice', input())).toBe(created);
+  });
+});
+
+describe('updateUser', () => {
+  function changes(overrides: Partial<UserChanges> = {}): UserChanges {
+    return {
+      displayName: 'Alice',
+      addRoles: [],
+      removeRoles: [],
+      addGroups: [],
+      removeGroups: [],
+      ...overrides,
+    };
+  }
+
+  function modifiable(name: string) {
+    vi.mocked(getPrincipal).mockReturnValue(user(name, 'Whatever'));
+    vi.mocked(modifyUser).mockImplementation(({ editor }) =>
+      editor({ ...user(name, 'Whatever'), email: 'before@example.com' }),
+    );
+  }
+
+  it('writes the scalars through the editor the platform hands it', () => {
+    modifiable('alice');
+
+    const updated = updateUser(
+      'user:system:alice',
+      changes({ displayName: 'Alice Smith', email: 'after@example.com' }),
+    );
+
+    expect(updated.displayName).toBe('Alice Smith');
+    expect(updated.email).toBe('after@example.com');
+  });
+
+  it('clears an email the edit dropped, with an empty string rather than nothing', () => {
+    modifiable('alice');
+
+    expect(updateUser('user:system:alice', changes()).email).toBe('');
+  });
+
+  it('touches no password and no membership when only the scalars moved', () => {
+    modifiable('alice');
+
+    updateUser('user:system:alice', changes({ displayName: 'Alice Smith' }));
+
+    expect(vi.mocked(changePassword)).not.toHaveBeenCalled();
+    expect(vi.mocked(getMemberships)).not.toHaveBeenCalled();
+    expect(vi.mocked(addMembers)).not.toHaveBeenCalled();
+    expect(vi.mocked(removeMembers)).not.toHaveBeenCalled();
+  });
+
+  it('sets a password that was given', () => {
+    modifiable('alice');
+
+    updateUser('user:system:alice', changes({ password: 'Str0ng!Passw0rd' }));
+
+    expect(vi.mocked(changePassword)).toHaveBeenCalledWith({
+      userKey: 'user:system:alice',
+      password: 'Str0ng!Passw0rd',
+    });
+  });
+
+  it('clears the password on an empty string, and only then', () => {
+    modifiable('alice');
+
+    updateUser('user:system:alice', changes({ password: '' }));
+
+    expect(vi.mocked(changePassword)).toHaveBeenCalledWith({
+      userKey: 'user:system:alice',
+      password: null,
+    });
+  });
+
+  it('applies exactly the roles and groups it was told moved', () => {
+    modifiable('alice');
+
+    updateUser(
+      'user:system:alice',
+      changes({
+        addRoles: ['role:cms.expert'],
+        removeRoles: ['role:cms.admin'],
+        addGroups: ['group:system:editors'],
+        removeGroups: ['group:system:ops'],
+      }),
+    );
+
+    expect(vi.mocked(addMembers)).toHaveBeenCalledWith('role:cms.expert', ['user:system:alice']);
+    expect(vi.mocked(removeMembers)).toHaveBeenCalledWith('role:cms.admin', ['user:system:alice']);
+    expect(vi.mocked(addMembers)).toHaveBeenCalledWith('group:system:editors', [
+      'user:system:alice',
+    ]);
+    expect(vi.mocked(removeMembers)).toHaveBeenCalledWith('group:system:ops', [
+      'user:system:alice',
+    ]);
+  });
+
+  it('sets the password before touching the profile, so a rejected profile cannot swallow it', () => {
+    const order: string[] = [];
+    vi.mocked(getPrincipal).mockReturnValue(user('alice', 'Alice'));
+    vi.mocked(changePassword).mockImplementation(() => {
+      order.push('password');
+    });
+    vi.mocked(modifyUser).mockImplementation(() => {
+      order.push('profile');
+      throw new Error('Email address is already in use');
+    });
+
+    expect(() => updateUser('user:system:alice', changes({ password: 'Str0ng!Passw0rd' }))).toThrow(
+      'Email address is already in use',
+    );
+    expect(order).toEqual(['password', 'profile']);
+  });
+
+  it('refuses a user that is gone without writing anything', () => {
+    vi.mocked(getPrincipal).mockReturnValue(null);
+
+    expect(() =>
+      updateUser(
+        'user:system:gone',
+        changes({ password: 'Str0ng!Passw0rd', addRoles: ['role:cms.admin'] }),
+      ),
+    ).toThrow('No user answers to [user:system:gone]');
+
+    expect(vi.mocked(changePassword)).not.toHaveBeenCalled();
+    expect(vi.mocked(addMembers)).not.toHaveBeenCalled();
+    expect(vi.mocked(modifyUser)).not.toHaveBeenCalled();
+  });
+
+  it('fails when the platform loses the user between the guard and the write', () => {
+    vi.mocked(getPrincipal).mockReturnValue(user('alice', 'Alice'));
+    vi.mocked(modifyUser).mockReturnValue(null);
+
+    expect(() => updateUser('user:system:alice', changes())).toThrow(
+      'No user answers to [user:system:alice]',
+    );
+  });
+});
+
+describe('addPublicKey', () => {
+  function stored(...keys: { kid: string }[]) {
+    vi.mocked(generateKid).mockReturnValue('abc123');
+    vi.mocked(modifyProfile).mockImplementation(({ editor }) =>
+      editor({ publicKeys: keys } as never),
+    );
+  }
+
+  it('stores the key under the id the bean computed, with a timestamp', () => {
+    stored();
+
+    const written = addPublicKey('user:system:alice', '-----BEGIN PUBLIC KEY-----abc', 'Laptop');
+
+    expect(written.kid).toBe('abc123');
+    expect(written.label).toBe('Laptop');
+    expect(written.publicKey).toBe('-----BEGIN PUBLIC KEY-----abc');
+    expect(written.creationTime).toBeDefined();
+  });
+
+  it('keeps the keys already stored', () => {
+    stored({ kid: 'other' });
+
+    addPublicKey('user:system:alice', 'pem');
+
+    const profile = vi.mocked(modifyProfile).mock.results[0]?.value as {
+      publicKeys: { kid: string }[];
+    };
+    expect(profile.publicKeys.map(({ kid }) => kid)).toEqual(['other', 'abc123']);
+  });
+
+  it('refuses a key already stored under the same id', () => {
+    stored({ kid: 'abc123' });
+
+    expect(() => addPublicKey('user:system:alice', 'pem')).toThrow(
+      'A public key with id [abc123] is already stored for [user:system:alice]',
+    );
+  });
+
+  it('reads a profile holding exactly one key', () => {
+    vi.mocked(generateKid).mockReturnValue('abc123');
+    vi.mocked(modifyProfile).mockImplementation(({ editor }) =>
+      editor({ publicKeys: { kid: 'only' } } as never),
+    );
+
+    addPublicKey('user:system:alice', 'pem');
+
+    const profile = vi.mocked(modifyProfile).mock.results[0]?.value as {
+      publicKeys: { kid: string }[];
+    };
+    expect(profile.publicKeys.map(({ kid }) => kid)).toEqual(['only', 'abc123']);
+  });
+});
+
+describe('removePublicKey', () => {
+  it('drops the key the id names and answers true', () => {
+    vi.mocked(modifyProfile).mockImplementation(({ editor }) =>
+      editor({ publicKeys: [{ kid: 'gone' }, { kid: 'kept' }] } as never),
+    );
+
+    expect(removePublicKey('user:system:alice', 'gone')).toBe(true);
+
+    const profile = vi.mocked(modifyProfile).mock.results[0]?.value as {
+      publicKeys: { kid: string }[];
+    };
+    expect(profile.publicKeys.map(({ kid }) => kid)).toEqual(['kept']);
+  });
+
+  it('answers true for an id nothing answers to', () => {
+    vi.mocked(modifyProfile).mockImplementation(({ editor }) =>
+      editor({ publicKeys: [{ kid: 'kept' }] } as never),
+    );
+
+    expect(removePublicKey('user:system:alice', 'never-stored')).toBe(true);
+  });
+});
+
+describe('password arguments', () => {
+  function providers(): void {
+    vi.mocked(getIdProviders).mockReturnValue([
+      { key: 'system', displayName: 'system' } as IdProvider,
+    ]);
+  }
+
+  it('reads an explicit null as "leave the password alone", not as a value', () => {
+    providers();
+    vi.mocked(createUserPrincipal).mockReturnValue(user('alice', 'Alice'));
+
+    createUser('system', 'alice', {
+      displayName: 'Alice',
+      password: null as unknown as string,
+      roles: [],
+      groups: [],
+    });
+
+    expect(vi.mocked(changePassword)).not.toHaveBeenCalled();
+
+    vi.mocked(getPrincipal).mockReturnValue(user('alice', 'Alice'));
+    vi.mocked(modifyUser).mockImplementation(({ editor }) => editor(user('alice', 'Alice')));
+
+    updateUser('user:system:alice', {
+      displayName: 'Alice',
+      password: null as unknown as string,
+      addRoles: [],
+      removeRoles: [],
+      addGroups: [],
+      removeGroups: [],
+    });
+
+    expect(vi.mocked(changePassword)).not.toHaveBeenCalled();
+  });
+
+  it('refuses whitespace in a password, on both writes, before anything is written', () => {
+    providers();
+    vi.mocked(createUserPrincipal).mockReturnValue(user('alice', 'Alice'));
+    vi.mocked(getPrincipal).mockReturnValue(user('alice', 'Alice'));
+
+    expect(() =>
+      createUser('system', 'alice', {
+        displayName: 'Alice',
+        password: 'My Pass 1!',
+        roles: [],
+        groups: [],
+      }),
+    ).toThrow('A password cannot contain whitespace');
+
+    expect(() =>
+      updateUser('user:system:alice', {
+        displayName: 'Alice',
+        password: '   ',
+        addRoles: [],
+        removeRoles: [],
+        addGroups: [],
+        removeGroups: [],
+      }),
+    ).toThrow('A password cannot contain whitespace');
+
+    expect(vi.mocked(changePassword)).not.toHaveBeenCalled();
   });
 });

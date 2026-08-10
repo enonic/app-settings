@@ -39,6 +39,11 @@ export const getPrincipal = vi.fn<(key: PrincipalKey) => Principal | null>();
 
 export const getProfile = vi.fn<(params: { key: string; scope?: string }) => unknown>();
 
+export const modifyProfile =
+  vi.fn<
+    (params: { key: string; scope?: string; editor: (profile: never) => unknown }) => unknown
+  >();
+
 export const deletePrincipal = vi.fn<(principalKey: PrincipalKey) => boolean>();
 
 export const createUser = vi.fn<(params: CreateUserParams) => User>();

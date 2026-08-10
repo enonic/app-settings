@@ -15,6 +15,7 @@ import {
 } from './model/group-edit-detail';
 import { $groupEditor, closeGroupEditor } from './model/group-editor.store';
 import {
+  GROUP_FORM_FIELDS,
   initialGroupForm,
   nextGroupForm,
   sameGroupForm,
@@ -50,9 +51,7 @@ export function GroupEditorDialog({ onSaved }: GroupEditorDialogProps) {
   const [visited, setVisited] = useState<ReadonlySet<GroupFormField>>(new Set());
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | undefined>();
-  // ! Set when a save failed: the re-read that follows overwrites rather than merges, since the next
-  // ! `Save` diffs against `saved`.
-  const [resyncing, setResyncing] = useState(false);
+  const [seeded, setSeeded] = useState(false);
 
   const onlyProvider = providers.length === 1 ? providers[0]?.key : undefined;
 
@@ -64,51 +63,36 @@ export function GroupEditorDialog({ onSaved }: GroupEditorDialogProps) {
     setVisited(new Set());
     setSaving(false);
     setFailure(undefined);
-    setResyncing(false);
+    setSeeded(false);
     showGroupForEdit(editedKey);
   }, [editor, editedKey, onlyProvider]);
 
   useEffect(() => {
     const loaded = detail.item;
     if (loaded === undefined || loaded.key !== editedKey) {
-      // A re-read that answered nothing settles the flag anyway.
-      if (resyncing && detail.status !== 'loading') {
-        setResyncing(false);
-      }
       return;
     }
 
-    if (resyncing) {
+    const held = { members: loaded.members, roles: loaded.roles };
+
+    if (!seeded) {
       setValues((current) =>
         current === undefined
           ? current
-          : { ...current, members: loaded.members, roles: loaded.roles },
+          : {
+              ...current,
+              members: mergeByKey(loaded.members, current.members),
+              roles: mergeByKey(loaded.roles, current.roles),
+            },
       );
-      setSaved((current) =>
-        current === undefined
-          ? current
-          : { ...current, members: loaded.members, roles: loaded.roles },
-      );
-      setResyncing(false);
+      setSaved((current) => (current === undefined ? current : { ...current, ...held }));
+      setSeeded(true);
       return;
     }
 
-    setValues((current) =>
-      current === undefined
-        ? current
-        : {
-            ...current,
-            members: mergeByKey(loaded.members, current.members),
-            roles: mergeByKey(loaded.roles, current.roles),
-          },
-    );
-
-    setSaved((current) =>
-      current === undefined
-        ? current
-        : { ...current, members: loaded.members, roles: loaded.roles },
-    );
-  }, [detail.item, detail.status, editedKey, resyncing]);
+    setValues((current) => (current === undefined ? current : { ...current, ...held }));
+    setSaved((current) => (current === undefined ? current : { ...current, ...held }));
+  }, [detail.item, editedKey, seeded]);
 
   const errors = useMemo(
     () =>
@@ -132,6 +116,11 @@ export function GroupEditorDialog({ onSaved }: GroupEditorDialogProps) {
 
   const handleSave = async (): Promise<void> => {
     if (values === undefined || editor === undefined) {
+      return;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setVisited(new Set(GROUP_FORM_FIELDS));
       return;
     }
 
@@ -166,9 +155,7 @@ export function GroupEditorDialog({ onSaved }: GroupEditorDialogProps) {
       (error) => {
         setSaving(false);
         setFailure(error.message);
-        // Whatever part of the edit landed, the pickers must show what the group now holds.
         if (editedKey !== undefined) {
-          setResyncing(true);
           forgetGroupEditDetail();
           showGroupForEdit(editedKey);
         }
@@ -182,7 +169,7 @@ export function GroupEditorDialog({ onSaved }: GroupEditorDialogProps) {
       title={editor?.mode === 'edit' ? editTitle : createTitle}
       size="wide"
       primaryLabel={saveLabel}
-      primaryDisabled={saving || unchanged || Object.keys(errors).length > 0}
+      primaryDisabled={saving || unchanged}
       cancelLabel={cancelLabel}
       closeLabel={closeLabel}
       error={failure ?? (detail.status === 'error' ? listsFailed : undefined)}

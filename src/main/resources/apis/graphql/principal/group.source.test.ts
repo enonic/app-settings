@@ -19,6 +19,7 @@ import {
   createGroup,
   getGroup,
   listGroupMembers,
+  listGroupGroups,
   listGroupRoles,
   listGroups,
   updateGroup,
@@ -171,15 +172,28 @@ describe('listGroupMembers', () => {
   });
 });
 
-describe('listGroupRoles', () => {
-  it('keeps the roles and drops the parent groups a membership also carries', () => {
+describe('listGroupRoles and listGroupGroups', () => {
+  it('passes the caller through to the platform, both ways', () => {
+    vi.mocked(getMemberships).mockReturnValue([]);
+
+    listGroupRoles('group:system:admins', true);
+    expect(vi.mocked(getMemberships)).toHaveBeenCalledWith('group:system:admins', true);
+
+    listGroupGroups('group:system:admins', false);
+    expect(vi.mocked(getMemberships)).toHaveBeenCalledWith('group:system:admins', false);
+  });
+
+  it('splits the memberships by type', () => {
     vi.mocked(getMemberships).mockReturnValue([
       role('role:system.admin', 'Administrator'),
       group('group:system:staff', 'Staff'),
     ]);
 
-    expect(listGroupRoles('group:system:admins')).toEqual([
+    expect(listGroupRoles('group:system:admins', false)).toEqual([
       { key: 'role:system.admin', type: 'role', displayName: 'Administrator' },
+    ]);
+    expect(listGroupGroups('group:system:admins', false)).toEqual([
+      { key: 'group:system:staff', type: 'group', displayName: 'Staff' },
     ]);
   });
 
@@ -189,7 +203,7 @@ describe('listGroupRoles', () => {
       role('role:a', 'Administrator'),
     ]);
 
-    expect(listGroupRoles('group:system:admins').map(({ key }) => key)).toEqual([
+    expect(listGroupRoles('group:system:admins', false).map(({ key }) => key)).toEqual([
       'role:a',
       'role:b',
     ]);
@@ -198,7 +212,7 @@ describe('listGroupRoles', () => {
   it('answers an empty list for a group holding no role', () => {
     vi.mocked(getMemberships).mockReturnValue([group('group:system:staff', 'Staff')]);
 
-    expect(listGroupRoles('group:system:admins')).toEqual([]);
+    expect(listGroupRoles('group:system:admins', false)).toEqual([]);
   });
 });
 

@@ -271,6 +271,50 @@ duplicate.
 string into the container's node and never reads the target, so a dangling member key is accepted silently.
 Catching it means a `getPrincipal` per added key — affordable for a change list, not for a whole one.
 
+## A password cannot be set while a user is created, and whitespace in one is dropped
+
+Two separate traps, both in the JS binding rather than in the platform:
+
+- **`CreateUserParams` carries a password and `SecurityServiceImpl.doCreateUser:449-452` applies it, but
+  `CreateUserHandler` never sets one** — it builds the params from `displayName`, `email`, `login` and
+  `userKey` and nothing else. So from JS a user is always created first and given a password after, and a
+  password that fails leaves a user who has none. The capability exists in core; only the binding is
+  short. app-users has the same two-step and the same hole.
+- **`ChangePasswordHandler.normalize` does `value.replaceAll("\\s", "")`** — every whitespace character,
+  not a trim. A typed `pass word 1A!` is stored as `password1A!`, so the password an administrator was
+  shown is not the one that works. `setPassword` with a null password stores no hash at all, which is how
+  a password is cleared.
+
+## `modifyUser` writes two fields and ignores the rest
+
+`ModifyUserHandler.updateUser` converts and assigns `displayName` and `email`, and nothing else —
+`EditableUser` also carries public `login`, `loginDisabled`, `key`, `modifiedTime` and `profile`, and the
+handler reads none of them. Two consequences:
+
+- **A login cannot drift from its key through this lib.** app-users assigns `newUser.login = params.login`
+  inside its editor, which is a silent no-op; the divergence its wizard appears to allow does not happen.
+- **A user cannot be disabled from JS**, which is the other half of the `disabled` entry below: nothing
+  writes the property and nothing would read it back.
+
+Both fields are guarded the same way every `modify*` editor is — see _A `modify*` editor cannot clear a
+field by omitting it_.
+
+## Duplicate emails are the platform's business, not ours
+
+`SecurityServiceImpl.createUser:470-484` takes a per-`idProvider|email` lock from a `Striped` pool and
+calls `duplicateEmailValidation` inside it; `doUpdateUser` validates again after applying the editor. So
+uniqueness is enforced on both writes, scoped per provider, and a rejection arrives as an exception from
+the mutation. app-users bolts an advisory `isEmailAvailable` REST endpoint on in front of the wizard for
+inline feedback — that endpoint answers a boolean and enforces nothing, and it is not worth porting.
+
+## A `PropertyTree` list of one reads back as the value, not as a list
+
+`PropertyTreeMapper.serializeList` emits a single-valued property as that value rather than as an array of
+one, so a profile holding exactly one public key answers `publicKeys: {…}` and a profile holding two
+answers `publicKeys: [{…},{…}]`. Every read of a repeatable property has to normalise — app-users runs each
+one through `util.forceArray`, and `toPublicKeys` in `user.source.ts` is our equivalent. The declared type
+promises an array either way, so nothing but a runtime check catches it.
+
 ## A user node stores almost nothing
 
 `populateUserData` writes `email`, `login`, `authenticationHash` and `profile`; the generic part adds
@@ -353,6 +397,14 @@ controller included. **Batching root fields into one document is the only way to
 
 ## `lib-graphql` constraints
 
+- **An explicit null argument is _not_ dropped on the way in.** This one is worth stating flatly, because
+  the opposite is the natural assumption from how bean _output_ behaves: `ScriptMapGenerator.putInMap`
+  drops a null key, which is why a principal with no display name arrives without the property. Arguments
+  go the other way. `MapMapper.serializeKeyValue` in lib-graphql 3.0.0 carries a deliberate workaround —
+  `// Temporary workaround. XP < 7.8 ignores null values in MapGenerator` — which calls
+  `gen.rawValue(key, null)`, and `GraalScriptMapGenerator.putRawValueInMap` has **no null check**, unlike
+  `putInMap` directly above it. So `password: null` reaches a resolver as `null`, present. Any argument
+  guard has to be `!= null`; `!== undefined` alone lets a null through into arithmetic or `.length`.
 - **No `@enonic-types/lib-graphql` exists, at any version.** Hand-write
   `src/main/resources/types/graphql.d.ts` and add a `paths` entry — the pattern `mustache.d.ts`
   already establishes. The jar is stuck at `3.0.0`.

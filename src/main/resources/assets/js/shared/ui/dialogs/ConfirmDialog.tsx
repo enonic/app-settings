@@ -7,6 +7,7 @@ export type ConfirmDialogProps = {
   open: boolean;
   question: string;
   confirmDisabled?: boolean;
+  error?: string;
   children?: ReactNode;
   onClose: () => void;
   onConfirm?: () => void;
@@ -16,6 +17,7 @@ export function ConfirmDialog({
   open,
   question,
   confirmDisabled,
+  error,
   children,
   onClose,
   onConfirm,
@@ -33,6 +35,7 @@ export function ConfirmDialog({
       primaryDisabled={confirmDisabled}
       cancelLabel={cancelLabel}
       cancelVariant="outline"
+      error={error}
       closeLabel={closeLabel}
       onClose={onClose}
       onPrimary={onConfirm}

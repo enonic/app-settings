@@ -81,6 +81,11 @@ stays with its domain.
 - **The truth comes from a refetch, never from a local edit.** No optimistic writes: the list is a whole
   set fetched in one round trip, so `load<Domain>()` after the command is cheap, while a local state that
   quietly disagrees with the server is not. A command that needs optimism has to argue for it here first.
+  **Users is the one section where that rationale fails**, and `replaceUser` is the argument: the list is
+  paged, so a reload is a first page and throws away every `Load more` the user has clicked. It is still
+  not an optimistic write — the row it puts back is the one the mutation answered with, not a guess — and
+  the memberships behind it are invalidated so the panel re-reads them. A create still reloads, because a
+  new user may belong on a page nobody has loaded and it moves the provider counts.
 - **One request per command, not one per target.** Requests into this app are serialized, so a bulk
   action refetching per key costs as many round trips as it had targets — `resync` in
   `application-commands.ts` reloads the list instead as soon as there are two.

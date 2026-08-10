@@ -83,13 +83,19 @@ export const UserType: GraphQLType = generator.createObjectType({
     // ! No `description` or `createdTime` either, for the same reason: a user node stores neither.
     roles: {
       type: principals,
-      description: 'Roles this user holds, directly or through a group.',
-      resolve: (env: { source: UserSource }) => listUserRoles(env.source.key),
+      description:
+        'Roles this user holds. `transitive` includes those held through a group; without it, only the roles set on the user itself.',
+      args: { transitive: nonNull(GraphQLBoolean) },
+      resolve: (env: { source: UserSource; args: { transitive: boolean } }) =>
+        listUserRoles(env.source.key, env.args.transitive),
     },
     groups: {
       type: principals,
-      description: 'Groups this user is in.',
-      resolve: (env: { source: UserSource }) => listUserGroups(env.source.key),
+      description:
+        'Groups this user is in. `transitive` includes those reached through another group.',
+      args: { transitive: nonNull(GraphQLBoolean) },
+      resolve: (env: { source: UserSource; args: { transitive: boolean } }) =>
+        listUserGroups(env.source.key, env.args.transitive),
     },
     // ! One `getProfile` per user, so it stays lazy.
     publicKeys: {

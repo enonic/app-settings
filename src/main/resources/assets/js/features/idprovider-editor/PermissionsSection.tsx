@@ -85,7 +85,7 @@ export function PermissionsSection({
               </Selector.Value>
               <Selector.Icon />
             </Selector.Trigger>
-            <Selector.Content>
+            <Selector.Content portal={false}>
               <Selector.Viewport>
                 {levels.map(({ value, label }) => (
                   <Selector.Item key={value} value={value} textValue={label}>

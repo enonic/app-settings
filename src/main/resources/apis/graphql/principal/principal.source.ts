@@ -1,4 +1,4 @@
-import { deletePrincipal, type PrincipalKey } from '/lib/xp/auth';
+import { deletePrincipal, getIdProviders, type PrincipalKey } from '/lib/xp/auth';
 
 /** A principal reduced to what a member or membership list shows. */
 export type PrincipalItem = {
@@ -15,6 +15,12 @@ export type PrincipalDeletion = {
 
 export function deletePrincipals(keys: readonly string[]): PrincipalDeletion[] {
   return keys.map(deleteOne);
+}
+
+export function requireIdProvider(key: string): void {
+  if (!getIdProviders().some((provider) => provider.key === key)) {
+    throw new Error(`No ID provider answers to [${key}]`);
+  }
 }
 
 export function localNameOf(key: string): string {

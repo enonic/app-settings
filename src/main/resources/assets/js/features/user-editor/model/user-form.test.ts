@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import type { User } from '../../../entities/principal';
+import type { PrincipalRef, User } from '../../../entities/principal';
 import {
+  USER_FORM_FIELDS,
   initialUserForm,
   nextUserForm,
   passwordActions,
   showsPublicKeys,
+  sameUserForm,
   validateUserForm,
   type UserForm,
 } from './user-form';
@@ -186,5 +188,87 @@ describe('validateUserForm on the password', () => {
     expect(
       validateUserForm(form({ password: 'Abcdefg1!!!!' }), 'edit', false).password,
     ).toBeUndefined();
+  });
+});
+
+describe('sameUserForm', () => {
+  const admin = { key: 'role:cms.admin', type: 'role', displayName: 'CS Admin' } as PrincipalRef;
+  const editors = {
+    key: 'group:store:editors',
+    type: 'group',
+    displayName: 'Editors',
+  } as PrincipalRef;
+
+  it('reports an untouched form as unchanged', () => {
+    expect(sameUserForm(form(), form())).toBe(true);
+  });
+
+  it('sees a renamed and a re-addressed user', () => {
+    expect(sameUserForm(form(), form({ displayName: 'Alice A.' }))).toBe(false);
+    expect(sameUserForm(form(), form({ email: 'other@example.com' }))).toBe(false);
+  });
+
+  it('ignores whitespace the save would trim away', () => {
+    expect(sameUserForm(form(), form({ displayName: '  Alice Anderson  ' }))).toBe(true);
+  });
+
+  it('sees either membership list move, separately', () => {
+    expect(sameUserForm(form(), form({ roles: [admin] }))).toBe(false);
+    expect(sameUserForm(form(), form({ groups: [editors] }))).toBe(false);
+  });
+
+  it('ignores the order either list is held in', () => {
+    const two = [admin, { ...admin, key: 'role:cms.expert' } as PrincipalRef];
+    expect(sameUserForm(form({ roles: two }), form({ roles: [...two].reverse() }))).toBe(true);
+  });
+
+  it('counts any staged password as a change, even an empty one', () => {
+    expect(sameUserForm(form(), form({ password: 'Str0ng!Passw0rd' }))).toBe(false);
+    expect(sameUserForm(form(), form({ password: '' }))).toBe(false);
+  });
+});
+
+describe('validateUserForm password rules', () => {
+  it('requires a password once the field has been opened', () => {
+    expect(validateUserForm(form({ password: '' }), 'edit', false).password).toBe(
+      'users.dialog.passwordRequired',
+    );
+  });
+
+  it('refuses a password carrying a space, before judging its strength', () => {
+    expect(validateUserForm(form({ password: 'Str0ng! Passw0rd' }), 'edit', false).password).toBe(
+      'users.dialog.passwordSpaces',
+    );
+  });
+
+  it('refuses a weak password', () => {
+    expect(validateUserForm(form({ password: 'aaaa' }), 'edit', false).password).toBe(
+      'users.dialog.passwordTooWeak',
+    );
+  });
+
+  it('accepts a strong one', () => {
+    expect(
+      validateUserForm(form({ password: 'Str0ng!Passw0rd' }), 'edit', false).password,
+    ).toBeUndefined();
+  });
+
+  it('says nothing about a password the user never opened', () => {
+    expect(validateUserForm(form(), 'edit', false).password).toBeUndefined();
+  });
+});
+
+describe('USER_FORM_FIELDS', () => {
+  it('names every field the validator can complain about', () => {
+    const invalid = validateUserForm(
+      form({ idProvider: '', name: '', displayName: '', email: '', password: 'x' }),
+      'create',
+      false,
+    );
+
+    expect(Object.keys(invalid).length).toBeGreaterThan(0);
+    expect(Object.keys(invalid).every((field) => USER_FORM_FIELDS.includes(field as never))).toBe(
+      true,
+    );
   });
 });

@@ -1,6 +1,6 @@
-import type { ResultAsync } from 'neverthrow';
+import { err, ok, type ResultAsync } from 'neverthrow';
 
-import { requestGraphQlDocument, type AppError, type GraphQlRoot } from '../../../shared/api';
+import { AppError, requestGraphQlDocument, type GraphQlRoot } from '../../../shared/api';
 import type {
   PrincipalKey,
   PrincipalRef,
@@ -21,7 +21,6 @@ const USER_FIELDS = `
 
 /**
  * The user list, one page at a time.
- *
  * ! Users is the only section the server narrows: search, provider filter, order and paging all happen
  * ! in `findUsers`, because a directory-backed install holds more users than a screen can load whole —
  * ! see the `findUsers` entry in `docs/platform-facts.md`. Every argument therefore rides as a variable;
@@ -46,18 +45,19 @@ export const USERS_ROOT: GraphQlRoot = {
 const PUBLIC_KEY_FIELDS = `
   publicKeys {
     kid
+    publicKey
     label
     creationTime
   }
 `;
 
 const MEMBERSHIP_FIELDS = `
-  roles {
+  roles(transitive: $transitive) {
     key
     type
     displayName
   }
-  groups {
+  groups(transitive: $transitive) {
     key
     type
     displayName
@@ -72,7 +72,7 @@ const MEMBERSHIP_FIELDS = `
  * `getMemberships` call per user and no list can afford one per row.
  */
 const USER_MEMBERSHIPS_DOCUMENT = `
-  query UserMemberships($key: String!) {
+  query UserMemberships($key: String!, $transitive: Boolean!) {
     user(key: $key) {${MEMBERSHIP_FIELDS}${PUBLIC_KEY_FIELDS}}
   }
 `;
@@ -85,7 +85,7 @@ const USER_MEMBERSHIPS_DOCUMENT = `
  * documents rather than as roots.
  */
 const USER_DOCUMENT = `
-  query User($key: String!) {
+  query User($key: String!, $transitive: Boolean!) {
     user(key: $key) {${USER_FIELDS}${MEMBERSHIP_FIELDS}${PUBLIC_KEY_FIELDS}}
   }
 `;
@@ -114,6 +114,7 @@ type PrincipalRefDto = {
 
 type PublicKeyDto = {
   kid: string;
+  publicKey?: string | null;
   label: string | null;
   creationTime: string | null;
 };
@@ -140,10 +141,11 @@ type UserMembershipsData = { user: MembershipsDto | null };
  */
 export function fetchUserDetail(
   key: string,
+  transitive: boolean,
   signal?: AbortSignal,
 ): ResultAsync<UserDetail | undefined, AppError> {
-  return requestGraphQlDocument<UserDetailData>(USER_DOCUMENT, { key }, signal).map(({ user }) =>
-    user == null ? undefined : { ...toUser(user), ...toMemberships(user) },
+  return requestGraphQlDocument<UserDetailData>(USER_DOCUMENT, { key, transitive }, signal).map(
+    ({ user }) => (user == null ? undefined : { ...toUser(user), ...toMemberships(user) }),
   );
 }
 
@@ -153,13 +155,112 @@ export function fetchUserDetail(
  */
 export function fetchUserMemberships(
   row: User,
+  transitive: boolean,
   signal?: AbortSignal,
 ): ResultAsync<UserDetail | undefined, AppError> {
   return requestGraphQlDocument<UserMembershipsData>(
     USER_MEMBERSHIPS_DOCUMENT,
-    { key: row.key },
+    { key: row.key, transitive },
     signal,
   ).map(({ user }) => (user == null ? undefined : { ...row, ...toMemberships(user) }));
+}
+
+export type UserInput = {
+  displayName: string;
+  email?: string;
+  password?: string;
+  roles: readonly PrincipalKey[];
+  groups: readonly PrincipalKey[];
+};
+
+export type UserChanges = {
+  displayName: string;
+  email?: string;
+  password?: string;
+  addRoles: readonly PrincipalKey[];
+  removeRoles: readonly PrincipalKey[];
+  addGroups: readonly PrincipalKey[];
+  removeGroups: readonly PrincipalKey[];
+};
+
+const CREATE_USER_DOCUMENT = `
+  mutation CreateUser($idProvider: String!, $name: String!, $displayName: String!, $email: String, $password: String, $roles: [String!], $groups: [String!]) {
+    createUser(idProvider: $idProvider, name: $name, displayName: $displayName, email: $email, password: $password, roles: $roles, groups: $groups) {${USER_FIELDS}}
+  }
+`;
+
+const UPDATE_USER_DOCUMENT = `
+  mutation UpdateUser($key: String!, $displayName: String!, $email: String, $password: String, $addRoles: [String!], $removeRoles: [String!], $addGroups: [String!], $removeGroups: [String!]) {
+    updateUser(key: $key, displayName: $displayName, email: $email, password: $password, addRoles: $addRoles, removeRoles: $removeRoles, addGroups: $addGroups, removeGroups: $removeGroups) {${USER_FIELDS}}
+  }
+`;
+
+type CreateUserData = { createUser: UserDto | null };
+
+type UpdateUserData = { updateUser: UserDto | null };
+
+export function sendUserCreation(
+  idProvider: string,
+  name: string,
+  input: UserInput,
+): ResultAsync<User, AppError> {
+  return requestGraphQlDocument<CreateUserData>(CREATE_USER_DOCUMENT, {
+    idProvider,
+    name,
+    ...input,
+  }).andThen(({ createUser }) => written(createUser));
+}
+
+const ADD_PUBLIC_KEY_DOCUMENT = `
+  mutation AddPublicKey($key: String!, $publicKey: String!, $label: String) {
+    addPublicKey(key: $key, publicKey: $publicKey, label: $label) {
+      kid
+      label
+      creationTime
+    }
+  }
+`;
+
+const REMOVE_PUBLIC_KEY_DOCUMENT = `
+  mutation RemovePublicKey($key: String!, $kid: String!) {
+    removePublicKey(key: $key, kid: $kid)
+  }
+`;
+
+type AddPublicKeyData = { addPublicKey: PublicKeyDto | null };
+
+type RemovePublicKeyData = { removePublicKey: boolean | null };
+
+export function sendPublicKeyAddition(
+  key: string,
+  publicKey: string,
+  label?: string,
+): ResultAsync<PublicKey, AppError> {
+  return requestGraphQlDocument<AddPublicKeyData>(ADD_PUBLIC_KEY_DOCUMENT, {
+    key,
+    publicKey,
+    label,
+  }).andThen(({ addPublicKey }) =>
+    addPublicKey == null
+      ? err(new AppError('The public key was not stored'))
+      : ok(toPublicKey(addPublicKey)),
+  );
+}
+
+export function sendPublicKeyRemoval(key: string, kid: string): ResultAsync<void, AppError> {
+  return requestGraphQlDocument<RemovePublicKeyData>(REMOVE_PUBLIC_KEY_DOCUMENT, {
+    key,
+    kid,
+  }).andThen(({ removePublicKey }) =>
+    removePublicKey === true ? ok(undefined) : err(new AppError('The public key is still there')),
+  );
+}
+
+export function sendUserUpdate(key: string, changes: UserChanges): ResultAsync<User, AppError> {
+  return requestGraphQlDocument<UpdateUserData>(UPDATE_USER_DOCUMENT, {
+    key,
+    ...changes,
+  }).andThen(({ updateUser }) => written(updateUser));
 }
 
 export type UsersPage = {
@@ -171,9 +272,11 @@ export function toUsersPage({ total, hits }: UsersPageDto): UsersPage {
   return { total, items: hits.map(toUser) };
 }
 
-//
 // * Helpers
-//
+
+function written(dto: UserDto | null) {
+  return dto == null ? err(new AppError('The user was not written')) : ok(toUser(dto));
+}
 
 function toMemberships(dto: MembershipsDto): Pick<UserDetail, 'roles' | 'groups' | 'publicKeys'> {
   return {
@@ -186,6 +289,7 @@ function toMemberships(dto: MembershipsDto): Pick<UserDetail, 'roles' | 'groups'
 function toPublicKey(dto: PublicKeyDto): PublicKey {
   return {
     kid: dto.kid,
+    publicKey: dto.publicKey ?? undefined,
     label: dto.label ?? undefined,
     creationTime: dto.creationTime ?? undefined,
   };

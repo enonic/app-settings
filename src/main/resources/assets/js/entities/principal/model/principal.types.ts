@@ -62,15 +62,25 @@ export type Group = Omit<XpGroup, 'modifiedTime'> & {
 };
 
 /**
- * A group with its members and the roles it holds. Both are separate calls in the platform —
- * `getMembers` and `getMemberships` — so both are fetched by key for the selected group, and a member
- * that is itself a group appears as a plain reference without members of its own: the UI shows no
+ * What a `getMemberships` read answers with, split by type: the roles the principal holds and the groups
+ * it sits in. Both a user and a group have them, and either list may be held through a group rather than
+ * set on the principal itself.
+ */
+export type Memberships = {
+  roles: readonly PrincipalRef[];
+  groups: readonly PrincipalRef[];
+};
+
+/**
+ * A group with its members and its own memberships. Members and memberships are separate calls in the
+ * platform — `getMembers` and `getMemberships` — so both are fetched by key for the selected group, and a
+ * member that is itself a group appears as a plain reference without members of its own: the UI shows no
  * nesting.
  */
-export type GroupDetail = Group & {
-  members: readonly PrincipalRef[];
-  roles: readonly PrincipalRef[];
-};
+export type GroupDetail = Group &
+  Memberships & {
+    members: readonly PrincipalRef[];
+  };
 
 /**
  * A user as a list row: what the server returns a page of.
@@ -92,15 +102,15 @@ export type User = Omit<XpUser, 'modifiedTime'>;
  * Only the details panel needs them, and the list is paged, so they are fetched by key for one user
  * rather than carried on every row.
  */
-export type UserDetail = User & {
-  roles: readonly PrincipalRef[];
-  groups: readonly PrincipalRef[];
-  publicKeys: readonly PublicKey[];
-};
+export type UserDetail = User &
+  Memberships & {
+    publicKeys: readonly PublicKey[];
+  };
 
 /** A key a user can authenticate with, stored in its profile — so only a detail read carries it. */
 export type PublicKey = {
   kid: string;
+  publicKey?: string;
   label?: string;
   creationTime?: string;
 };

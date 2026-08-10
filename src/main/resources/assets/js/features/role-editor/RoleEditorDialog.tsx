@@ -10,6 +10,7 @@ import { ModalDialog } from '../../shared/ui/dialogs/ModalDialog';
 import { $roleEditDetail, forgetRoleEditDetail, showRoleForEdit } from './model/role-edit-detail';
 import { $roleEditor, closeRoleEditor } from './model/role-editor.store';
 import {
+  ROLE_FORM_FIELDS,
   initialRoleForm,
   nextRoleForm,
   sameRoleForm,
@@ -45,9 +46,7 @@ export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
   const [visited, setVisited] = useState<ReadonlySet<RoleFormField>>(new Set());
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | undefined>();
-  // ! Set when a save failed: the re-read that follows overwrites rather than merges, since the next
-  // ! `Save` diffs against `saved`.
-  const [resyncing, setResyncing] = useState(false);
+  const [seeded, setSeeded] = useState(false);
 
   useEffect(() => {
     const opened = editor === undefined ? undefined : initialRoleForm(editor);
@@ -57,41 +56,32 @@ export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
     setVisited(new Set());
     setSaving(false);
     setFailure(undefined);
-    setResyncing(false);
+    setSeeded(false);
     showRoleForEdit(editedKey);
   }, [editor, editedKey]);
 
   useEffect(() => {
     const loaded = detail.item;
     if (loaded === undefined || loaded.key !== editedKey) {
-      // A re-read that answered nothing settles the flag anyway.
-      if (resyncing && detail.status !== 'loading') {
-        setResyncing(false);
-      }
       return;
     }
 
-    if (resyncing) {
+    const held = { members: loaded.members };
+
+    if (!seeded) {
       setValues((current) =>
-        current === undefined ? current : { ...current, members: loaded.members },
+        current === undefined
+          ? current
+          : { ...current, members: mergeByKey(loaded.members, current.members) },
       );
-      setSaved((current) =>
-        current === undefined ? current : { ...current, members: loaded.members },
-      );
-      setResyncing(false);
+      setSaved((current) => (current === undefined ? current : { ...current, ...held }));
+      setSeeded(true);
       return;
     }
 
-    setValues((current) =>
-      current === undefined
-        ? current
-        : { ...current, members: mergeByKey(loaded.members, current.members) },
-    );
-
-    setSaved((current) =>
-      current === undefined ? current : { ...current, members: loaded.members },
-    );
-  }, [detail.item, detail.status, editedKey, resyncing]);
+    setValues((current) => (current === undefined ? current : { ...current, ...held }));
+    setSaved((current) => (current === undefined ? current : { ...current, ...held }));
+  }, [detail.item, editedKey, seeded]);
 
   const errors = useMemo(
     () =>
@@ -115,6 +105,11 @@ export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
 
   const handleSave = async (): Promise<void> => {
     if (values === undefined || editor === undefined) {
+      return;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setVisited(new Set(ROLE_FORM_FIELDS));
       return;
     }
 
@@ -142,9 +137,7 @@ export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
       (error) => {
         setSaving(false);
         setFailure(error.message);
-        // Whatever part of the edit landed, the picker must show what the role now holds.
         if (editedKey !== undefined) {
-          setResyncing(true);
           forgetRoleEditDetail();
           showRoleForEdit(editedKey);
         }
@@ -158,7 +151,7 @@ export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
       title={editor?.mode === 'edit' ? editTitle : createTitle}
       size="wide"
       primaryLabel={saveLabel}
-      primaryDisabled={saving || unchanged || Object.keys(errors).length > 0}
+      primaryDisabled={saving || unchanged}
       cancelLabel={cancelLabel}
       closeLabel={closeLabel}
       error={failure ?? (detail.status === 'error' ? membersFailed : undefined)}

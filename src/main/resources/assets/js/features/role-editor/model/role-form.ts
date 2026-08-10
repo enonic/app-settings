@@ -18,6 +18,8 @@ export type RoleFormField = 'name' | 'displayName';
 
 export type RoleFormErrors = FieldErrors<RoleFormField>;
 
+export const ROLE_FORM_FIELDS: readonly RoleFormField[] = ['name', 'displayName'];
+
 export type RoleFormChange = {
   values: RoleForm;
   nameEdited: boolean;

@@ -22,7 +22,9 @@ const loader = createDetailLoader<UserDetail>({
   load: (key, signal) => {
     const row = $users.get().items.find((user) => user.key === key);
 
-    return row === undefined ? fetchUserDetail(key, signal) : fetchUserMemberships(row, signal);
+    return row === undefined
+      ? fetchUserDetail(key, false, signal)
+      : fetchUserMemberships(row, false, signal);
   },
 });
 
