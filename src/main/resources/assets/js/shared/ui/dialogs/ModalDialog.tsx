@@ -1,6 +1,6 @@
 import { Button, cn, Dialog, IconButton, type ButtonVariant } from '@enonic/ui';
 import { X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 
 import { useDialogLayer } from './dialog-stack';
 
@@ -10,20 +10,37 @@ export type ModalDialogProps = {
   description?: string;
   /** Shown in place of the title row — an icon and the item's name, as the wizards do. */
   header?: ReactNode;
-  /** `wide` is for a form; a question needs no more room than its own text. */
-  size?: 'default' | 'wide';
+  /**
+   * A question needs no more room than its own text; `medium` is for one carrying a control, and
+   * `wide` for a form.
+   */
+  size?: 'default' | 'medium' | 'wide';
   primaryLabel?: string;
   primaryDisabled?: boolean;
+  /** For a caller that has to move the focus onto the primary button once it means something. */
+  primaryRef?: Ref<HTMLButtonElement>;
+  /** `danger` paints the primary button red, for an action there is no undoing. */
+  intent?: 'default' | 'danger';
   cancelLabel: string;
   /** `outline` gives the two answers of a question equal weight; a form's Cancel stays quiet. */
   cancelVariant?: ButtonVariant;
   /** Why the dialog is still open, shown beside its buttons — a rejected save is the case. */
   error?: string;
   closeLabel: string;
+  /** Where the focus lands as the dialog opens. `preventDefault()` first, then focus your own. */
+  onOpenAutoFocus?: (event: Event) => void;
   children?: ReactNode;
   onClose: () => void;
   onPrimary?: () => void;
 };
+
+// `medium` follows Content Studio's confirmation: wide enough for a control, floored so it does not
+// shrink to the text around it.
+const SIZES = {
+  default: 'max-w-lg',
+  medium: 'max-w-180 sm:min-w-152',
+  wide: 'max-w-4xl',
+} as const;
 
 export function ModalDialog({
   open,
@@ -33,10 +50,13 @@ export function ModalDialog({
   size = 'default',
   primaryLabel,
   primaryDisabled,
+  primaryRef,
+  intent = 'default',
   cancelLabel,
   cancelVariant = 'text',
   error,
   closeLabel,
+  onOpenAutoFocus,
   children,
   onClose,
   onPrimary,
@@ -66,11 +86,12 @@ export function ModalDialog({
         />
 
         <Dialog.Content
-          className={cn('gap-5 p-5 md:p-7.5', size === 'wide' ? 'max-w-4xl' : 'max-w-lg')}
+          className={cn('gap-5 p-5 md:p-7.5', SIZES[size])}
           // ! Both keep this dialog from being dismissed by a gesture meant for the one above it: the
           // ! attribute takes it out of the other dialog's outside-click test, and the prevented default
           // ! stops the library's Escape handler, which listens on the document per dialog.
           {...(nested && { 'data-click-outside-ignore': '' })}
+          onOpenAutoFocus={onOpenAutoFocus}
           onEscapeKeyDown={(event) => {
             if (blocked) {
               event.preventDefault();
@@ -117,9 +138,14 @@ export function ModalDialog({
             <Button variant={cancelVariant} label={cancelLabel} onClick={onClose} />
             {primaryLabel !== undefined && (
               <Button
+                ref={primaryRef}
                 variant="solid"
                 label={primaryLabel}
                 disabled={primaryDisabled}
+                className={cn(
+                  intent === 'danger' &&
+                    'bg-btn-error text-alt hover:bg-btn-error-hover active:bg-btn-error-active focus-visible:ring-error/50',
+                )}
                 onClick={onPrimary}
               />
             )}
