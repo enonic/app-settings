@@ -9,7 +9,12 @@ import { $installDialogOpen, closeInstallDialog } from '../model/install-dialog.
 import { marketInstallIntent, runMarketInstall } from '../model/install-market-application';
 import { toInstallProgress } from '../model/install-progress';
 import { $marketInstalls, receiveInstallProgress } from '../model/install.store';
-import { type MarketRow, searchMarketRows, toMarketRow } from '../model/market-rows';
+import {
+  type MarketRow,
+  searchMarketRows,
+  sortMarketRows,
+  toMarketRow,
+} from '../model/market-rows';
 import { runJarUpload } from '../model/upload-applications';
 import { ConfirmMajorUpdate } from './ConfirmMajorUpdate';
 import { MarketApplicationList } from './MarketApplicationList';
@@ -29,7 +34,8 @@ export function InstallApplicationsDialog() {
   const [confirming, setConfirming] = useState<MarketRow | undefined>(undefined);
 
   const rows = useMemo(() => items.map(toMarketRow), [items]);
-  const visible = useMemo(() => searchMarketRows(rows, query), [rows, query]);
+  const sorted = useMemo(() => sortMarketRows(rows), [rows]);
+  const visible = useMemo(() => searchMarketRows(sorted, query), [sorted, query]);
 
   const handleServerEvent = useCallback((event: ServerEvent) => {
     const progress = toInstallProgress(event);

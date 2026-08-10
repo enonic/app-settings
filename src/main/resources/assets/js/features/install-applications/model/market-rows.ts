@@ -58,6 +58,19 @@ export function isMajorUpdate({ installedVersion, availableVersion }: MarketRow)
   return majorOf(availableVersion) > majorOf(installedVersion);
 }
 
+/** Updates first, then by display name with the key breaking ties. */
+export function sortMarketRows(rows: readonly MarketRow[]): MarketRow[] {
+  return [...rows].sort((a, b) => {
+    const byGroup = updateRank(a) - updateRank(b);
+    if (byGroup !== 0) {
+      return byGroup;
+    }
+
+    const byName = a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' });
+    return byName !== 0 ? byName : a.key.localeCompare(b.key);
+  });
+}
+
 /**
  * Display name and description, case-insensitive, over the catalogue already loaded. The key is left
  * out where the section's own search includes it: an operator picks an application off the market by
@@ -86,6 +99,10 @@ function rowStatus(application: MarketApplication): MarketRowStatus {
   }
 
   return application.updateAvailable ? 'update' : 'installed';
+}
+
+function updateRank({ status }: MarketRow): number {
+  return status === 'update' ? 0 : 1;
 }
 
 function majorOf(version: string): number {

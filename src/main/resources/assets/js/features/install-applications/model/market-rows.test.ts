@@ -7,6 +7,7 @@ import {
   marketStatusLabelKey,
   type MarketRow,
   searchMarketRows,
+  sortMarketRows,
   toMarketRow,
 } from './market-rows';
 
@@ -133,6 +134,54 @@ describe('isMajorUpdate', () => {
         row({ status: 'update', installedVersion: '2.1.0', availableVersion: 'latest' }),
       ),
     ).toBe(false);
+  });
+});
+
+describe('sortMarketRows', () => {
+  function rows(): MarketRow[] {
+    return [
+      row({ key: 'a', displayName: 'Ada', status: 'installed' }),
+      row({ key: 'b', displayName: 'zeta', status: 'install' }),
+      row({ key: 'c', displayName: 'Nord', status: 'update' }),
+      row({ key: 'd', displayName: 'Booster', status: 'update' }),
+    ];
+  }
+
+  function names(sorted: readonly MarketRow[]): string[] {
+    return sorted.map(({ displayName }) => displayName);
+  }
+
+  it('puts the applications with an update first, each group by name', () => {
+    expect(names(sortMarketRows(rows()))).toEqual(['Booster', 'Nord', 'Ada', 'zeta']);
+  });
+
+  // Nothing separates them: an application on the latest version sorts among the installable ones.
+  it('leaves installed and installable interleaved, and reads case as equal', () => {
+    const sorted = sortMarketRows([
+      row({ key: 'a', displayName: 'zeta', status: 'installed' }),
+      row({ key: 'b', displayName: 'Ada', status: 'install' }),
+      row({ key: 'c', displayName: 'nord', status: 'installed' }),
+    ]);
+
+    expect(names(sorted)).toEqual(['Ada', 'nord', 'zeta']);
+  });
+
+  // Two vendors can publish the same name; without the tie-break the rows would swap between renders.
+  it('breaks a shared display name by key', () => {
+    const sorted = sortMarketRows([
+      row({ key: 'second', displayName: 'Booster' }),
+      row({ key: 'first', displayName: 'Booster' }),
+    ]);
+
+    expect(sorted.map(({ key }) => key)).toEqual(['first', 'second']);
+  });
+
+  it('leaves the rows it was given untouched', () => {
+    const given = rows();
+
+    sortMarketRows(given);
+
+    expect(names(given)).toEqual(['Ada', 'zeta', 'Nord', 'Booster']);
   });
 });
 
