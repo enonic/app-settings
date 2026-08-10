@@ -110,7 +110,11 @@ export function ApplicationsPage() {
     toRow: (application) =>
       toApplicationRow(
         application,
-        <ApplicationIcon icon={application.icon} />,
+        <ApplicationIcon
+          icon={application.icon}
+          system={application.system}
+          local={application.local}
+        />,
         i18n(applicationStateLabelKey(application.state)),
         application.version == null ? undefined : (
           <ApplicationVersions

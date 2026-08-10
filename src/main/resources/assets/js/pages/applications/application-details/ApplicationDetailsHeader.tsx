@@ -9,7 +9,14 @@ export type ApplicationDetailsHeaderProps = {
 export function ApplicationDetailsHeader({ application }: ApplicationDetailsHeaderProps) {
   return (
     <DetailsPanel.Header
-      icon={<ApplicationIcon icon={application.icon} size="lg" />}
+      icon={
+        <ApplicationIcon
+          icon={application.icon}
+          size="lg"
+          system={application.system}
+          local={application.local}
+        />
+      }
       title={application.displayName}
       subtitle={application.description}
       action={<ApplicationStateMenu application={application} />}
