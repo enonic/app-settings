@@ -22,7 +22,6 @@ function marketApplication(overrides: Partial<MarketApplication> = {}): MarketAp
       downloadUrl: 'https://repo.enonic.com/booster-3.0.1.jar',
       sha512: 'abc',
     },
-    versions: [],
     updateAvailable: false,
     ...overrides,
   };
