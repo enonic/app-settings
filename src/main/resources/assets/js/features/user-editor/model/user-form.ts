@@ -4,7 +4,7 @@ import {
   isIllegalPrincipalName,
   type PrincipalRef,
 } from '../../../entities/principal';
-import type { FieldErrors } from '../../../shared/form';
+import { sameKeys, type FieldErrors } from '../../../shared/form';
 import { isPasswordAccepted, passwordStrength } from './password-strength';
 import type { UserEditorPayload } from './user-editor.store';
 
@@ -14,6 +14,7 @@ export type UserForm = {
   displayName: string;
   email: string;
   password?: string;
+  clearPassword?: boolean;
   roles: readonly PrincipalRef[];
   groups: readonly PrincipalRef[];
 };
@@ -21,6 +22,14 @@ export type UserForm = {
 export type UserFormField = 'idProvider' | 'name' | 'displayName' | 'email' | 'password';
 
 export type UserFormErrors = FieldErrors<UserFormField>;
+
+export const USER_FORM_FIELDS: readonly UserFormField[] = [
+  'idProvider',
+  'name',
+  'displayName',
+  'email',
+  'password',
+];
 
 export type UserFormChange = {
   values: UserForm;
@@ -76,6 +85,19 @@ export function nextUserForm(
   return { values: { ...next, name: derivePrincipalName(next.displayName) }, nameEdited: false };
 }
 
+export function sameUserForm(saved: UserForm, edited: UserForm): boolean {
+  return (
+    edited.password === undefined &&
+    edited.clearPassword !== true &&
+    saved.idProvider === edited.idProvider &&
+    saved.name.trim() === edited.name.trim() &&
+    saved.displayName.trim() === edited.displayName.trim() &&
+    saved.email.trim() === edited.email.trim() &&
+    sameKeys(saved.roles, edited.roles) &&
+    sameKeys(saved.groups, edited.groups)
+  );
+}
+
 export function validateUserForm(
   form: UserForm,
   mode: UserEditorPayload['mode'],
@@ -109,9 +131,14 @@ export function validateUserForm(
     errors.idProvider = 'users.dialog.idProviderRequired';
   }
 
-  if (form.password !== undefined && !isPasswordAccepted(passwordStrength(form.password))) {
-    errors.password =
-      form.password.length === 0 ? 'users.dialog.passwordRequired' : 'users.dialog.passwordTooWeak';
+  if (form.password !== undefined) {
+    if (form.password.length === 0) {
+      errors.password = 'users.dialog.passwordRequired';
+    } else if (/\s/.test(form.password)) {
+      errors.password = 'users.dialog.passwordSpaces';
+    } else if (!isPasswordAccepted(passwordStrength(form.password))) {
+      errors.password = 'users.dialog.passwordTooWeak';
+    }
   }
 
   return errors;

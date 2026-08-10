@@ -1,7 +1,19 @@
-import { GraphQLString, list, nonNull, type GraphQLFields, type GraphQLType } from '/lib/graphql';
+import {
+  GraphQLBoolean,
+  GraphQLString,
+  list,
+  nonNull,
+  type GraphQLFields,
+  type GraphQLType,
+} from '/lib/graphql';
 
 import { generator } from '../schema/generator';
-import { listGroupMembers, listGroupRoles, type GroupSource } from './group.source';
+import {
+  listGroupGroups,
+  listGroupMembers,
+  listGroupRoles,
+  type GroupSource,
+} from './group.source';
 import { displayNameOf } from './principal.source';
 import { PrincipalType, PrincipalTypeEnum } from './principal.types';
 
@@ -27,18 +39,18 @@ const groupFields: GraphQLFields = {
 export const GroupType: GraphQLType = generator.createObjectType({
   name: 'Group',
   description:
-    'A group as the list shows it. Its members and roles are reachable through `group(key)` only.',
+    'A group as the list shows it. Its members and its memberships are reachable through `group(key)` only.',
   fields: groupFields,
 });
 
 /**
- * One group by key: the same scalars plus the two lists the list field cannot reach.
+ * One group by key: the same scalars plus the three lists the list field cannot reach.
  *
- * ! Two calls per group — `getMembers` and `getMemberships` — and neither has a cheap count behind it, so
- * ! unlike an id provider there is no `total` to ask for instead. As fields of `Group` they made
- * ! `groups { members roles }` a legal query costing two calls per group on the instance, serial on the
- * ! app's single JS thread, and lib-graphql has no query-cost analysis to refuse it. Groups are the half
- * ! that cannot wait: roles are bounded, groups are not.
+ * ! A call per list — `getMembers` once, `getMemberships` once per membership field — and none has a cheap
+ * ! count behind it, so unlike an id provider there is no `total` to ask for instead. As fields of `Group`
+ * ! they made `groups { members roles }` a legal query costing that per group on the instance, serial on
+ * ! the app's single JS thread, and lib-graphql has no query-cost analysis to refuse it. Groups are the
+ * ! half that cannot wait: roles are bounded, groups are not.
  *
  * The scalars are repeated for the reason `RoleDetail` gives: they are already in hand, and they are what
  * lets the panel answer without the list.
@@ -55,8 +67,19 @@ export const GroupDetailType: GraphQLType = generator.createObjectType({
     },
     roles: {
       type: principals,
-      description: 'Roles this group holds. Its parent groups are not among them.',
-      resolve: (env: { source: GroupSource }) => listGroupRoles(env.source.key),
+      description:
+        'Roles this group holds. `transitive` includes those held through a parent group; without it, only the roles set on the group itself.',
+      args: { transitive: nonNull(GraphQLBoolean) },
+      resolve: (env: { source: GroupSource; args: { transitive: boolean } }) =>
+        listGroupRoles(env.source.key, env.args.transitive),
+    },
+    groups: {
+      type: principals,
+      description:
+        'Groups this group sits in. `transitive` includes those reached through another group. Not its members — those are in `members`.',
+      args: { transitive: nonNull(GraphQLBoolean) },
+      resolve: (env: { source: GroupSource; args: { transitive: boolean } }) =>
+        listGroupGroups(env.source.key, env.args.transitive),
     },
   },
 });

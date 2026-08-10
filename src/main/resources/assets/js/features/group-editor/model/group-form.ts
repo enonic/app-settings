@@ -21,6 +21,8 @@ export type GroupFormField = 'idProvider' | 'name' | 'displayName';
 
 export type GroupFormErrors = FieldErrors<GroupFormField>;
 
+export const GROUP_FORM_FIELDS: readonly GroupFormField[] = ['idProvider', 'name', 'displayName'];
+
 export type GroupFormChange = {
   values: GroupForm;
   nameEdited: boolean;

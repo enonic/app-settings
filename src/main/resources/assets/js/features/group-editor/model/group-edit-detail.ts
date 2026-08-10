@@ -1,7 +1,10 @@
 import { fetchGroupDetail, type GroupDetail } from '../../../entities/principal';
 import { createDetailLoader } from '../../../shared/detail';
 
-const loader = createDetailLoader<GroupDetail>({ load: fetchGroupDetail });
+// ! Only what is set on the group itself can be written back, so the editor prefills from the direct read.
+const loader = createDetailLoader<GroupDetail>({
+  load: (key, signal) => fetchGroupDetail(key, false, signal),
+});
 
 export const $groupEditDetail = loader.$detail;
 

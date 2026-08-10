@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { PrincipalRef, Role } from '../../../entities/principal';
 import {
+  ROLE_FORM_FIELDS,
   initialRoleForm,
   nextRoleForm,
   roleNameOf,
@@ -181,5 +182,16 @@ describe('sameRoleForm', () => {
 
   it('ignores the order members are held in, which is not part of the role', () => {
     expect(sameRoleForm(form({ members: [su, jane] }), form({ members: [jane, su] }))).toBe(true);
+  });
+});
+
+describe('ROLE_FORM_FIELDS', () => {
+  it('names every field the validator can complain about', () => {
+    const invalid = validateRoleForm(form({ name: '', displayName: '' }), 'create');
+
+    expect(Object.keys(invalid).length).toBeGreaterThan(0);
+    expect(Object.keys(invalid).every((field) => ROLE_FORM_FIELDS.includes(field as never))).toBe(
+      true,
+    );
   });
 });

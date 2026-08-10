@@ -7,12 +7,14 @@ import { useI18n } from '../../shared/i18n';
 export type PublicKeyCardProps = {
   publicKey: PublicKey;
   detailed?: boolean;
+  onShow?: () => void;
 };
 
-export function PublicKeyCard({ publicKey, detailed }: PublicKeyCardProps) {
+export function PublicKeyCard({ publicKey, detailed, onShow }: PublicKeyCardProps) {
   const kidLabel = useI18n('users.dialog.keyKid');
   const creationLabel = useI18n('users.dialog.keyCreationTime');
   const unlabelled = useI18n('users.dialog.keyUnlabelled');
+  const showLabel = useI18n('users.dialog.showKey');
 
   const { kid, label, creationTime } = publicKey;
 
@@ -36,8 +38,23 @@ export function PublicKeyCard({ publicKey, detailed }: PublicKeyCardProps) {
             )}
           </>
         ) : (
-          <small className="text-subtle truncate text-sm">
-            {creationTime === undefined ? kid : formatDateTime(creationTime)}
+          <small className="text-subtle flex min-w-0 flex-wrap items-center gap-x-2 text-sm">
+            {onShow === undefined ? (
+              <span className="min-w-0 truncate">{kid}</span>
+            ) : (
+              <button
+                type="button"
+                className="hover:text-main min-w-0 truncate underline underline-offset-2"
+                title={showLabel}
+                onClick={onShow}
+              >
+                {kid}
+              </button>
+            )}
+
+            {creationTime !== undefined && (
+              <span className="shrink-0">{formatDateTime(creationTime)}</span>
+            )}
           </small>
         )}
       </span>

@@ -3,7 +3,13 @@ import { Outlet, useNavigate } from '@tanstack/react-router';
 import { CircleUserRound } from 'lucide-react';
 import { useMemo } from 'preact/hooks';
 
-import { $idProviderUserCounts, useIdProviderName, useUsers } from '../../entities/principal';
+import {
+  $idProviderUserCounts,
+  forgetUserDetails,
+  replaceUser,
+  useIdProviderName,
+  useUsers,
+} from '../../entities/principal';
 import { UserEditorDialog } from '../../features/user-editor/UserEditorDialog';
 import { useI18n } from '../../shared/i18n';
 import { visibleEntries } from '../../widgets/browse-list/browse-filter';
@@ -109,7 +115,17 @@ export function UsersPage() {
         }
       />
 
-      <UserEditorDialog />
+      <UserEditorDialog
+        onSaved={(written, mode) => {
+          if (mode === 'create') {
+            void reloadUsersScreen();
+            return;
+          }
+
+          replaceUser(written);
+          forgetUserDetails();
+        }}
+      />
       <UserDeleteDialog activeKey={section.activeKey} onCloseItem={closeItem} />
     </>
   );

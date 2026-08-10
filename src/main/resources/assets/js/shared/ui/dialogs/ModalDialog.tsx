@@ -12,7 +12,7 @@ export type ModalDialogProps = {
   header?: ReactNode;
   /** `wide` is for a form; a question needs no more room than its own text. */
   size?: 'default' | 'wide';
-  primaryLabel: string;
+  primaryLabel?: string;
   primaryDisabled?: boolean;
   cancelLabel: string;
   /** `outline` gives the two answers of a question equal weight; a form's Cancel stays quiet. */
@@ -66,7 +66,7 @@ export function ModalDialog({
         />
 
         <Dialog.Content
-          className={cn('gap-5 md:gap-5 md:p-7.5', size === 'wide' ? 'max-w-4xl' : 'max-w-lg')}
+          className={cn('gap-5 p-5 md:p-7.5', size === 'wide' ? 'max-w-4xl' : 'max-w-lg')}
           // ! Both keep this dialog from being dismissed by a gesture meant for the one above it: the
           // ! attribute takes it out of the other dialog's outside-click test, and the prevented default
           // ! stops the library's Escape handler, which listens on the document per dialog.
@@ -115,12 +115,14 @@ export function ModalDialog({
             )}
 
             <Button variant={cancelVariant} label={cancelLabel} onClick={onClose} />
-            <Button
-              variant="solid"
-              label={primaryLabel}
-              disabled={primaryDisabled}
-              onClick={onPrimary}
-            />
+            {primaryLabel !== undefined && (
+              <Button
+                variant="solid"
+                label={primaryLabel}
+                disabled={primaryDisabled}
+                onClick={onPrimary}
+              />
+            )}
           </Dialog.Footer>
         </Dialog.Content>
       </Dialog.Portal>

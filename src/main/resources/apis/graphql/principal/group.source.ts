@@ -2,7 +2,6 @@ import {
   addMembers,
   createGroup as createGroupPrincipal,
   findPrincipals,
-  getIdProviders,
   getMembers,
   getMemberships,
   getPrincipal,
@@ -15,7 +14,13 @@ import {
   type UserKey,
 } from '/lib/xp/auth';
 
-import { byName, displayNameOf, toPrincipalItem, type PrincipalItem } from './principal.source';
+import {
+  byName,
+  displayNameOf,
+  requireIdProvider,
+  toPrincipalItem,
+  type PrincipalItem,
+} from './principal.source';
 
 export type GroupSource = Group;
 
@@ -74,18 +79,12 @@ export function listGroupMembers(key: GroupKey): PrincipalItem[] {
     .sort((a, b) => byName(a.displayName, b.displayName));
 }
 
-/**
- * The roles the group holds.
- *
- * `getMemberships` answers with roles *and* the groups this group sits in; only the roles are kept,
- * because no screen shows a group's parent groups — the members list is flat by contract, and a
- * group inside a group is a row there rather than a branch.
- */
-export function listGroupRoles(key: GroupKey): PrincipalItem[] {
-  return getMemberships(key)
-    .filter(({ type }) => type === 'role')
-    .map(toPrincipalItem)
-    .sort((a, b) => byName(a.displayName, b.displayName));
+export function listGroupRoles(key: GroupKey, transitive: boolean): PrincipalItem[] {
+  return membershipsOf(key, 'role', transitive);
+}
+
+export function listGroupGroups(key: GroupKey, transitive: boolean): PrincipalItem[] {
+  return membershipsOf(key, 'group', transitive);
 }
 
 export function createGroup(idProvider: string, name: string, input: GroupInput): Group {
@@ -130,14 +129,6 @@ export function updateGroup(key: string, changes: GroupChanges): Group {
 // * Helpers
 // *
 
-// ? XP refuses a dangling provider too, but as `Cannot create node with name [x], parent
-// ? '/identity/<provider>/groups' not found` — an internal path rather than what the administrator chose.
-function requireIdProvider(key: string): void {
-  if (!getIdProviders().some((provider) => provider.key === key)) {
-    throw new Error(`No ID provider answers to [${key}]`);
-  }
-}
-
 // Nothing is read first: both writes are idempotent at the node level, see `docs/platform-facts.md`.
 function applyMembers(key: GroupKey, added: readonly string[], removed: readonly string[]): void {
   if (added.length > 0) {
@@ -157,4 +148,15 @@ function applyRoles(key: GroupKey, added: readonly string[], removed: readonly s
 
 function isGroup(principal: Principal): principal is Group {
   return principal.type === 'group';
+}
+
+function membershipsOf(
+  key: GroupKey,
+  type: 'role' | 'group',
+  transitive: boolean,
+): PrincipalItem[] {
+  return getMemberships(key, transitive)
+    .filter((membership) => membership.type === type)
+    .map(toPrincipalItem)
+    .sort((a, b) => byName(a.displayName, b.displayName));
 }

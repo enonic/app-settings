@@ -4,6 +4,7 @@ import { $config, setConfig, type ToolConfig } from '../../../shared/config';
 import type { PrincipalKey } from '../model/principal.types';
 import {
   fetchGroupDetail,
+  fetchGroupMemberships,
   GROUPS_ROOT,
   sendGroupCreation,
   sendGroupUpdate,
@@ -95,26 +96,37 @@ describe('fetchGroupDetail', () => {
   });
 
   it('asks by key through a variable, never through the query text', async () => {
-    respondWith({ data: { group: { ...wireGroup(), members: [], roles: [] } } });
+    respondWith({ data: { group: { ...wireGroup(), members: [], roles: [], groups: [] } } });
 
-    await fetchGroupDetail('group:system:administrators');
+    await fetchGroupDetail('group:system:administrators', false);
 
-    expect(sent?.variables).toEqual({ key: 'group:system:administrators' });
+    expect(sent?.variables).toEqual({ key: 'group:system:administrators', transitive: false });
     expect(sent?.query).not.toContain('group:system:administrators');
   });
 
-  it('maps the members and the roles separately', async () => {
+  it('carries the transitive choice as a variable', async () => {
+    respondWith({ data: { group: { ...wireGroup(), members: [], roles: [], groups: [] } } });
+
+    await fetchGroupDetail('group:system:administrators', true);
+
+    expect(sent?.variables).toEqual({ key: 'group:system:administrators', transitive: true });
+    expect(sent?.query).toContain('roles(transitive: $transitive)');
+    expect(sent?.query).toContain('groups(transitive: $transitive)');
+  });
+
+  it('maps the members, the roles and the parent groups separately', async () => {
     respondWith({
       data: {
         group: {
           ...wireGroup(),
           members: [{ key: 'user:system:su', type: 'user', displayName: 'Super User' }],
           roles: [{ key: 'role:system.admin', type: 'role', displayName: 'Administrator' }],
+          groups: [{ key: 'group:system:staff', type: 'group', displayName: 'Staff' }],
         },
       },
     });
 
-    const group = (await fetchGroupDetail('group:system:administrators'))._unsafeUnwrap();
+    const group = (await fetchGroupDetail('group:system:administrators', false))._unsafeUnwrap();
 
     expect(group?.members).toEqual([
       { key: 'user:system:su', type: 'user', displayName: 'Super User' },
@@ -122,12 +134,15 @@ describe('fetchGroupDetail', () => {
     expect(group?.roles).toEqual([
       { key: 'role:system.admin', type: 'role', displayName: 'Administrator' },
     ]);
+    expect(group?.groups).toEqual([
+      { key: 'group:system:staff', type: 'group', displayName: 'Staff' },
+    ]);
   });
 
   it('answers nothing for a key no group answers to', async () => {
     respondWith({ data: { group: null } });
 
-    const result = await fetchGroupDetail('group:system:gone');
+    const result = await fetchGroupDetail('group:system:gone', false);
 
     expect(result.isOk()).toBe(true);
     expect(result._unsafeUnwrap()).toBeUndefined();
@@ -136,9 +151,38 @@ describe('fetchGroupDetail', () => {
   it('fails when the field could not be read', async () => {
     respondWith({ errors: [{ message: 'Memberships are unreadable' }] });
 
-    const result = await fetchGroupDetail('group:system:administrators');
+    const result = await fetchGroupDetail('group:system:administrators', false);
 
     expect(result.isErr()).toBe(true);
+  });
+});
+
+describe('fetchGroupMemberships', () => {
+  beforeEach(() => {
+    setConfig(config);
+    sent = undefined;
+  });
+
+  afterEach(() => {
+    $config.set(undefined);
+    vi.restoreAllMocks();
+  });
+
+  it('asks for the memberships alone, leaving the members the panel already shows', async () => {
+    respondWith({ data: { group: { roles: [], groups: [] } } });
+
+    await fetchGroupMemberships('group:system:administrators', true);
+
+    expect(sent?.variables).toEqual({ key: 'group:system:administrators', transitive: true });
+    expect(sent?.query).not.toContain('members');
+  });
+
+  it('answers nothing for a key no group answers to', async () => {
+    respondWith({ data: { group: null } });
+
+    const result = await fetchGroupMemberships('group:system:gone', true);
+
+    expect(result._unsafeUnwrap()).toBeUndefined();
   });
 });
 

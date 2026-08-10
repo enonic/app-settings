@@ -7,20 +7,27 @@ import { i18n, useI18n } from '../../shared/i18n';
 import { ConfirmDialog } from '../../shared/ui/dialogs/ConfirmDialog';
 import { FieldLabel } from '../../shared/ui/FieldLabel';
 import { PasswordStrengthMeter } from '../../shared/ui/PasswordStrengthMeter';
-import { AddPublicKeyDialog } from './AddPublicKeyDialog';
+import { AddPublicKeyDialog, type AddOutcome } from './AddPublicKeyDialog';
+import type { KeyPair } from './model/key-pair';
 import { generatePassword, passwordStrength } from './model/password-strength';
 import type { PasswordAction } from './model/user-form';
 import { PublicKeyCard } from './PublicKeyCard';
+import { ShowPublicKeyDialog } from './ShowPublicKeyDialog';
 
 export type CredentialsSectionProps = {
   action: PasswordAction;
   clearable: boolean;
+  cleared: boolean;
   publicKeys: boolean;
   keys: readonly PublicKey[];
   persisted: boolean;
   password?: string;
   error?: string;
   onPasswordChange: (password: string | undefined) => void;
+  onClearedChange: (cleared: boolean) => void;
+  onAddKey: (publicKey: string, label?: string) => Promise<AddOutcome>;
+  onRemoveKey: (kid: string) => Promise<string | undefined>;
+  onKeyGenerated: (pair: KeyPair, stored: PublicKey) => void;
   onBlur: () => void;
 };
 
@@ -29,12 +36,17 @@ const PASSWORD_ID = 'user-password';
 export function CredentialsSection({
   action,
   clearable,
+  cleared,
   publicKeys,
   keys,
   persisted,
   password,
   error,
   onPasswordChange,
+  onClearedChange,
+  onAddKey,
+  onRemoveKey,
+  onKeyGenerated,
   onBlur,
 }: CredentialsSectionProps) {
   const passwordLabel = useI18n('users.dialog.password');
@@ -42,6 +54,9 @@ export function CredentialsSection({
   const changePasswordLabel = useI18n('users.dialog.changePassword');
   const clearPasswordLabel = useI18n('users.dialog.clearPassword');
   const clearQuestion = useI18n('users.dialog.clearPasswordQuestion');
+  const clearedNotice = useI18n('users.dialog.passwordWillClear');
+  const optionalNotice = useI18n('users.dialog.passwordOptional');
+  const keepLabel = useI18n('users.dialog.keepPassword');
   const generateLabel = useI18n('users.dialog.generatePassword');
   const showLabel = useI18n('users.dialog.showPassword');
   const hideLabel = useI18n('users.dialog.hidePassword');
@@ -58,6 +73,8 @@ export function CredentialsSection({
   const [clearing, setClearing] = useState(false);
   const [adding, setAdding] = useState(false);
   const [revoking, setRevoking] = useState<PublicKey | undefined>();
+  const [showing, setShowing] = useState<PublicKey | undefined>();
+  const [revokeFailure, setRevokeFailure] = useState<string | undefined>();
 
   const strength = passwordStrength(password ?? '');
   const strengthLabel = useI18n(strength.labelKey);
@@ -70,22 +87,35 @@ export function CredentialsSection({
           htmlFor={password === undefined ? undefined : PASSWORD_ID}
         />
 
-        {password === undefined ? (
-          <div className="flex gap-2 self-start">
+        {password === undefined && cleared ? (
+          <div className="flex items-center gap-3 self-start">
+            <p className="text-subtle text-sm">{clearedNotice}</p>
             <Button
-              variant="filled"
+              variant="outline"
               size="sm"
-              label={action === 'set' ? setPasswordLabel : changePasswordLabel}
-              onClick={() => onPasswordChange('')}
+              label={keepLabel}
+              onClick={() => onClearedChange(false)}
             />
-            {clearable && (
+          </div>
+        ) : password === undefined ? (
+          <div className="flex flex-col items-start gap-1.5">
+            <div className="flex gap-2">
               <Button
                 variant="filled"
                 size="sm"
-                label={clearPasswordLabel}
-                onClick={() => setClearing(true)}
+                label={action === 'set' ? setPasswordLabel : changePasswordLabel}
+                onClick={() => onPasswordChange('')}
               />
-            )}
+              {clearable && (
+                <Button
+                  variant="filled"
+                  size="sm"
+                  label={clearPasswordLabel}
+                  onClick={() => setClearing(true)}
+                />
+              )}
+            </div>
+            {action === 'set' && <p className="text-subtle text-sm">{optionalNotice}</p>}
           </div>
         ) : (
           <div className="flex items-start gap-4">
@@ -139,7 +169,7 @@ export function CredentialsSection({
       </div>
 
       {publicKeys && (
-        <div className="flex flex-col items-start gap-1.5">
+        <div className="flex flex-col gap-1.5">
           <FieldLabel text={keysLabel} />
 
           {persisted ? (
@@ -147,14 +177,15 @@ export function CredentialsSection({
               {keys.length === 0 ? (
                 <p className="text-subtle text-sm">{noKeysLabel}</p>
               ) : (
-                <GridList className="flex w-full max-w-md flex-col gap-2.5 rounded-md py-1.5 pr-1 pl-1">
+                <GridList className="flex w-full flex-col gap-2.5 rounded-md py-1.5 pr-1 pl-1">
                   {keys.map((key) => (
                     <GridList.Row key={key.kid} id={`${key.kid}-key`} className="gap-2.5 p-1">
-                      <GridList.Cell interactive={false} className="flex-1 self-stretch">
-                        <PublicKeyCard publicKey={key} />
+                      ! child and sits at `min-width: auto`, so without it the card's full width
+                      wins
+                      <GridList.Cell className="min-w-0 flex-1 self-stretch">
+                        <PublicKeyCard publicKey={key} onShow={() => setShowing(key)} />
                       </GridList.Cell>
-
-                      <GridList.Cell>
+                      <GridList.Cell className="shrink-0">
                         <GridList.Action>
                           <IconButton
                             aria-label={removeKeyLabel(key)}
@@ -186,17 +217,34 @@ export function CredentialsSection({
       <ConfirmDialog
         open={clearing}
         question={clearQuestion}
-        // TODO: [#60] Clears the password through `setUserPassword(key, null)`.
-        confirmDisabled
+        onConfirm={() => {
+          onClearedChange(true);
+          setClearing(false);
+        }}
         onClose={() => setClearing(false)}
       />
 
       <ConfirmDialog
         open={revoking !== undefined}
         question={revokeQuestion}
-        // TODO: [#60] Revokes the key through `removePublicKey`.
-        confirmDisabled
-        onClose={() => setRevoking(undefined)}
+        error={revokeFailure}
+        onConfirm={() => {
+          const target = revoking;
+          if (target === undefined) {
+            return;
+          }
+
+          void onRemoveKey(target.kid).then((error) => {
+            setRevokeFailure(error);
+            if (error === undefined) {
+              setRevoking(undefined);
+            }
+          });
+        }}
+        onClose={() => {
+          setRevoking(undefined);
+          setRevokeFailure(undefined);
+        }}
       >
         {revoking !== undefined && (
           <div className="py-1.5">
@@ -205,7 +253,14 @@ export function CredentialsSection({
         )}
       </ConfirmDialog>
 
-      <AddPublicKeyDialog open={adding} onClose={() => setAdding(false)} />
+      <ShowPublicKeyDialog publicKey={showing} onClose={() => setShowing(undefined)} />
+
+      <AddPublicKeyDialog
+        open={adding}
+        onAdd={onAddKey}
+        onGenerated={onKeyGenerated}
+        onClose={() => setAdding(false)}
+      />
     </div>
   );
 }

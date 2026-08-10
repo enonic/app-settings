@@ -1,11 +1,13 @@
 import { Input, Selector } from '@enonic/ui';
 
-import type { IdProviderName, PublicKey } from '../../entities/principal';
+import { IMPLICIT_ROLE_KEYS, type IdProviderName, type PublicKey } from '../../entities/principal';
 import { PrincipalPicker } from '../../entities/principal/ui/PrincipalPicker';
 import { i18n, useI18n } from '../../shared/i18n';
 import { FieldLabel } from '../../shared/ui/FieldLabel';
 import { FieldSection } from '../../shared/ui/FieldSection';
+import type { AddOutcome } from './AddPublicKeyDialog';
 import { CredentialsSection } from './CredentialsSection';
+import type { KeyPair } from './model/key-pair';
 import {
   passwordActions,
   showsPublicKeys,
@@ -23,6 +25,9 @@ export type UserFormProps = {
   systemUser: boolean;
   hasPassword: boolean;
   onChange: (values: UserFormValues) => void;
+  onAddKey: (publicKey: string, label?: string) => Promise<AddOutcome>;
+  onRemoveKey: (kid: string) => Promise<string | undefined>;
+  onKeyGenerated: (pair: KeyPair, stored: PublicKey) => void;
   onBlur: (field: UserFormField) => void;
 };
 
@@ -39,6 +44,9 @@ export function UserForm({
   systemUser,
   hasPassword,
   onChange,
+  onAddKey,
+  onRemoveKey,
+  onKeyGenerated,
   onBlur,
 }: UserFormProps) {
   const userSection = useI18n('users.dialog.section');
@@ -94,7 +102,7 @@ export function UserForm({
               </Selector.Value>
               <Selector.Icon />
             </Selector.Trigger>
-            <Selector.Content>
+            <Selector.Content portal={false}>
               <Selector.Viewport>
                 {providers.map(({ key, displayName }) => (
                   <Selector.Item key={key} value={key} textValue={displayName}>
@@ -131,8 +139,17 @@ export function UserForm({
           keys={keys}
           persisted={persisted}
           password={values.password}
+          cleared={values.clearPassword === true}
           error={errors.password === undefined ? undefined : i18n(errors.password)}
-          onPasswordChange={(password) => onChange({ ...values, password })}
+          onPasswordChange={(password) =>
+            onChange({ ...values, password, clearPassword: undefined })
+          }
+          onClearedChange={(cleared) =>
+            onChange({ ...values, password: undefined, clearPassword: cleared || undefined })
+          }
+          onAddKey={onAddKey}
+          onRemoveKey={onRemoveKey}
+          onKeyGenerated={onKeyGenerated}
           onBlur={() => onBlur('password')}
         />
       </FieldSection>
@@ -142,6 +159,7 @@ export function UserForm({
           <FieldSection label={rolesSection} count={values.roles.length}>
             <PrincipalPicker
               kinds={['role']}
+              excluded={IMPLICIT_ROLE_KEYS}
               placeholder={rolesPlaceholder}
               selected={values.roles}
               onChange={(roles) => onChange({ ...values, roles })}

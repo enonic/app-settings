@@ -39,7 +39,6 @@ const EMPTY: UsersState = {
 
 /**
  * The store holds users and nothing else — no request, no cancelling, and no notion of a query.
- *
  * Users is the only section whose narrowing lives on the server, so what to ask for belongs to the screen:
  * `pages/users/model/users.screen.ts` owns the query, the paging and the cancelling, and hands outcomes
  * here. Two ways in, because a first page replaces and a later page appends.
@@ -72,7 +71,6 @@ function withoutLoaded(page: readonly User[], loaded: readonly User[]): User[] {
 
 /**
  * Whether there is another page to ask for.
- *
  * ! The one answer to that question. `Load more` used to decide its own visibility from `items.length <
  * ! total` while this decided whether to send anything, and the two disagreed the moment a page came back
  * ! adding nothing: the control stayed on screen and every click did nothing at all, silently.
@@ -96,6 +94,19 @@ export function usersAppendStart(): number | undefined {
 
 function hasMore({ items, total, exhausted }: UsersState): boolean {
   return !exhausted && items.length < total;
+}
+
+export function replaceUser(user: User): void {
+  const current = $users.get();
+
+  if (!current.items.some(({ key }) => key === user.key)) {
+    return;
+  }
+
+  $users.setKey(
+    'items',
+    current.items.map((loaded) => (loaded.key === user.key ? user : loaded)),
+  );
 }
 
 export function receiveUsers(result: Result<UsersPage, AppError>): void {

@@ -96,6 +96,7 @@ export default defineConfig(({ mode }) => {
       '/lib/icon': join(import.meta.dirname, 'src/test/mocks/lib-icon.ts'),
       '/lib/webapp': join(import.meta.dirname, 'src/test/mocks/lib-webapp.ts'),
       '/lib/idprovider': join(import.meta.dirname, 'src/test/mocks/lib-idprovider.ts'),
+      '/lib/publickey': join(import.meta.dirname, 'src/test/mocks/lib-publickey.ts'),
       '/lib/auth': join(import.meta.dirname, 'src/main/resources/lib/auth.ts'),
       '/lib/config': join(import.meta.dirname, 'src/main/resources/lib/config.ts'),
       '/lib/i18n': join(import.meta.dirname, 'src/main/resources/lib/i18n.ts'),

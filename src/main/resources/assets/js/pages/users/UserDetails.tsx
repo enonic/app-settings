@@ -1,7 +1,14 @@
-import { Button } from '@enonic/ui';
+import { Button, Checkbox } from '@enonic/ui';
 import { CircleUserRound, UserPen, Users } from 'lucide-react';
+import { useState } from 'preact/hooks';
 
-import { principalName, useIdProviderName, type UserDetail } from '../../entities/principal';
+import {
+  principalName,
+  useIdProviderName,
+  useTransitiveMemberships,
+  type PrincipalRef,
+  type UserDetail,
+} from '../../entities/principal';
 import { openUserEditor } from '../../features/user-editor';
 import { useI18n } from '../../shared/i18n';
 import { filledSections } from '../../widgets/details-panel/details-panel';
@@ -15,8 +22,20 @@ export function UserDetails({ user }: UserDetailsProps) {
   const providerName = useIdProviderName();
 
   const editLabel = useI18n('users.details.edit');
+  const transitiveLabel = useI18n('users.details.transitive');
+  const transitiveFailedLabel = useI18n('users.details.transitiveFailed');
 
-  const { key, displayName, login, email, roles, groups } = user;
+  const [transitive, setTransitive] = useState(false);
+
+  const { key, displayName, login, email } = user;
+
+  // ? Without a group to inherit through, the toggle has nothing to add — and no request to find out.
+  const inheritable = user.groups.length > 0;
+
+  const inherited = useTransitiveMemberships(key, 'user', transitive && inheritable);
+  const showInherited = transitive && inheritable;
+  const roles: readonly PrincipalRef[] = showInherited ? inherited.roles : user.roles;
+  const groups: readonly PrincipalRef[] = showInherited ? inherited.groups : user.groups;
 
   // ! No description and no created/modified pair, though the mockups draw both: XP stores neither for a
   // ! user — see the `disabled` and `modifiedTime` entries in `docs/platform-facts.md`.
@@ -51,6 +70,19 @@ export function UserDetails({ user }: UserDetailsProps) {
           {providerName(key)}
         </DetailsPanel.Field>
       </DetailsPanel.Section>
+
+      {inheritable && (
+        <DetailsPanel.Section labelKey="users.details.memberships">
+          <Checkbox
+            checked={transitive}
+            label={transitiveLabel}
+            onCheckedChange={(next) => setTransitive(next === true)}
+          />
+          {inherited.status === 'error' && (
+            <p className="text-error text-sm">{transitiveFailedLabel}</p>
+          )}
+        </DetailsPanel.Section>
+      )}
 
       {memberships.map(({ labelKey, icon: Icon, items, provenance }) => (
         <DetailsPanel.Section key={labelKey} labelKey={labelKey} count={items.length}>

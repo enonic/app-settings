@@ -1,7 +1,14 @@
-import { Avatar, Button } from '@enonic/ui';
+import { Avatar, Button, Checkbox } from '@enonic/ui';
 import { UserPen, Users } from 'lucide-react';
+import { useState } from 'preact/hooks';
 
-import { type GroupDetail, principalName, useIdProviderName } from '../../entities/principal';
+import {
+  principalName,
+  useIdProviderName,
+  useTransitiveMemberships,
+  type GroupDetail,
+  type PrincipalRef,
+} from '../../entities/principal';
 import { openGroupEditor } from '../../features/group-editor';
 import { getInitials } from '../../shared/format';
 import { useI18n } from '../../shared/i18n';
@@ -16,8 +23,25 @@ export function GroupDetails({ group }: GroupDetailsProps) {
   const providerName = useIdProviderName();
 
   const editLabel = useI18n('groups.details.edit');
+  const transitiveLabel = useI18n('groups.details.transitive');
+  const transitiveFailedLabel = useI18n('groups.details.transitiveFailed');
 
-  const { key, displayName, description, members, roles } = group;
+  const [transitive, setTransitive] = useState(false);
+
+  const { key, displayName, description, members } = group;
+
+  // ? Without a parent group to inherit through, the toggle has nothing to add.
+  const inheritable = group.groups.length > 0;
+
+  const inherited = useTransitiveMemberships(key, 'group', transitive && inheritable);
+  const showInherited = transitive && inheritable;
+  const roles: readonly PrincipalRef[] = showInherited ? inherited.roles : group.roles;
+  const groups: readonly PrincipalRef[] = showInherited ? inherited.groups : group.groups;
+
+  const memberships = filledSections([
+    { labelKey: 'groups.details.memberOf', icon: Users, items: groups },
+    { labelKey: 'groups.details.roles', icon: UserPen, items: roles },
+  ]);
 
   // Users first, groups last, both flat: a group inside a group is a row, not a branch.
   const memberSubsections = filledSections([
@@ -60,6 +84,35 @@ export function GroupDetails({ group }: GroupDetailsProps) {
         </DetailsPanel.Field>
       </DetailsPanel.Section>
 
+      {inheritable && (
+        <DetailsPanel.Section labelKey="groups.details.memberships">
+          <Checkbox
+            checked={transitive}
+            label={transitiveLabel}
+            onCheckedChange={(next) => setTransitive(next === true)}
+          />
+          {inherited.status === 'error' && (
+            <p className="text-error text-sm">{transitiveFailedLabel}</p>
+          )}
+        </DetailsPanel.Section>
+      )}
+
+      {memberships.map(({ labelKey, icon: Icon, items }) => (
+        <DetailsPanel.Section key={labelKey} labelKey={labelKey} count={items.length}>
+          <DetailsPanel.List>
+            {items.map((principal) => (
+              <DetailsPanel.ListItem
+                key={principal.key}
+                icon={<Icon size={24} strokeWidth={1.5} aria-hidden />}
+                title={principal.displayName}
+                subtitle={principalName(principal.key)}
+                meta={providerName(principal.key)}
+              />
+            ))}
+          </DetailsPanel.List>
+        </DetailsPanel.Section>
+      ))}
+
       {members.length > 0 && (
         <DetailsPanel.Section labelKey="groups.details.members" count={members.length}>
           {memberSubsections.map(({ labelKey, items }) => (
@@ -81,21 +134,6 @@ export function GroupDetails({ group }: GroupDetailsProps) {
               </DetailsPanel.List>
             </DetailsPanel.Subsection>
           ))}
-        </DetailsPanel.Section>
-      )}
-
-      {roles.length > 0 && (
-        <DetailsPanel.Section labelKey="groups.details.roles" count={roles.length}>
-          <DetailsPanel.List>
-            {roles.map((role) => (
-              <DetailsPanel.ListItem
-                key={role.key}
-                icon={<UserPen size={24} strokeWidth={1.5} aria-hidden />}
-                title={role.displayName}
-                subtitle={principalName(role.key)}
-              />
-            ))}
-          </DetailsPanel.List>
         </DetailsPanel.Section>
       )}
     </DetailsPanel>

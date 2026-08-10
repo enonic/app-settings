@@ -1,15 +1,42 @@
+import { generateKid } from '/lib/publickey';
 import {
+  addMembers,
+  changePassword,
+  createUser as createUserPrincipal,
   findUsers,
   getMemberships,
   getPrincipal,
   getProfile,
+  modifyProfile,
+  modifyUser,
+  removeMembers,
+  type GroupKey,
+  type RoleKey,
   type User,
   type UserKey,
 } from '/lib/xp/auth';
 
-import { byName, toPrincipalItem, type PrincipalItem } from './principal.source';
+import { byName, requireIdProvider, toPrincipalItem, type PrincipalItem } from './principal.source';
 
 export type UserSource = User;
+
+export type UserInput = {
+  displayName: string;
+  email?: string;
+  password?: string;
+  roles: readonly string[];
+  groups: readonly string[];
+};
+
+export type UserChanges = {
+  displayName: string;
+  email?: string;
+  password?: string;
+  addRoles: readonly string[];
+  removeRoles: readonly string[];
+  addGroups: readonly string[];
+  removeGroups: readonly string[];
+};
 
 /** One page of users, and how many the search matched in total. */
 export type UserPage = {
@@ -52,7 +79,6 @@ const MAX_START = 10_000 - MAX_COUNT;
 
 /**
  * `displayName` and `_allText`, the pair XP itself searches principals on.
- *
  * `findPrincipals` builds this expression in `PrincipalQueryNodeQueryTranslator`; `findUsers` takes a
  * raw constraint expression instead, so the same thing has to be written here. Both halves are kept:
  * `fulltext` matches whole words, `ngram` matches a prefix as it is typed.
@@ -61,7 +87,6 @@ const SEARCH_FIELDS = '_allText,displayName';
 
 /**
  * Sort expressions, with the node path breaking ties.
- *
  * ! The tie-break is what makes paging sound: over a partial order, two users sharing a display name can
  * ! swap places between requests, and a row then appears on two pages or on none.
  *
@@ -132,12 +157,11 @@ type PublicKeyProfile = {
   publicKeys?: PublicKeyItem | PublicKeyItem[];
 };
 
-// ! A single key comes back as an object, not an array of one: a `PropertyTree` property with one
-// ! value reads as that value, which is why app-users runs every such read through `util.forceArray`.
 export function listUserPublicKeys(key: UserKey): PublicKeyItem[] {
-  const profile = getProfile<PublicKeyProfile>({ key });
-  const keys = profile?.publicKeys;
+  return toPublicKeys(getProfile<PublicKeyProfile>({ key })?.publicKeys);
+}
 
+function toPublicKeys(keys?: PublicKeyItem | PublicKeyItem[]): PublicKeyItem[] {
   if (keys == null) {
     return [];
   }
@@ -145,12 +169,114 @@ export function listUserPublicKeys(key: UserKey): PublicKeyItem[] {
   return Array.isArray(keys) ? keys : [keys];
 }
 
-export function listUserRoles(key: UserKey): PrincipalItem[] {
-  return membershipsOf(key, 'role');
+export function listUserRoles(key: UserKey, transitive: boolean): PrincipalItem[] {
+  return membershipsOf(key, 'role', transitive);
 }
 
-export function listUserGroups(key: UserKey): PrincipalItem[] {
-  return membershipsOf(key, 'group');
+export function listUserGroups(key: UserKey, transitive: boolean): PrincipalItem[] {
+  return membershipsOf(key, 'group', transitive);
+}
+
+export function addPublicKey(key: string, publicKey: string, label?: string): PublicKeyItem {
+  const kid = generateKid(publicKey);
+
+  const profile = modifyProfile<PublicKeyProfile>({
+    key: key as UserKey,
+    editor: (current) => {
+      const stored = toPublicKeys(current?.publicKeys);
+
+      if (stored.some((stored_) => stored_.kid === kid)) {
+        throw new Error(`A public key with id [${kid}] is already stored for [${key}]`);
+      }
+
+      return {
+        ...current,
+        publicKeys: [...stored, { kid, publicKey, label, creationTime: new Date().toISOString() }],
+      };
+    },
+  });
+
+  const written = toPublicKeys(profile?.publicKeys).find((stored) => stored.kid === kid);
+
+  if (written === undefined) {
+    throw new Error(`The public key was not stored for [${key}]`);
+  }
+
+  return written;
+}
+
+export function removePublicKey(key: string, kid: string): boolean {
+  const profile = modifyProfile<PublicKeyProfile>({
+    key: key as UserKey,
+    editor: (current) => ({
+      ...current,
+      publicKeys: toPublicKeys(current?.publicKeys).filter((stored) => stored.kid !== kid),
+    }),
+  });
+
+  if (profile == null) {
+    throw new Error(`No user answers to [${key}]`);
+  }
+
+  return !toPublicKeys(profile.publicKeys).some((stored) => stored.kid === kid);
+}
+
+export function createUser(idProvider: string, name: string, input: UserInput): User {
+  requireIdProvider(idProvider);
+
+  const user = createUserPrincipal({
+    idProvider,
+    name,
+    displayName: input.displayName,
+    email: input.email,
+  });
+
+  if (input.password != null && input.password.length > 0) {
+    requirePassword(input.password);
+    changePassword({ userKey: user.key, password: input.password });
+  }
+
+  applyMemberships(user.key, input.roles, [], input.groups, []);
+
+  return user;
+}
+
+export function updateUser(key: string, changes: UserChanges): User {
+  if (getUser(key) == null) {
+    throw new Error(`No user answers to [${key}]`);
+  }
+
+  if (changes.password != null) {
+    requirePassword(changes.password);
+
+    changePassword({
+      userKey: key as UserKey,
+      password: changes.password.length > 0 ? changes.password : null,
+    });
+  }
+
+  applyMemberships(
+    key as UserKey,
+    changes.addRoles,
+    changes.removeRoles,
+    changes.addGroups,
+    changes.removeGroups,
+  );
+
+  const user = modifyUser({
+    key: key as UserKey,
+    editor: (current) => ({
+      ...current,
+      displayName: changes.displayName,
+      email: changes.email ?? '',
+    }),
+  });
+
+  if (user == null) {
+    throw new Error(`No user answers to [${key}]`);
+  }
+
+  return user;
 }
 
 // *
@@ -206,16 +332,27 @@ function clampStart(start?: number): number {
   return Math.min(Math.max(start ?? 0, 0), MAX_START);
 }
 
-/**
- * ! Transitive, which is the whole reason this is worth a call: a role a user holds through a group is a
- * ! role that user has, and a panel listing only direct memberships would show `Roles (0)` for an
- * ! administrator who is an administrator through `system:administrators`. `getMemberships` defaults to
- * ! direct memberships only — `transitive` gates `getAllMemberships` in `GetMembershipsHandler` — so the
- * ! flag is not optional here. Groups are transitive for the same reason: a group inside a group is one
- * ! the user is effectively in.
- */
-function membershipsOf(key: UserKey, type: 'role' | 'group'): PrincipalItem[] {
-  return getMemberships(key, true)
+function requirePassword(password: string): void {
+  if (/\s/.test(password)) {
+    throw new Error('A password cannot contain whitespace');
+  }
+}
+
+function applyMemberships(
+  key: UserKey,
+  addRoles: readonly string[],
+  removeRoles: readonly string[],
+  addGroups: readonly string[],
+  removeGroups: readonly string[],
+): void {
+  addRoles.forEach((role) => addMembers(role as RoleKey, [key]));
+  removeRoles.forEach((role) => removeMembers(role as RoleKey, [key]));
+  addGroups.forEach((group) => addMembers(group as GroupKey, [key]));
+  removeGroups.forEach((group) => removeMembers(group as GroupKey, [key]));
+}
+
+function membershipsOf(key: UserKey, type: 'role' | 'group', transitive: boolean): PrincipalItem[] {
+  return getMemberships(key, transitive)
     .filter((membership) => membership.type === type)
     .map(toPrincipalItem)
     .sort((a, b) => byName(a.displayName, b.displayName));
