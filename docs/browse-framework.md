@@ -398,7 +398,9 @@ text-subtle` subtitle — and it lives in `shared/ui/` because the details panel
 - A `disabled` row exists for work in flight: an application being uploaded is a row before it is an
   application, keyed by its upload id, with a progress bar as its last meta cell. It must not
   navigate and must not be selectable, and `enabled(ctx)` in the toolbar never sees it, because it
-  never enters the selection.
+  never enters the selection. A section supplies these through `leadingRows` on `useBrowseSection`,
+  which puts them above the list and outside the query: they are not items yet, so nothing can search
+  or sort them.
 
 ### 3.6 Header controls
 

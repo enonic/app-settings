@@ -38,6 +38,12 @@ export type BrowseSectionOptions<T extends { key: string }> = {
    */
   visible: readonly T[];
   toRow: (item: T) => BrowseRow;
+  /**
+   * Rows for work in flight, shown above the list and untouched by the query — they are not items
+   * yet, so nothing can search or sort them. `disabled` keeps them out of the selection and the
+   * keyboard cursor; see `docs/browse-framework.md` § 3.5.
+   */
+  leadingRows?: readonly BrowseRow[];
   reload: () => void;
 };
 
@@ -77,6 +83,7 @@ export function useBrowseSection<T extends { key: string }>({
   resetOnLeave,
   visible,
   toRow,
+  leadingRows,
   reload,
 }: BrowseSectionOptions<T>): BrowseSection<T> {
   const selectedKeys = useStore(selection.$selected);
@@ -93,7 +100,7 @@ export function useBrowseSection<T extends { key: string }>({
   }, []);
 
   return {
-    rows: visible.map(toRow),
+    rows: [...(leadingRows ?? []), ...visible.map(toRow)],
     itemAt: (key) => items.find((item) => item.key === key),
     status,
     activeKey,

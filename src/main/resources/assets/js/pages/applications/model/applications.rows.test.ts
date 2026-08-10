@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import type { Application } from '../../../entities/application';
 import type { MarketApplication } from '../../../entities/market';
-import { applicationStateLabelKey, availableVersions, toApplicationRow } from './applications.rows';
+import {
+  applicationStateLabelKey,
+  availableVersions,
+  toApplicationRow,
+  toUploadRow,
+} from './applications.rows';
 
 function application(overrides: Partial<Application> = {}): Application {
   return {
@@ -76,5 +81,36 @@ describe('applicationStateLabelKey', () => {
   it('resolves a phrase key per state', () => {
     expect(applicationStateLabelKey('STARTED')).toBe('applications.state.started');
     expect(applicationStateLabelKey('STOPPED')).toBe('applications.state.stopped');
+  });
+});
+
+describe('toUploadRow', () => {
+  it('keys the row by the upload rather than by an application key it has not got yet', () => {
+    expect(toUploadRow('upload-1', 'booster-3.0.1.jar', null, null).key).toBe('upload-1');
+  });
+
+  it('names the row by the file, which is all there is to call it before core reads the jar', () => {
+    expect(toUploadRow('upload-1', 'booster-3.0.1.jar', null, null).title).toBe(
+      'booster-3.0.1.jar',
+    );
+  });
+
+  // Selection, navigation and the keyboard cursor all key off this: an upload is not an item.
+  it('is disabled, so nothing in the list can act on it', () => {
+    expect(toUploadRow('upload-1', 'booster-3.0.1.jar', null, null).disabled).toBe(true);
+  });
+
+  it('carries the progress as its one meta cell', () => {
+    const progress = 'bar';
+
+    expect(toUploadRow('upload-1', 'booster-3.0.1.jar', null, progress).meta).toEqual([progress]);
+  });
+
+  // The icon column is what keeps the file name aligned with the application names below it:
+  // `ItemLabel` drops the column altogether for a row that has no icon.
+  it('carries an icon, so the row lines up with the applications under it', () => {
+    const icon = 'spinner';
+
+    expect(toUploadRow('upload-1', 'booster-3.0.1.jar', icon, null).icon).toBe(icon);
   });
 });
