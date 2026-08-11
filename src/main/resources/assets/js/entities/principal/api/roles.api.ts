@@ -1,6 +1,12 @@
-import { err, ok, type ResultAsync } from 'neverthrow';
+import type { ResultAsync } from 'neverthrow';
 
-import { AppError, requestGraphQlDocument, type GraphQlRoot } from '../../../shared/api';
+import {
+  nonEmpty,
+  requestGraphQlDocument,
+  written,
+  type AppError,
+  type GraphQlRoot,
+} from '../../../shared/api';
 import type {
   PrincipalKey,
   PrincipalRef,
@@ -122,30 +128,19 @@ export function sendRoleCreation(name: string, input: RoleInput): ResultAsync<Ro
   return requestGraphQlDocument<CreateRoleData>(CREATE_ROLE_DOCUMENT, {
     name,
     ...input,
-  }).andThen(({ createRole }) => written(createRole));
+  }).andThen(({ createRole }) => written(createRole, toRole, 'The role was not written'));
 }
 
 export function sendRoleUpdate(key: string, changes: RoleChanges): ResultAsync<Role, AppError> {
   return requestGraphQlDocument<UpdateRoleData>(UPDATE_ROLE_DOCUMENT, {
     key,
     ...changes,
-  }).andThen(({ updateRole }) => written(updateRole));
+  }).andThen(({ updateRole }) => written(updateRole, toRole, 'The role was not written'));
 }
 
 //
 // * Helpers
 //
-
-// ! A write that answered null is a failure, unlike a read of one item: nothing says whether it happened.
-function written(dto: RoleDto | null) {
-  return dto == null ? err(new AppError('The role was not written')) : ok(toRole(dto));
-}
-
-// An empty string is absence, not a value: the details panel falls back on a missing description
-// and would otherwise render a blank field.
-function nonEmpty(value: string | null): string | undefined {
-  return value != null && value.length > 0 ? value : undefined;
-}
 
 function toRole(dto: RoleDto): Role {
   return {

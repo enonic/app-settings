@@ -180,8 +180,9 @@ export function CredentialsSection({
                 <GridList className="flex w-full flex-col gap-2.5 rounded-md py-1.5 pr-1 pl-1">
                   {keys.map((key) => (
                     <GridList.Row key={key.kid} id={`${key.kid}-key`} className="gap-2.5 p-1">
-                      ! child and sits at `min-width: auto`, so without it the card's full width
-                      wins
+                      {/* ! `min-w-0` is what lets the card truncate: the cell is a flex child and sits
+                          ! at `min-width: auto`, so without it the card's full width wins and the
+                          ! remove button is pushed out of the row. */}
                       <GridList.Cell className="min-w-0 flex-1 self-stretch">
                         <PublicKeyCard publicKey={key} onShow={() => setShowing(key)} />
                       </GridList.Cell>
