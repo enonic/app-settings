@@ -1,6 +1,6 @@
 import { err, ok, type ResultAsync } from 'neverthrow';
 
-import { AppError, requestGraphQlDocument, type GraphQlRoot } from '../../../shared/api';
+import { AppError, requestGraphQlDocument, written, type GraphQlRoot } from '../../../shared/api';
 import type {
   PrincipalKey,
   PrincipalRef,
@@ -208,7 +208,7 @@ export function sendUserCreation(
     idProvider,
     name,
     ...input,
-  }).andThen(({ createUser }) => written(createUser));
+  }).andThen(({ createUser }) => written(createUser, toUser, 'The user was not written'));
 }
 
 const ADD_PUBLIC_KEY_DOCUMENT = `
@@ -241,9 +241,7 @@ export function sendPublicKeyAddition(
     publicKey,
     label,
   }).andThen(({ addPublicKey }) =>
-    addPublicKey == null
-      ? err(new AppError('The public key was not stored'))
-      : ok(toPublicKey(addPublicKey)),
+    written(addPublicKey, toPublicKey, 'The public key was not stored'),
   );
 }
 
@@ -260,7 +258,7 @@ export function sendUserUpdate(key: string, changes: UserChanges): ResultAsync<U
   return requestGraphQlDocument<UpdateUserData>(UPDATE_USER_DOCUMENT, {
     key,
     ...changes,
-  }).andThen(({ updateUser }) => written(updateUser));
+  }).andThen(({ updateUser }) => written(updateUser, toUser, 'The user was not written'));
 }
 
 export type UsersPage = {
@@ -273,10 +271,6 @@ export function toUsersPage({ total, hits }: UsersPageDto): UsersPage {
 }
 
 // * Helpers
-
-function written(dto: UserDto | null) {
-  return dto == null ? err(new AppError('The user was not written')) : ok(toUser(dto));
-}
 
 function toMemberships(dto: MembershipsDto): Pick<UserDetail, 'roles' | 'groups' | 'publicKeys'> {
   return {

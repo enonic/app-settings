@@ -701,6 +701,10 @@ describe('password arguments', () => {
     expect(vi.mocked(changePassword)).not.toHaveBeenCalled();
   });
 
+  // ! Nothing wraps the principal, the password and the memberships in a transaction, so a refusal that
+  // ! arrives after the first write cannot be undone: creating first would leave a passwordless user
+  // ! behind under a name the retry can no longer use. Asserting on the writes is the whole point of the
+  // ! test — `changePassword` alone would pass with the checks in either order.
   it('refuses whitespace in a password, on both writes, before anything is written', () => {
     providers();
     vi.mocked(createUserPrincipal).mockReturnValue(user('alice', 'Alice'));
@@ -710,22 +714,26 @@ describe('password arguments', () => {
       createUser('system', 'alice', {
         displayName: 'Alice',
         password: 'My Pass 1!',
-        roles: [],
+        roles: ['role:system.admin'],
         groups: [],
       }),
     ).toThrow('A password cannot contain whitespace');
+
+    expect(vi.mocked(createUserPrincipal)).not.toHaveBeenCalled();
 
     expect(() =>
       updateUser('user:system:alice', {
         displayName: 'Alice',
         password: '   ',
-        addRoles: [],
+        addRoles: ['role:system.admin'],
         removeRoles: [],
         addGroups: [],
         removeGroups: [],
       }),
     ).toThrow('A password cannot contain whitespace');
 
+    expect(vi.mocked(modifyUser)).not.toHaveBeenCalled();
     expect(vi.mocked(changePassword)).not.toHaveBeenCalled();
+    expect(vi.mocked(addMembers)).not.toHaveBeenCalled();
   });
 });

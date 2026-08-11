@@ -194,7 +194,15 @@ export type SectionAction<T> = {
   /** Pure — no I/O, no store reads. Unit-tested per section. */
   enabled: (ctx: ActionContext<T>) => boolean;
   run: (ctx: ActionContext<T>) => void | Promise<void>;
+  /** At most one per section: what activating a row runs, which today means double-clicking it. */
+  activatedByRow?: boolean;
 };
+
+/** That action, if the section declared one and its own `enabled` allows it right now. */
+export function rowActivationAction<T>(
+  actions: readonly SectionAction<T>[],
+  ctx: ActionContext<T>,
+): SectionAction<T> | undefined;
 
 /** What renders: `BrowseScreen` resolves the labels once with `useLabelled` and hands these down. */
 export type LabelledAction<T> = SectionAction<T> & { label: string };
@@ -233,6 +241,15 @@ Rules:
   a list of its own. Right-clicking a row that is not ticked drops the ticks and makes that row active
   first (`contextMenuTarget` decides, § 3.3), so the menu acts on what was clicked; right-clicking one
   of several ticked rows keeps the whole set.
+- **A double click on a row runs the one action the section marked `activatedByRow`**, which in every
+  section so far is `Edit` — app-users opens its wizard the same way, so this is the behaviour an admin
+  arrives with. It is a shortcut to an action the user already has and never a way past its rules:
+  `rowActivationAction` returns the action only while its own `enabled` allows it, so a section states
+  the rule once and both the toolbar and the double click obey it. `BrowseScreen` builds the context for
+  it from the row that was hit rather than from the screen, because the two clicks underneath have just
+  dropped the ticks and toggled the active row — by the time the double click lands, `ctx` no longer
+  names the row the user aimed at. That is what `itemAt(key)` on `useBrowseSection` exists for, and it
+  is the section's own item list that answers, so no widget has to hold a second copy of it.
 - Overflow row and split buttons come later, reusing the same `SectionAction` list. Do not fork the
   type for them. This row keeps its fixed `h-15` and does not wrap: a `SectionAction` carries a
   `labelKey` and no icon, so it cannot degrade to icons the way the list header does (§ 3.6). Content
@@ -262,6 +279,8 @@ export type BrowseListProps = {
   onSelectionChange: (keys: ReadonlySet<string>) => void;
   /** The row the user moved to; `undefined` when the active row was clicked again. */
   onActiveChange: (key: string | undefined) => void;
+  /** A row was double-clicked. Undefined where the section declared no row action — § 3.2. */
+  onRowActivate?: (key: string) => void;
   status: 'loading' | 'ready' | 'error';
   emptyLabel?: string;
   /** Paging is the entity store's job; the list only reports it hit the end. */

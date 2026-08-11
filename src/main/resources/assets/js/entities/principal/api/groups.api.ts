@@ -1,6 +1,12 @@
-import { err, ok, type ResultAsync } from 'neverthrow';
+import type { ResultAsync } from 'neverthrow';
 
-import { AppError, requestGraphQlDocument, type GraphQlRoot } from '../../../shared/api';
+import {
+  nonEmpty,
+  requestGraphQlDocument,
+  written,
+  type AppError,
+  type GraphQlRoot,
+} from '../../../shared/api';
 import type {
   Group,
   GroupDetail,
@@ -175,24 +181,19 @@ export function sendGroupCreation(
     idProvider,
     name,
     ...input,
-  }).andThen(({ createGroup }) => written(createGroup));
+  }).andThen(({ createGroup }) => written(createGroup, toGroup, 'The group was not written'));
 }
 
 export function sendGroupUpdate(key: string, changes: GroupChanges): ResultAsync<Group, AppError> {
   return requestGraphQlDocument<UpdateGroupData>(UPDATE_GROUP_DOCUMENT, {
     key,
     ...changes,
-  }).andThen(({ updateGroup }) => written(updateGroup));
+  }).andThen(({ updateGroup }) => written(updateGroup, toGroup, 'The group was not written'));
 }
 
 //
 // * Helpers
 //
-
-// ! A write that answered null is a failure, unlike a read of one item: nothing says whether it happened.
-function written(dto: GroupDto | null) {
-  return dto == null ? err(new AppError('The group was not written')) : ok(toGroup(dto));
-}
 
 function toGroup(dto: GroupDto): Group {
   return {
@@ -216,10 +217,4 @@ function toPrincipalRef(dto: PrincipalRefDto): PrincipalRef {
     type: dto.type,
     displayName: dto.displayName,
   };
-}
-
-// An empty string is absence, not a value: the details panel omits a missing description and would
-// otherwise render a blank field.
-function nonEmpty(value: string | null): string | undefined {
-  return value != null && value.length > 0 ? value : undefined;
 }

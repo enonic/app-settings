@@ -34,7 +34,7 @@ export type UserEdit = {
 export function createUser(draft: UserDraft): ResultAsync<User, AppError> {
   return sendUserCreation(draft.idProvider, draft.name.trim(), {
     displayName: draft.displayName.trim(),
-    email: nonEmpty(draft.email),
+    email: trimmed(draft.email),
     password: draft.password,
     roles: draft.roles,
     groups: draft.groups,
@@ -44,7 +44,7 @@ export function createUser(draft: UserDraft): ResultAsync<User, AppError> {
 export function updateUser(key: PrincipalKey, edit: UserEdit): ResultAsync<User, AppError> {
   return sendUserUpdate(key, {
     displayName: edit.displayName.trim(),
-    email: nonEmpty(edit.email),
+    email: trimmed(edit.email),
     password: edit.password,
     addRoles: edit.addRoles,
     removeRoles: edit.removeRoles,
@@ -58,20 +58,16 @@ export function addPublicKey(
   publicKey: string,
   label?: string,
 ): ResultAsync<PublicKey, AppError> {
-  const named = label?.trim();
-
-  return sendPublicKeyAddition(
-    key,
-    publicKey,
-    named !== undefined && named.length > 0 ? named : undefined,
-  );
+  return sendPublicKeyAddition(key, publicKey, trimmed(label ?? ''));
 }
 
 export function removePublicKey(key: PrincipalKey, kid: string): ResultAsync<void, AppError> {
   return sendPublicKeyRemoval(key, kid);
 }
 
-function nonEmpty(value: string): string | undefined {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
+// What an optional text field sends: trimmed, and absent rather than empty. The counterpart of `nonEmpty`
+// in `shared/api`, which reads the same distinction off an answer.
+function trimmed(value: string): string | undefined {
+  const text = value.trim();
+  return text.length > 0 ? text : undefined;
 }

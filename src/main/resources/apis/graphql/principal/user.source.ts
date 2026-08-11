@@ -224,6 +224,14 @@ export function removePublicKey(key: string, kid: string): boolean {
 export function createUser(idProvider: string, name: string, input: UserInput): User {
   requireIdProvider(idProvider);
 
+  // ! Every refusal this function owns comes before the first write. There is no transaction around the
+  // ! principal, the password and the memberships, so a password refused after `createUserPrincipal` would
+  // ! leave a passwordless user behind under a name the retry can no longer use.
+  const password = input.password != null && input.password.length > 0 ? input.password : undefined;
+  if (password !== undefined) {
+    requirePassword(password);
+  }
+
   const user = createUserPrincipal({
     idProvider,
     name,
@@ -231,9 +239,8 @@ export function createUser(idProvider: string, name: string, input: UserInput): 
     email: input.email,
   });
 
-  if (input.password != null && input.password.length > 0) {
-    requirePassword(input.password);
-    changePassword({ userKey: user.key, password: input.password });
+  if (password !== undefined) {
+    changePassword({ userKey: user.key, password });
   }
 
   applyMemberships(user.key, input.roles, [], input.groups, []);
