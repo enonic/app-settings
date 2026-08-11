@@ -31,7 +31,10 @@ updates:
           - 'vite-plus'
           - 'vitest'
           - '@vitest/*'
-          # `vite` is an alias for the vite-plus core build, which has to move with it.
+          # `vite` is an alias for the vite-plus core build, which has to move with it — but
+          # Dependabot only bumps `vite-plus`: it does not rewrite `npm:` specifiers, so
+          # grouping cannot keep the two in step. A mismatch fails the build with "Cannot
+          # find native binding", so bump the alias to match by hand on these PRs.
           - '@voidzero-dev/*'
       tailwindcss:
         patterns:
