@@ -26,6 +26,20 @@ export function availableVersions(market: readonly MarketApplication[]): Map<str
   return available;
 }
 
+/**
+ * A jar on its way to the server, as a row. Named by the file, because the application inside it has
+ * no name until core has read it — and `disabled`, because it is not an application yet: nothing can
+ * open it, tick it or act on it.
+ */
+export function toUploadRow(
+  id: string,
+  fileName: string,
+  icon: ReactNode,
+  progress: ReactNode,
+): BrowseRow {
+  return { key: id, title: fileName, icon, meta: [progress], disabled: true };
+}
+
 export function toApplicationRow(
   application: Application,
   icon?: ReactNode,
@@ -40,5 +54,8 @@ export function toApplicationRow(
     subtitle: application.description,
     icon,
     meta: meta.length === 0 ? undefined : meta,
+    // An application XP ships is not the operator's to act on, so its row opens and navigates like any
+    // other but cannot be ticked.
+    selectable: !application.system,
   };
 }

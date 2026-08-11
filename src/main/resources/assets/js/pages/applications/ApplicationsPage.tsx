@@ -1,16 +1,20 @@
 import { useStore } from '@nanostores/preact';
 import { Outlet, useNavigate } from '@tanstack/react-router';
+import { LoaderCircle } from 'lucide-react';
 import { useMemo } from 'preact/hooks';
 
 import {
   $applications,
+  $applicationUploads,
   ApplicationIcon,
   ApplicationVersions,
   loadApplications,
 } from '../../entities/application';
 import { loadMarketApplications, useMarketApplications } from '../../entities/market';
+import { InstallApplicationsDialog } from '../../features/install-applications/ui/InstallApplicationsDialog';
 import { UninstallApplicationsDialog } from '../../features/uninstall-applications/ui/UninstallApplicationsDialog';
 import { i18n, useI18n } from '../../shared/i18n';
+import { ProgressBar } from '../../shared/ui/ProgressBar';
 import { sortByDisplayName, type SortDirection } from '../../widgets/browse-list/browse-sort';
 import { BrowseFilter } from '../../widgets/browse-list/BrowseFilter';
 import { BrowseSort } from '../../widgets/browse-list/BrowseSort';
@@ -26,6 +30,7 @@ import {
   applicationStateLabelKey,
   availableVersions,
   toApplicationRow,
+  toUploadRow,
 } from './model/applications.rows';
 import { applicationsFilter } from './model/filter.store';
 import { applicationsSearch } from './model/search.store';
@@ -41,8 +46,10 @@ export function ApplicationsPage() {
   const selectedEntries = useStore(applicationsFilter.$selected);
   const sort = useStore($applicationsSort);
   const { items: marketItems } = useMarketApplications();
+  const uploads = useStore($applicationUploads);
 
   const emptyLabel = useI18n('applications.list.empty');
+  const uploadingLabel = useI18n('applications.list.uploading');
   const systemLabel = useI18n('applications.filter.system');
   const sortAscLabel = useI18n('applications.sort.nameAsc');
   const sortDescLabel = useI18n('applications.sort.nameDesc');
@@ -73,6 +80,22 @@ export function ApplicationsPage() {
   // version alone — the list never waits on an outbound call.
   const available = useMemo(() => availableVersions(marketItems), [marketItems]);
 
+  // Above the list and outside the query: a jar on its way up is not an application yet, so there is
+  // nothing to search or sort it by. The spinner sits where an application's icon would, which is
+  // what keeps the file name aligned with the names below it.
+  const uploadRows = useMemo(
+    () =>
+      Object.entries(uploads).map(([id, { fileName, percent }]) =>
+        toUploadRow(
+          id,
+          fileName,
+          <LoaderCircle size={24} strokeWidth={1.5} className="animate-spin" aria-hidden />,
+          <ProgressBar progress={percent ?? 0} label={uploadingLabel} className="w-34" />,
+        ),
+      ),
+    [uploads, uploadingLabel],
+  );
+
   const section = useBrowseSection({
     openItem: (key) =>
       void navigate({ to: '/applications/$id', params: { id: key }, replace: true }),
@@ -87,7 +110,11 @@ export function ApplicationsPage() {
     toRow: (application) =>
       toApplicationRow(
         application,
-        <ApplicationIcon icon={application.icon} />,
+        <ApplicationIcon
+          icon={application.icon}
+          system={application.system}
+          local={application.local}
+        />,
         i18n(applicationStateLabelKey(application.state)),
         application.version == null ? undefined : (
           <ApplicationVersions
@@ -96,6 +123,7 @@ export function ApplicationsPage() {
           />
         ),
       ),
+    leadingRows: uploadRows,
     reload: () => {
       void loadApplications();
       void loadMarketApplications();
@@ -119,6 +147,7 @@ export function ApplicationsPage() {
         sort={<BrowseSort options={sortOptions} value={sort} onChange={setApplicationsSort} />}
       />
 
+      <InstallApplicationsDialog />
       <UninstallApplicationsDialog />
     </>
   );

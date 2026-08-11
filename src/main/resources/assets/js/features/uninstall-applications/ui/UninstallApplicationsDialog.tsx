@@ -1,9 +1,9 @@
 import { useStore } from '@nanostores/preact';
 
-import { ApplicationIcon, uninstallApplications } from '../../../entities/application';
-import { useI18n } from '../../../shared/i18n';
+import { uninstallApplications } from '../../../entities/application';
+import { i18n, useI18n } from '../../../shared/i18n';
 import { ConfirmDialog } from '../../../shared/ui/dialogs/ConfirmDialog';
-import { ItemLabel } from '../../../shared/ui/ItemLabel';
+import { ConfirmValueDialog } from '../../../shared/ui/dialogs/ConfirmValueDialog';
 import { $uninstallTargets, closeUninstallDialog } from '../model/uninstall-dialog.store';
 
 /**
@@ -13,10 +13,12 @@ import { $uninstallTargets, closeUninstallDialog } from '../model/uninstall-dial
 export function UninstallApplicationsDialog() {
   const targets = useStore($uninstallTargets);
 
-  const question = useI18n(
-    targets?.length === 1
-      ? 'applications.dialog.uninstall.question'
-      : 'applications.dialog.uninstall.questionMultiple',
+  const count = targets?.length ?? 0;
+  const title = useI18n('applications.dialog.uninstall.title');
+  const questionMultiple = useI18n('applications.dialog.uninstall.questionMultiple', count);
+  const questionSingle = i18n(
+    'applications.dialog.uninstall.question',
+    targets?.[0]?.displayName ?? '',
   );
 
   const handleConfirm = (): void => {
@@ -27,24 +29,25 @@ export function UninstallApplicationsDialog() {
     }
   };
 
+  if (count > 1) {
+    return (
+      <ConfirmValueDialog
+        open
+        title={title}
+        description={questionMultiple}
+        expected={count}
+        onClose={closeUninstallDialog}
+        onConfirm={handleConfirm}
+      />
+    );
+  }
+
   return (
     <ConfirmDialog
       open={targets !== undefined}
-      question={question}
+      question={questionSingle}
       onClose={closeUninstallDialog}
       onConfirm={handleConfirm}
-    >
-      <ul className="flex flex-col gap-2.5 py-1.5">
-        {(targets ?? []).map((application) => (
-          <li key={application.key}>
-            <ItemLabel
-              icon={<ApplicationIcon icon={application.icon} />}
-              primary={application.displayName}
-              secondary={application.key}
-            />
-          </li>
-        ))}
-      </ul>
-    </ConfirmDialog>
+    />
   );
 }

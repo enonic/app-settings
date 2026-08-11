@@ -6,6 +6,7 @@ export {
   isRelevantServerEvent,
   onServerEvent,
   parseServerEvent,
+  PROGRESS_EVENT_TYPE,
   SYSTEM_REPO,
 } from './server-events';
 export type {

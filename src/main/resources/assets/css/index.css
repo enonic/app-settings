@@ -14,3 +14,24 @@
 /* ? No base font-size override: @enonic/ui and Content Studio v6 are built against
    Tailwind's 16px root, so a 12px body left every unstyled title smaller than the
    text-sm subtitle under it. */
+
+/* A dashed border drawn as four gradients rather than a border, so the dash period is fixed
+   at 16px whatever the box measures. Copied from Content Studio's `styles/tailwind.css`. */
+@utility dash-border {
+  background-image:
+    linear-gradient(90deg, var(--dash-color, var(--color-decorative)) 65%, transparent 0),
+    linear-gradient(90deg, var(--dash-color, var(--color-decorative)) 65%, transparent 0),
+    linear-gradient(0deg, var(--dash-color, var(--color-decorative)) 65%, transparent 0),
+    linear-gradient(0deg, var(--dash-color, var(--color-decorative)) 65%, transparent 0);
+  background-position: top, bottom, left, right;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  background-size:
+    16px 1px,
+    16px 1px,
+    1px 16px,
+    1px 16px;
+}
+
+@utility dash-border-select {
+  --dash-color: var(--color-bdr-select);
+}

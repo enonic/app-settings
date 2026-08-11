@@ -6,6 +6,7 @@ import {
   startApplications,
   stopApplications,
 } from '../../../entities/application';
+import { $installDialogOpen, closeInstallDialog } from '../../../features/install-applications';
 import { $uninstallTargets, closeUninstallDialog } from '../../../features/uninstall-applications';
 import { $config, setConfig, type ToolConfig } from '../../../shared/config';
 import type { ActionContext, SectionAction } from '../../../widgets/browse-toolbar/actions';
@@ -32,6 +33,8 @@ const config = {
       start: '/_/server:app/start',
       stop: '/_/server:app/stop',
       uninstall: '/_/server:app/uninstall',
+      install: '/_/server:app/install',
+      installUrl: '/_/server:app/installUrl',
     },
   },
 } satisfies ToolConfig;
@@ -68,6 +71,7 @@ beforeEach(() => {
   vi.mocked(startApplications).mockReset();
   vi.mocked(stopApplications).mockReset();
   closeUninstallDialog();
+  closeInstallDialog();
 });
 
 afterEach(() => {
@@ -86,9 +90,15 @@ describe('application actions', () => {
 });
 
 describe('install application', () => {
-  it('stays disabled until #3 implements it, whatever is selected', () => {
-    expect(action('install').enabled(context())).toBe(false);
-    expect(action('install').enabled(context({ selected: [booster] }))).toBe(false);
+  it('needs no target, since nothing on the list is what it installs', () => {
+    expect(action('install').enabled(context())).toBe(true);
+    expect(action('install').enabled(context({ selected: [booster] }))).toBe(true);
+  });
+
+  it('opens the install dialog', () => {
+    void action('install').run(context());
+
+    expect($installDialogOpen.get()).toBe(true);
   });
 });
 

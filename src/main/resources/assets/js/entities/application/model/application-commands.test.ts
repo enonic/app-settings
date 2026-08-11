@@ -10,7 +10,19 @@ import {
   postStopApplications,
   postUninstallApplications,
 } from '../api/application-lifecycle.api';
-import { startApplications, stopApplications, uninstallApplications } from './application-commands';
+import {
+  postInstallApplicationFromFile,
+  postInstallApplicationFromUrl,
+} from '../api/applications.api';
+import {
+  installApplication,
+  startApplications,
+  stopApplications,
+  uninstallApplications,
+  uploadApplication,
+  uploadApplications,
+} from './application-commands';
+import { $applicationUploads, queueUploads } from './application-uploads.store';
 import type { Application } from './application.types';
 import { loadApplication, loadApplications } from './applications.load';
 
@@ -18,6 +30,14 @@ vi.mock('../api/application-lifecycle.api', () => ({
   postStartApplications: vi.fn(),
   postStopApplications: vi.fn(),
   postUninstallApplications: vi.fn(),
+}));
+
+// Only the one call is stubbed: the module also carries the reads, and the loader beside it is what
+// this file asserts against.
+vi.mock('../api/applications.api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../api/applications.api')>()),
+  postInstallApplicationFromUrl: vi.fn(),
+  postInstallApplicationFromFile: vi.fn(),
 }));
 
 vi.mock('./applications.load', () => ({
@@ -46,9 +66,17 @@ beforeEach(() => {
       'applications.notify.stopFailed': 'Could not stop {0}',
       'applications.notify.uninstalled': '{0} was uninstalled',
       'applications.notify.uninstallFailed': 'Could not uninstall {0}',
+      'applications.notify.installed': '{0} was installed',
+      'applications.notify.installFailed': 'Could not install {0}: {1}',
+      'applications.notify.updated': '{0} was updated',
+      'applications.notify.updateFailed': 'Could not update {0}: {1}',
+      'applications.notify.uploadFailed': 'Could not install {0}: {1}',
     },
     'en',
   );
+  $applicationUploads.set({});
+  vi.mocked(postInstallApplicationFromUrl).mockReset();
+  vi.mocked(postInstallApplicationFromFile).mockReset();
   vi.mocked(postStartApplications).mockReset();
   vi.mocked(postStopApplications).mockReset();
   vi.mocked(postUninstallApplications).mockReset();
@@ -136,6 +164,200 @@ describe('stopApplications', () => {
     await stopApplications([booster]);
 
     expect(notificationTexts()).toEqual(['Could not stop Booster']);
+  });
+});
+
+describe('installApplication', () => {
+  const params = {
+    displayName: 'Booster',
+    url: 'https://repo.enonic.com/booster-3.0.1.jar',
+    sha512: 'abc',
+  };
+  const installed = {
+    key: 'com.enonic.app.booster',
+    version: '3.0.1',
+    displayName: 'Booster',
+  };
+
+  it('names what was installed and refetches the row core created', async () => {
+    vi.mocked(postInstallApplicationFromUrl).mockReturnValue(okAsync(installed));
+
+    const result = await installApplication(params);
+
+    expect(postInstallApplicationFromUrl).toHaveBeenCalledWith({
+      url: params.url,
+      sha512: params.sha512,
+    });
+    expect(notificationTexts()).toEqual(['Booster was installed']);
+    // Core's key, not the market's: they need not be the same, so the response decides.
+    expect(loadApplication).toHaveBeenCalledWith(installed.key);
+    expect(result._unsafeUnwrap()).toEqual(installed);
+  });
+
+  // Core publishes INSTALLED and STARTED before it answers, so a live socket has already refetched.
+  it('leaves the refetch to the server events while the socket is up', async () => {
+    $serverEventsConnected.set(true);
+    vi.mocked(postInstallApplicationFromUrl).mockReturnValue(okAsync(installed));
+
+    await installApplication(params);
+
+    expect(notificationTexts()).toEqual(['Booster was installed']);
+    expect(loadApplication).not.toHaveBeenCalled();
+  });
+
+  it('says updated rather than installed for an update', async () => {
+    vi.mocked(postInstallApplicationFromUrl).mockReturnValue(okAsync(installed));
+
+    await installApplication({ ...params, updating: true });
+
+    expect(notificationTexts()).toEqual(['Booster was updated']);
+  });
+
+  // The allowlist and the checksum requirement are core's, and its message is the only thing that
+  // says which of them refused — hence the reason in the phrase.
+  it('reports the reason core gave, and refetches nothing', async () => {
+    vi.mocked(postInstallApplicationFromUrl).mockReturnValue(
+      errAsync(new AppError('SHA512 checksum is required for installUrl')),
+    );
+
+    const result = await installApplication(params);
+
+    expect(notificationTexts()).toEqual([
+      'Could not install Booster: SHA512 checksum is required for installUrl',
+    ]);
+    expect(loadApplication).not.toHaveBeenCalled();
+    expect(result.isErr()).toBe(true);
+  });
+
+  it('reports a failed update as an update', async () => {
+    vi.mocked(postInstallApplicationFromUrl).mockReturnValue(errAsync(new AppError('Conflict')));
+
+    await installApplication({ ...params, updating: true });
+
+    expect(notificationTexts()).toEqual(['Could not update Booster: Conflict']);
+  });
+});
+
+describe('uploadApplication', () => {
+  const jar = new File(['jar bytes'], 'booster-3.0.1.jar');
+  const installed = {
+    key: 'com.enonic.app.booster',
+    version: '3.0.1',
+    displayName: 'Booster',
+  };
+
+  // A jar's file name need not resemble the application inside it, so success names core's answer.
+  it('names the application core built, not the file it came in', async () => {
+    vi.mocked(postInstallApplicationFromFile).mockReturnValue(okAsync(installed));
+
+    const result = await uploadApplication(jar, queueUploads([jar.name])[0]);
+
+    expect(notificationTexts()).toEqual(['Booster was installed']);
+    expect(loadApplication).toHaveBeenCalledWith(installed.key);
+    expect(result._unsafeUnwrap()).toEqual(installed);
+  });
+
+  it('holds the upload while it runs and drops it once it has finished', async () => {
+    const inFlight: Record<string, unknown>[] = [];
+    vi.mocked(postInstallApplicationFromFile).mockImplementation(({ onProgress }) => {
+      onProgress?.(40);
+      inFlight.push({ ...$applicationUploads.get() });
+      return okAsync(installed);
+    });
+
+    await uploadApplication(jar, queueUploads([jar.name])[0]);
+
+    expect(Object.values(inFlight[0] ?? {})).toEqual([
+      { fileName: 'booster-3.0.1.jar', percent: 40 },
+    ]);
+    expect($applicationUploads.get()).toEqual({});
+  });
+
+  // Core refused the jar before it became an application, so there is no name but the file's.
+  it('names the file when core would not take it, and refetches nothing', async () => {
+    vi.mocked(postInstallApplicationFromFile).mockReturnValue(
+      errAsync(new AppError('Missing file item')),
+    );
+
+    const result = await uploadApplication(jar, queueUploads([jar.name])[0]);
+
+    expect(notificationTexts()).toEqual(['Could not install booster-3.0.1.jar: Missing file item']);
+    expect(loadApplication).not.toHaveBeenCalled();
+    expect(result.isErr()).toBe(true);
+  });
+
+  it('drops the upload after a failure too, so no row is left behind', async () => {
+    vi.mocked(postInstallApplicationFromFile).mockReturnValue(errAsync(new AppError('Conflict')));
+
+    await uploadApplication(jar, queueUploads([jar.name])[0]);
+
+    expect($applicationUploads.get()).toEqual({});
+  });
+
+  it('leaves the refetch to the server events while the socket is up', async () => {
+    $serverEventsConnected.set(true);
+    vi.mocked(postInstallApplicationFromFile).mockReturnValue(okAsync(installed));
+
+    await uploadApplication(jar, queueUploads([jar.name])[0]);
+
+    expect(notificationTexts()).toEqual(['Booster was installed']);
+    expect(loadApplication).not.toHaveBeenCalled();
+  });
+});
+
+describe('uploadApplications', () => {
+  const jars = ['booster.jar', 'fathom.jar', 'juke.jar'].map((name) => new File(['bytes'], name));
+
+  function uploadsPerCall(): Record<string, unknown>[][] {
+    const seen: Record<string, unknown>[][] = [];
+    vi.mocked(postInstallApplicationFromFile).mockImplementation(({ file }) => {
+      seen.push(Object.values({ ...$applicationUploads.get() }) as Record<string, unknown>[]);
+      return okAsync({ key: file.name, version: '1.0.0', displayName: file.name });
+    });
+
+    return seen;
+  }
+
+  // One going, two waiting — what the operator has to be able to see.
+  it('shows the whole pick before the first jar has gone out', async () => {
+    const seen = uploadsPerCall();
+
+    await uploadApplications(jars);
+
+    expect(seen[0]).toEqual([
+      { fileName: 'booster.jar' },
+      { fileName: 'fathom.jar' },
+      { fileName: 'juke.jar' },
+    ]);
+  });
+
+  it('sends them one at a time, in the order they were picked, and clears the list', async () => {
+    const seen = uploadsPerCall();
+
+    await uploadApplications(jars);
+
+    expect(seen.map((uploads) => uploads.length)).toEqual([3, 2, 1]);
+    expect(vi.mocked(postInstallApplicationFromFile).mock.calls.map(([{ file }]) => file.name)) //
+      .toEqual(['booster.jar', 'fathom.jar', 'juke.jar']);
+    expect($applicationUploads.get()).toEqual({});
+  });
+
+  // A name per jar, because `notify` collapses two identical texts into one.
+  it('carries on after a jar core would not take', async () => {
+    vi.mocked(postInstallApplicationFromFile)
+      .mockImplementationOnce(() => errAsync(new AppError('Missing file item')))
+      .mockImplementation(({ file }) =>
+        okAsync({ key: file.name, version: '1.0.0', displayName: file.name }),
+      );
+
+    await uploadApplications(jars);
+
+    expect(notificationTexts()).toEqual([
+      'Could not install booster.jar: Missing file item',
+      'fathom.jar was installed',
+      'juke.jar was installed',
+    ]);
+    expect($applicationUploads.get()).toEqual({});
   });
 });
 

@@ -41,7 +41,7 @@ export function BrowseListRow({
   onContextMenu,
 }: BrowseListRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
-  const { key, title, subtitle, icon, meta, disabled } = row;
+  const { key, title, subtitle, icon, meta, disabled, selectable } = row;
 
   useEffect(() => {
     const row = rowRef.current;
@@ -82,6 +82,8 @@ export function BrowseListRow({
       ) : (
         <Checkbox
           checked={selected}
+          // Greyed in place rather than left out: the row is an item, it is just not one to act on.
+          disabled={selectable === false}
           aria-label={title}
           // ! Not in the tab order: the row owns focus, and Space on the row ticks it.
           tabIndex={-1}

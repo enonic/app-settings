@@ -1,4 +1,4 @@
-import type { ResultAsync } from 'neverthrow';
+import type { Result, ResultAsync } from 'neverthrow';
 
 import type { AppError } from '../../../shared/api';
 import { i18n } from '../../../shared/i18n';
@@ -10,6 +10,12 @@ import {
   postStopApplications,
   postUninstallApplications,
 } from '../api/application-lifecycle.api';
+import {
+  type InstalledApplication,
+  postInstallApplicationFromFile,
+  postInstallApplicationFromUrl,
+} from '../api/applications.api';
+import { endUpload, queueUploads, receiveUploadProgress } from './application-uploads.store';
 import type { Application } from './application.types';
 import { loadApplication, loadApplications } from './applications.load';
 
@@ -18,7 +24,21 @@ const TEXT = {
   stopFailed: 'applications.notify.stopFailed',
   uninstalled: 'applications.notify.uninstalled',
   uninstallFailed: 'applications.notify.uninstallFailed',
+  installed: 'applications.notify.installed',
+  installFailed: 'applications.notify.installFailed',
+  uploadFailed: 'applications.notify.uploadFailed',
+  updated: 'applications.notify.updated',
+  updateFailed: 'applications.notify.updateFailed',
 } as const;
+
+export type InstallApplicationParams = {
+  /** What the notifications name it: the market's display name, not a key. */
+  displayName: string;
+  url: string;
+  sha512?: string;
+  /** An update of something already installed, which is all the wording differs by. */
+  updating?: boolean;
+};
 
 export function startApplications(applications: readonly Application[]): Promise<void> {
   return runLifecycleAction(applications, postStartApplications, TEXT.startFailed);
@@ -35,6 +55,63 @@ export function uninstallApplications(applications: readonly Application[]): Pro
     TEXT.uninstallFailed,
     TEXT.uninstalled,
   );
+}
+
+export async function installApplication({
+  displayName,
+  url,
+  sha512,
+  updating = false,
+}: InstallApplicationParams): Promise<Result<InstalledApplication, AppError>> {
+  const result = await postInstallApplicationFromUrl({ url, sha512 });
+
+  result.match(
+    ({ key }) => {
+      notifySuccess(i18n(updating ? TEXT.updated : TEXT.installed, displayName));
+      resyncWithoutEvents([key]);
+    },
+    (error) =>
+      notifyError(
+        i18n(updating ? TEXT.updateFailed : TEXT.installFailed, displayName, error.message),
+      ),
+  );
+
+  return result;
+}
+
+/**
+ * ! Queued together but sent one at a time: core reads and stores the jar on the thread serving the
+ * ! request, and the app this replaces uploaded with `maxConnections: 1` for the same reason.
+ */
+export async function uploadApplications(files: readonly File[]): Promise<void> {
+  const ids = queueUploads(files.map(({ name }) => name));
+
+  for (const [index, file] of files.entries()) {
+    await uploadApplication(file, ids[index]);
+  }
+}
+
+/** One jar, under the id it was queued as. */
+export async function uploadApplication(
+  file: File,
+  id: string,
+): Promise<Result<InstalledApplication, AppError>> {
+  const result = await postInstallApplicationFromFile({
+    file,
+    onProgress: (percent) => receiveUploadProgress(id, percent),
+  });
+
+  result.match(
+    ({ key, displayName }) => {
+      notifySuccess(i18n(TEXT.installed, displayName));
+      resyncWithoutEvents([key]);
+    },
+    (error) => notifyError(i18n(TEXT.uploadFailed, file.name, error.message)),
+  );
+
+  endUpload(id);
+
+  return result;
 }
 
 // *

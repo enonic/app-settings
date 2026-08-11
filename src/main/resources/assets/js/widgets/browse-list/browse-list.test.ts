@@ -16,6 +16,10 @@ function row(key: string, disabled = false): BrowseRow {
   return { key, title: key, disabled };
 }
 
+function unselectableRow(key: string): BrowseRow {
+  return { key, title: key, selectable: false };
+}
+
 describe('selectableKeys', () => {
   it('keeps the loaded rows in order', () => {
     expect(selectableKeys([row('a'), row('b')])).toEqual(['a', 'b']);
@@ -23,6 +27,10 @@ describe('selectableKeys', () => {
 
   it('leaves out rows for work in flight', () => {
     expect(selectableKeys([row('a'), row('upload-1', true)])).toEqual(['a']);
+  });
+
+  it('leaves out a row that is not the operator’s to act on', () => {
+    expect(selectableKeys([row('a'), unselectableRow('system')])).toEqual(['a']);
   });
 });
 
@@ -46,6 +54,10 @@ describe('selectAllState', () => {
   it('is unchecked when there is nothing to select', () => {
     expect(selectAllState([], new Set())).toBe(false);
     expect(selectAllState([row('upload-1', true)], new Set())).toBe(false);
+  });
+
+  it('ignores unselectable rows when deciding it is checked', () => {
+    expect(selectAllState([row('a'), unselectableRow('system')], new Set(['a']))).toBe(true);
   });
 
   it('ignores keys that no longer have a row', () => {
@@ -171,6 +183,11 @@ describe('tabbableRowKey', () => {
     expect(tabbableRowKey([row('upload-1', true), row('b')], undefined)).toBe('b');
   });
 
+  // Not selectable is not the same as not navigable: the row still opens and takes the cursor.
+  it('gives the tab stop to a row that cannot be ticked', () => {
+    expect(tabbableRowKey([unselectableRow('system'), row('b')], undefined)).toBe('system');
+  });
+
   it('has no tab stop in an empty list', () => {
     expect(tabbableRowKey([], 'a')).toBeUndefined();
   });
@@ -203,6 +220,12 @@ describe('nextRowKey', () => {
     const withUpload = [row('a'), row('upload-1', true), row('c')];
 
     expect(nextRowKey(withUpload, 'a', 'ArrowDown')).toBe('c');
+  });
+
+  it('steps onto a row that cannot be ticked', () => {
+    const withSystem = [row('a'), unselectableRow('system'), row('c')];
+
+    expect(nextRowKey(withSystem, 'a', 'ArrowDown')).toBe('system');
   });
 
   it('re-enters at the first row when the active key is gone', () => {

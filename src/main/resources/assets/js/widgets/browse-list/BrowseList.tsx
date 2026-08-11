@@ -10,6 +10,7 @@ import {
   nextRowKey,
   type RowTarget,
   rowClickTarget,
+  selectableKeys,
   tabbableRowKey,
   toggledSelection,
 } from './browse-list';
@@ -113,7 +114,7 @@ export function BrowseList({
       return;
     }
 
-    if (event.key === ' ' && cursorKey !== undefined) {
+    if (event.key === ' ' && cursorKey !== undefined && selectableKeys(rows).includes(cursorKey)) {
       event.preventDefault();
       handleSelectedChange(cursorKey, !selectedKeys.has(cursorKey));
     }

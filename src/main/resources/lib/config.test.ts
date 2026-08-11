@@ -19,6 +19,8 @@ const config: ToolConfig = {
       start: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/start',
       stop: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/stop',
       uninstall: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/uninstall',
+      install: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/install',
+      installUrl: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/installUrl',
     },
   },
 };
@@ -75,6 +77,8 @@ describe('getConfig', () => {
       start: '/_/server:app/start',
       stop: '/_/server:app/stop',
       uninstall: '/_/server:app/uninstall',
+      install: '/_/server:app/install',
+      installUrl: '/_/server:app/installUrl',
     });
   });
 });

@@ -269,6 +269,8 @@ export type BrowseRow = {
   meta?: readonly ReactNode[];
   /** Transient row: no navigation, no checkbox. Progress goes in `meta`. */
   disabled?: boolean;
+  /** An item not the operator's to act on: navigates as any other, checkbox greyed. Default true. */
+  selectable?: boolean;
 };
 
 export type BrowseListProps = {
@@ -398,7 +400,14 @@ text-subtle` subtitle — and it lives in `shared/ui/` because the details panel
 - A `disabled` row exists for work in flight: an application being uploaded is a row before it is an
   application, keyed by its upload id, with a progress bar as its last meta cell. It must not
   navigate and must not be selectable, and `enabled(ctx)` in the toolbar never sees it, because it
-  never enters the selection.
+  never enters the selection. A section supplies these through `leadingRows` on `useBrowseSection`,
+  which puts them above the list and outside the query: they are not items yet, so nothing can search
+  or sort them.
+- **`selectable: false` is the other half of that, and not the same thing.** A row for an item that is
+  not the operator's to act on — an application XP ships — opens, navigates and right-clicks like any
+  other, and only its checkbox is greyed. `selectableKeys` decides ticks and `Select all`, a wider set
+  decides the arrows and the tab stop, and `Space` is checked against the former because it bypasses the
+  checkbox. What an action refuses stays in its own `enabled`; this flag is about the tick alone.
 
 ### 3.6 Header controls
 
