@@ -16,7 +16,7 @@ export type BrowseSortProps<Id extends string = string> = {
 };
 
 /**
- * The `Sort after` control: one order out of the few a section offers. Section-agnostic — an option
+ * The `Sort by` control: one order out of the few a section offers. Section-agnostic — an option
  * is an id and a label, and what it orders by is the page's business. The id type travels through so
  * a section keeps its own union instead of casting a bare string back.
  */

@@ -52,6 +52,17 @@ describe('toApplicationRow', () => {
     expect(row.meta).toEqual(['Stopped']);
   });
 
+  it('drops the state cell on an application XP ships, whose state cannot change', () => {
+    const row = toApplicationRow(application({ system: true }), undefined, 'Started', '1.2.0');
+
+    expect(row.meta).toEqual(['1.2.0', '']);
+  });
+
+  it('dim a stopped application', () => {
+    expect(toApplicationRow(application({ state: 'STOPPED' })).dimmed).toBe(true);
+    expect(toApplicationRow(application({ state: 'STARTED' })).dimmed).toBe(false);
+  });
+
   // Selection and `Select all` key off this; navigation and the details column do not.
   it('refuses the tick on an application XP ships', () => {
     expect(toApplicationRow(application({ system: true })).selectable).toBe(false);

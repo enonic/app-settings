@@ -117,6 +117,25 @@ yet, so the choice is still free.
 Request shapes: `installUrl` takes `{"URL": "...", "sha512": "..."}`; `start`/`stop`/`uninstall` take
 `{"key": ["..."]}` (single value accepted); `install` is multipart, field name `file`.
 
+## `local` is the deploy directory, and `system` is independent of it
+
+The two application flags read as if one implied the other — a system application feels like something
+the server holds locally — and they are unrelated:
+
+- **`local` means "arrived through `$XP_HOME/deploy`", and nothing else.**
+  `ApplicationServiceImpl.isLocalApplication` (`:117`) is membership of `localApplicationSet`, which
+  only `doInstallLocalApplication` (`:385`) fills, and the one non-test caller of the
+  `installLocalApplication` above it is `DeployDirectoryWatcher:126`. An application installed through
+  `server:app` or from the market is therefore never local.
+- **`system` is the bundle header.** `ApplicationBundleUtils.isSystemApplication` (`:42`) tests
+  `X-Bundle-Type: system`, set at build time — in the XP tree only `modules/app/app-system` sets it,
+  and none of the admin applications being folded into this app do.
+
+So the distribution's own applications are `system` and **not** `local`, while a system-flagged jar
+dropped into `deploy/` is both — `ApplicationServiceSystemAppGuardsTest` covers exactly that pairing.
+Neither flag can be derived from the other, and `isUninstallable` in `application-lifecycle.ts` refuses
+on each separately for that reason.
+
 ## Our existing websocket already carries application events
 
 `server:app/events` SSE is **redundant for us**. `admin:event` forwards _every_ event unfiltered

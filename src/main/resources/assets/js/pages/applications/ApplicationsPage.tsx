@@ -119,7 +119,7 @@ export function ApplicationsPage() {
         application.version == null ? undefined : (
           <ApplicationVersions
             installed={application.version}
-            available={available.get(application.key)}
+            updateAvailable={available.has(application.key)}
           />
         ),
       ),

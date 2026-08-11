@@ -41,7 +41,7 @@ export function BrowseListRow({
   onContextMenu,
 }: BrowseListRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
-  const { key, title, subtitle, icon, meta, disabled, selectable } = row;
+  const { key, title, subtitle, icon, meta, disabled, dimmed, selectable } = row;
 
   useEffect(() => {
     const row = rowRef.current;
@@ -75,6 +75,7 @@ export function BrowseListRow({
           ? 'bg-surface-selected text-alt hover:bg-surface-selected-hover'
           : 'hover:bg-surface-neutral-hover',
         disabled ? 'pointer-events-none opacity-50' : 'cursor-pointer',
+        dimmed && !highlighted && 'opacity-50',
       )}
     >
       {disabled ? (

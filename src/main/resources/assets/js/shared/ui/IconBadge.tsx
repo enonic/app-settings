@@ -42,8 +42,11 @@ export function IconBadge({ icon: Icon, color, size = 'md', label, className }: 
   // The tooltip describes the badge and `aria-label` names it: the label is what a screen reader
   // reads either way, since the visible tooltip only appears on hover. `ServerEventsIndicator` pairs
   // the two the same way.
+  // ! `asChild` is load-bearing: without it the trigger is a wrapping `div` carrying `role="button"`
+  // ! and `tabIndex={0}`, which inside a browse row is a button nested in an option and a second tab
+  // ! stop in a list contracted to hold exactly one.
   return (
-    <Tooltip value={label} side="top" delay={TOOLTIP_DELAY}>
+    <Tooltip value={label} side="top" delay={TOOLTIP_DELAY} asChild>
       {badge}
     </Tooltip>
   );

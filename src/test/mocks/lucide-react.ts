@@ -4,6 +4,7 @@ function icon(): null {
   return null;
 }
 
+export const BellDot = icon;
 export const Box = icon;
 export const ChevronDown = icon;
 export const Laptop = icon;
