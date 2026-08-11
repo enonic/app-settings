@@ -13,8 +13,8 @@ export type ApplicationIconProps = {
   /** `sm` for a list row, `lg` for the details header. */
   size?: 'sm' | 'lg';
   /**
-   * The application's own flags, one corner badge each — an application can be both. Absent for an
-   * icon standing for no installed application: a market entry, or the id provider form placeholder.
+   * The application's own flags. At most one corner badge, system before local. Absent for an icon
+   * standing for no installed application: a market entry, or the id provider form placeholder.
    */
   system?: boolean;
   local?: boolean;
@@ -45,31 +45,21 @@ export function ApplicationIcon({ icon, size = 'sm', system, local }: Applicatio
     return glyph;
   }
 
-  const badgeSize = size === 'lg' ? 'md' : 'sm';
+  const badge = system
+    ? { icon: Settings, color: 'var(--color-main)', label: i18n('applications.badge.system') }
+    : { icon: Laptop, color: 'var(--color-info)', label: i18n('applications.badge.local') };
 
   return (
     <span className="relative inline-flex shrink-0">
       {glyph}
 
-      {local && (
-        <IconBadge
-          icon={Laptop}
-          color="var(--color-info)"
-          size={badgeSize}
-          label={i18n('applications.badge.local')}
-          className="absolute -top-0.75 -right-0.75"
-        />
-      )}
-
-      {system && (
-        <IconBadge
-          icon={Settings}
-          color="var(--color-main)"
-          size={badgeSize}
-          label={i18n('applications.badge.system')}
-          className="absolute -right-0.75 -bottom-0.75"
-        />
-      )}
+      <IconBadge
+        icon={badge.icon}
+        color={badge.color}
+        size={size === 'lg' ? 'md' : 'sm'}
+        label={badge.label}
+        className="absolute -top-0.75 -right-0.75"
+      />
     </span>
   );
 }

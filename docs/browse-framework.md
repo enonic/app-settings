@@ -269,6 +269,8 @@ export type BrowseRow = {
   meta?: readonly ReactNode[];
   /** Transient row: no navigation, no checkbox. Progress goes in `meta`. */
   disabled?: boolean;
+  /** Painted back: an item that is idle. Presentation only, and lifted while the row is highlighted. */
+  dimmed?: boolean;
   /** An item not the operator's to act on: navigates as any other, checkbox greyed. Default true. */
   selectable?: boolean;
 };
@@ -408,6 +410,13 @@ text-subtle` subtitle — and it lives in `shared/ui/` because the details panel
   other, and only its checkbox is greyed. `selectableKeys` decides ticks and `Select all`, a wider set
   decides the arrows and the tab stop, and `Space` is checked against the former because it bypasses the
   checkbox. What an action refuses stays in its own `enabled`; this flag is about the tick alone.
+- **`dimmed` is the third of these and the only one that is paint alone.** A stopped application is the
+  case: it is idle, not unavailable, so its row is `opacity-50` and everything it can do is unchanged —
+  it opens, ticks, and `Start` and `Uninstall` both reach it. The dim lifts on the highlighted row,
+  because `surface-selected` is `grey-800` in both themes and half opacity over it takes the text with
+  it; the condition is therefore `highlighted`, the flag that paints that background, rather than
+  `selected`, which would leave the active row faded on dark. A section states the rule in its `toRow`
+  — `dimmed: application.state === 'STOPPED'` — and nothing about behaviour follows from it.
 
 ### 3.6 Header controls
 
@@ -418,7 +427,7 @@ supplied them, and render as an inert button where it has not:
 | ----------------------- | --------------------------------------------------- |
 | `Type to search` field  | working in every section that loads whole           |
 | `Filter list` button    | working in all five sections; `disabled` where none |
-| `Sort after` button     | working in all five sections; `disabled` where none |
+| `Sort by` button        | working in all five sections; `disabled` where none |
 | `Select all`, `Refresh` | fully working                                       |
 
 A section supplies both through the slots in `BrowseListHeaderProps`, and the widgets behind them —
@@ -718,7 +727,7 @@ Decided:
 2. The two columns are a draggable split view with a `300px` minimum each; the width is remembered in
    `localStorage`. No collapse toggle in v1 — the mockups have none, and dragging covers it.
 3. Item route stays `/{section}/$id` with hash history.
-4. Search filters client-side wherever the section loads whole; `Filter list` and `Sort after` are
+4. Search filters client-side wherever the section loads whole; `Filter list` and `Sort by` are
    supplied by all five sections now, and the slots stay inert for a section that supplies neither
    (§ 3.6). The last row meta cell is provenance; the undefined `Info` / `More info` cells are left out
    until they mean something.
@@ -737,8 +746,10 @@ Still open, needs design or product input:
    applications" toggle came back as the section's one filter entry, off by default as it was (§ 3.6).
 8. ~~**Where "available version" comes from.**~~ Answered and built (#39): `marketApplications` reads
    Enonic Market server-side and hands back `latest`, `installedVersion` and `updateAvailable` per
-   application, `entities/market/` caches it for the session, and the row's version cell reads
-   `Installed: 1.2.0` with `(available: 1.4.0)` under it wherever the market offers something newer. The
+   application, `entities/market/` caches it for the session, and the row's version cell reads the
+   installed version with a bell beside it wherever the market offers something newer — the version on
+   offer is named in the install dialog rather than in the row, and the bell's slot is held open on every
+   row so the numbers stay in column (#80). The
    cell is the one consumer that makes staleness visible — `updateAvailable` is resolved server-side, so
    an install or update leaves it wrong until the catalogue is read again. Refresh reads it again, which
    is why the section's `reload` loads both; picking it up without being asked would need a

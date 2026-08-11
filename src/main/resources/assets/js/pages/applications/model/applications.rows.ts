@@ -46,7 +46,8 @@ export function toApplicationRow(
   stateLabel?: string,
   version?: ReactNode,
 ): BrowseRow {
-  const meta = [version, stateLabel].filter((cell) => cell != null);
+  // An application XP ships cannot be stopped, so its state is a constant.
+  const meta = [version, application.system ? '' : stateLabel].filter((cell) => cell !== undefined);
 
   return {
     key: application.key,
@@ -54,6 +55,7 @@ export function toApplicationRow(
     subtitle: application.description,
     icon,
     meta: meta.length === 0 ? undefined : meta,
+    dimmed: application.state === 'STOPPED',
     // An application XP ships is not the operator's to act on, so its row opens and navigates like any
     // other but cannot be ticked.
     selectable: !application.system,

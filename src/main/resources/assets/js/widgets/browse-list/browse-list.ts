@@ -13,6 +13,11 @@ export type BrowseRow = {
   /** Transient row: no navigation, no checkbox. Progress goes in `meta`. */
   disabled?: boolean;
   /**
+   * An item that is idle rather than unavailable. Presentation only — the row opens,
+   * ticks and acts exactly as an undimmed one, and the paint lifts wherever the row is highlighted.
+   */
+  dimmed?: boolean;
+  /**
    * An item that is not the operator's to act on: the row opens and navigates as any other, and its
    * checkbox is greyed out. Defaults to selectable, as `@enonic/ui`'s own `TreeList` row does.
    */
