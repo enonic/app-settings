@@ -3,14 +3,14 @@ import { loadMarketApplications } from './market.load';
 import { isMarketCached } from './market.store';
 
 /**
- * The lifecycle events that leave the catalogue wrong: both move an installed version, and
+ * The lifecycle events that leave the catalogue wrong: each moves an installed version, and
  * `installedVersion` and `updateAvailable` are resolved from those server-side.
  *
- * ! INSTALLED is deliberately not one of them. `runMarketInstall` reloads the catalogue itself as
- * ! soon as core answers, and holds the row's installing state until that lands — reloading here too
- * ! would be a second outbound call for one install.
+ * INSTALLED is one of them because an install has three other sources than the market tab of the
+ * install dialog — an uploaded jar, another operator, a jar dropped into the deploy folder — and none
+ * of those reloads the catalogue on its own.
  */
-const STALE_EVENT_TYPES = new Set(['UNINSTALLED', 'UPDATED']);
+const STALE_EVENT_TYPES = new Set(['INSTALLED', 'UNINSTALLED', 'UPDATED']);
 
 export function affectsMarket(event: ServerEvent): boolean {
   return event.type === APPLICATION_EVENT && STALE_EVENT_TYPES.has(event.data?.eventType ?? '');

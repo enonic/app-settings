@@ -2,7 +2,7 @@ import { err, ok } from 'neverthrow';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { installApplication } from '../../../entities/application';
-import { loadMarketApplications } from '../../../entities/market';
+import { marketLoadSettled } from '../../../entities/market';
 import { AppError } from '../../../shared/api';
 import { marketInstallIntent, runMarketInstall } from './install-market-application';
 import { $marketInstalls, beginInstall } from './install.store';
@@ -13,7 +13,7 @@ vi.mock('../../../entities/application', () => ({
 }));
 
 vi.mock('../../../entities/market', () => ({
-  loadMarketApplications: vi.fn(),
+  marketLoadSettled: vi.fn(),
 }));
 
 function row(overrides: Partial<MarketRow> = {}): MarketRow {
@@ -38,8 +38,8 @@ beforeEach(() => {
   $marketInstalls.set({});
   vi.mocked(installApplication).mockReset();
   vi.mocked(installApplication).mockResolvedValue(ok(installed));
-  vi.mocked(loadMarketApplications).mockReset();
-  vi.mocked(loadMarketApplications).mockResolvedValue(undefined);
+  vi.mocked(marketLoadSettled).mockReset();
+  vi.mocked(marketLoadSettled).mockResolvedValue(undefined);
 });
 
 describe('marketInstallIntent', () => {
@@ -76,7 +76,7 @@ describe('marketInstallIntent', () => {
 });
 
 describe('runMarketInstall', () => {
-  it('marks the row installing, installs it, and asks the market again', async () => {
+  it('marks the row installing, installs it, and waits for the catalogue', async () => {
     await runMarketInstall(row());
 
     expect(installApplication).toHaveBeenCalledWith({
@@ -85,7 +85,27 @@ describe('runMarketInstall', () => {
       sha512: 'abc',
       updating: false,
     });
-    expect(loadMarketApplications).toHaveBeenCalledOnce();
+    expect(marketLoadSettled).toHaveBeenCalledOnce();
+    expect($marketInstalls.get()).toEqual({});
+  });
+
+  // The row has to still be installing while the reload INSTALLED started is on its way, or a second
+  // press installs the same application again off the catalogue it is about to replace.
+  it('holds the row until the catalogue has caught up', async () => {
+    const target = row();
+    let settle = (): void => {};
+    vi.mocked(marketLoadSettled).mockReturnValue(
+      new Promise<void>((resolve) => {
+        settle = resolve;
+      }),
+    );
+
+    const install = runMarketInstall(target);
+    await vi.waitFor(() => expect($marketInstalls.get()[target.key]).toBeDefined());
+
+    settle();
+    await install;
+
     expect($marketInstalls.get()).toEqual({});
   });
 
@@ -95,14 +115,14 @@ describe('runMarketInstall', () => {
     expect(installApplication).toHaveBeenCalledWith(expect.objectContaining({ updating: true }));
   });
 
-  // The catalogue says the same thing it said before, so paying for the outbound call would buy
-  // nothing; the failure has already been notified by the command.
-  it('leaves the market alone after a failed install, and releases the row', async () => {
+  // Nothing changed server-side, so there is no reload to wait for; the failure has already been
+  // notified by the command.
+  it('releases the row at once after a failed install', async () => {
     vi.mocked(installApplication).mockResolvedValue(err(new AppError('Conflict')));
 
     await runMarketInstall(row());
 
-    expect(loadMarketApplications).not.toHaveBeenCalled();
+    expect(marketLoadSettled).not.toHaveBeenCalled();
     expect($marketInstalls.get()).toEqual({});
   });
 });

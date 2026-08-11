@@ -44,6 +44,20 @@ export function loadMarketApplications(): Promise<void> {
 }
 
 /**
+ * Resolves once no load is on its way out, so a caller can wait for the catalogue to catch up with a
+ * change it made without asking for a read of its own.
+ *
+ * ! The loop is what makes this safe to await: a load that is superseded settles as soon as it is
+ * ! aborted, and `inFlight` is by then the load that replaced it. Awaiting the promise once would
+ * ! release the caller against the catalogue the aborted load never delivered.
+ */
+export async function marketLoadSettled(): Promise<void> {
+  while (inFlight != null) {
+    await inFlight;
+  }
+}
+
+/**
  * The first caller's load, and nothing on a later one.
  *
  * ! This is the only sanctioned entry point for anything rendering rows. The market is an outbound

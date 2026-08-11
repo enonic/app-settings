@@ -1,5 +1,5 @@
 import { installApplication } from '../../../entities/application';
-import { loadMarketApplications } from '../../../entities/market';
+import { marketLoadSettled } from '../../../entities/market';
 import { beginInstall, endInstall, isInstalling } from './install.store';
 import { canInstall, isMajorUpdate, type MarketRow } from './market-rows';
 
@@ -22,7 +22,13 @@ export function marketInstallIntent(row: MarketRow): MarketInstallIntent {
   return isMajorUpdate(row) ? 'confirm' : 'install';
 }
 
-/** Installs the row and leaves it in its installing state until the catalogue agrees it is installed. */
+/**
+ * Installs the row and leaves it in its installing state until the catalogue has caught up.
+ *
+ * ? It waits rather than reloads: core publishes INSTALLED before it answers the install — the app is
+ * ? started in between — so `market.service` has the reload out well before this returns, and asking
+ * ? for one here would be a second call to Enonic Market for one install.
+ */
 export async function runMarketInstall(row: MarketRow): Promise<void> {
   beginInstall(row.key, row.downloadUrl);
 
@@ -34,7 +40,7 @@ export async function runMarketInstall(row: MarketRow): Promise<void> {
   });
 
   if (result.isOk()) {
-    await loadMarketApplications();
+    await marketLoadSettled();
   }
 
   endInstall(row.key);

@@ -44,14 +44,9 @@ beforeEach(() => {
 
 describe('affectsMarket', () => {
   it('accepts the events that move an installed version', () => {
+    expect(affectsMarket(applicationEvent('INSTALLED'))).toBe(true);
     expect(affectsMarket(applicationEvent('UNINSTALLED'))).toBe(true);
     expect(affectsMarket(applicationEvent('UPDATED'))).toBe(true);
-  });
-
-  // The install dialog reloads the catalogue itself and holds the row until that lands, so the event
-  // would only buy a second call to the market.
-  it('leaves INSTALLED to the install that caused it', () => {
-    expect(affectsMarket(applicationEvent('INSTALLED'))).toBe(false);
   });
 
   it('ignores run state, which the catalogue does not carry', () => {
@@ -80,6 +75,17 @@ describe('start', () => {
     start();
 
     emit(applicationEvent('UPDATED'));
+
+    expect(loadMarketApplications).toHaveBeenCalledTimes(1);
+  });
+
+  // Core publishes INSTALLED whatever installed the application — the market tab, an uploaded jar,
+  // another operator, a jar in the deploy folder — and this is the only thing that answers for it.
+  it('reloads it on an install, whatever started it', () => {
+    cacheCatalogue();
+    start();
+
+    emit(applicationEvent('INSTALLED'));
 
     expect(loadMarketApplications).toHaveBeenCalledTimes(1);
   });
