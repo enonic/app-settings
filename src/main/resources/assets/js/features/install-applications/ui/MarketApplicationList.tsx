@@ -10,7 +10,9 @@ import { MarketApplicationRow } from './MarketApplicationRow';
 export type MarketApplicationListProps = {
   status: MarketApplicationsState['status'];
   rows: readonly MarketRow[];
-  searching: boolean;
+  /** Whether the search or the bucket narrowed the list — an empty result then means no match, not an
+   * empty catalogue. */
+  narrowed: boolean;
   installs: Readonly<Record<string, MarketInstall>>;
   onInstall: (row: MarketRow) => void;
   onRetry: () => void;
@@ -35,7 +37,7 @@ export const MARKET_ACTION_CELL_CLASS = 'flex justify-center';
 export function MarketApplicationList({
   status,
   rows,
-  searching,
+  narrowed,
   installs,
   onInstall,
   onRetry,
@@ -82,7 +84,7 @@ export function MarketApplicationList({
     );
   }
 
-  if (rows.length === 0 && searching) {
+  if (rows.length === 0 && narrowed) {
     return <p className="text-subtle px-2.5 py-10 text-center text-sm">{noMatchesLabel}</p>;
   }
 
