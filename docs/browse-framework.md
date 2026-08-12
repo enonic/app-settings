@@ -524,7 +524,9 @@ export type DetailsHeaderProps = {
   title: string;
   subtitle?: string;
   icon?: ReactNode;
-  /** Top-right control, e.g. the Applications state dropdown. */
+  /** Inline after the title, e.g. a link out to the item's page on another site. */
+  titleAction?: ReactNode;
+  /** Under the title block, e.g. the Applications state dropdown. */
   action?: ReactNode;
 };
 
@@ -564,7 +566,7 @@ export type DetailsListItemProps = {
   <DetailsPanel.Header icon={…} title={…} subtitle={…} action={…} />
 
   <DetailsPanel.Section labelKey="applications.details.application" action={…}>
-    <DetailsPanel.Field labelKey="applications.details.installed">{installed}</DetailsPanel.Field>
+    <DetailsPanel.Field labelKey="applications.details.version">{version}</DetailsPanel.Field>
   </DetailsPanel.Section>
 
   <DetailsPanel.Section labelKey="users.details.roles" count={roles.length}>
@@ -586,6 +588,11 @@ export type DetailsListItemProps = {
   `Edit role` / `Edit user` button, which sits inside the section, not in the header). A section
   renders it right-aligned below its content; the button is `variant="outline"` at size `sm`, so
   36px tall.
+- **The header stacks: title, then subtitle, then `action`** — the control sits under the name rather
+  than opposite it, because a state dropdown beside a long display name leaves the name a few
+  characters (#81). `titleAction` is the other slot and the only one that stays on the title's line: it
+  is for an adornment, not a control — Applications puts a link to the application's Enonic Market page
+  there. A section that has neither passes neither, and the header is a title and an icon as before.
 - `Subsection` splits a section's list by kind — `Members (8)` holding `Users (6)` and `Groups (2)`.
 - **A section with nothing in it is not rendered at all**, and neither is an empty subsection:
   `Members (0)` is a label and a rule over empty space. `filledSections` beside the panel takes the

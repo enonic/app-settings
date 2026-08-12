@@ -9,15 +9,15 @@ const TEXT = {
   layouts: 'applications.details.layouts',
   mixins: 'applications.details.mixins',
   formFragments: 'applications.details.formFragments',
+  macros: 'applications.details.macros',
 } as const;
 
-export type SiteItemGroup = {
+export type SchemaItemGroup = {
   labelKey: string;
   items: readonly ApplicationItem[];
 };
 
-/** The site components an application contributes, in mockup order, groups with nothing in them dropped. */
-export function siteGroups(info: ApplicationInfo | undefined): SiteItemGroup[] {
+export function schemaGroups(info: ApplicationInfo | undefined): SchemaItemGroup[] {
   if (info == null) {
     return [];
   }
@@ -29,5 +29,6 @@ export function siteGroups(info: ApplicationInfo | undefined): SiteItemGroup[] {
     { labelKey: TEXT.layouts, items: byName(info.layouts) },
     { labelKey: TEXT.mixins, items: byName(info.mixins) },
     { labelKey: TEXT.formFragments, items: byName(info.formFragments) },
+    { labelKey: TEXT.macros, items: byName(info.macros) },
   ]);
 }

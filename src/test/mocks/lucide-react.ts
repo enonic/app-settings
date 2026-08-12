@@ -7,6 +7,7 @@ function icon(): null {
 export const BellDot = icon;
 export const Box = icon;
 export const ChevronDown = icon;
+export const ExternalLink = icon;
 export const Laptop = icon;
 export const Settings = icon;
 export const Star = icon;
