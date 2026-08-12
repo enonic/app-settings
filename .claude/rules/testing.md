@@ -1,6 +1,7 @@
 ---
 paths:
   - '**/*.test.{ts,tsx}'
+  - 'src/test/**'
 ---
 
 # Testing
@@ -43,6 +44,22 @@ describe('requestJson', () => {
   `vite.config.ts`. A new XP lib needs its double added there before any server test can import it.
 - `vi.useFakeTimers()` plus `await vi.runAllTimersAsync()` for debounced behaviour — the list refresh
   debounce is the case that will need it.
+
+## Script beans
+
+A `src/main/java` handler is not reachable from vitest: `__.newBean` is the XP bridge, so the double in
+`src/test/mocks/` stands in for the whole wrapper and the Java behind it goes untested there. Cover it in
+`src/test/java` instead, with JUnit 5 + Mockito through XP's `ScriptTestSupport`, which runs the bean on
+the same GraalJS engine XP does:
+
+- One `<Handler>Test.java` per handler, mirroring the main package, mocking the OSGi service it asks the
+  `BeanContext` for.
+- The assertions that matter live in `src/test/resources/<package>/<function>-test.js` — a golden
+  `t.assertJsonEquals` against what the wrapper answers, which is the only place the serialized shape is
+  pinned. Assert in Java on what reached the platform: the captured `*Params`, the types inside a
+  `PropertyTree`, the entries an ACL kept.
+- The fixtures `require` the wrapper by its runtime path (`/lib/idprovider`), so `./gradlew test` depends
+  on `pnpmPack` to emit it. `pnpm check` does not run them.
 
 ## What to cover
 

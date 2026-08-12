@@ -40,6 +40,14 @@ dependencies {
     include 'com.enonic.lib:lib-http-client:4.0.0' // the market lookup — no XP lib makes outbound calls
     include 'com.enonic.lib:lib-mustache:3.0.0'
 
+    // ScriptTestSupport runs a bean on the engine XP runs it on, through the JS that calls it.
+    testImplementation "com.enonic.xp:testing:${xpVersion}"
+    testImplementation platform( 'org.junit:junit-bom:6.1.2' )
+    testImplementation platform( 'org.mockito:mockito-bom:5.23.0' )
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
     // Optional XP libs — uncomment as features need them.
     //include xplibs.context
     //include xplibs.event
@@ -137,6 +145,20 @@ tasks.register('pnpmPack', PnpmTask) {
             exclude 'assets/**'
         }
     }
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+
+    // ! The fixtures require `/lib/idprovider`, which is TypeScript until vp pack emits it onto the
+    // ! test classpath.
+    dependsOn tasks.named('pnpmPack')
+}
+
+// build/resources/main is on the test compile classpath, so Gradle wants the ordering spelled out.
+tasks.named('compileTestJava') {
+    mustRunAfter tasks.named('pnpmPack')
+    mustRunAfter tasks.named('pnpmBuild')
 }
 
 tasks.named('jar') {
