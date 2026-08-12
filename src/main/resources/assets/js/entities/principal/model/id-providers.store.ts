@@ -71,6 +71,23 @@ export function receiveIdProviders(result: Result<IdProvider[], AppError>): void
 }
 
 /**
+ * ! The provider a write answered with, which a re-read cannot replace: `createIdProvider` does not
+ * ! refresh the index `getIdProviders` searches, so a list read straight after a create is without it.
+ * ! See `docs/platform-facts.md`. Order is the section's business, so a new one is appended.
+ */
+export function receiveIdProvider(provider: IdProvider): void {
+  const { items } = $idProviders.get();
+  const known = items.some(({ key }) => key === provider.key);
+
+  $idProviders.setKey(
+    'items',
+    known
+      ? items.map((loaded) => (loaded.key === provider.key ? provider : loaded))
+      : [...items, provider],
+  );
+}
+
+/**
  * ! Keeps the providers it has when a read fails, unlike a section's own list store.
  *
  * ! This list is a reference the other sections name principals by: Groups and Users show it in a filter

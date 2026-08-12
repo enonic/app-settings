@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 
 import type {
   CreateEnumTypeParams,
+  CreateInputObjectTypeParams,
   CreateObjectTypeParams,
   CreateSchemaParams,
   ExecutionResult,
@@ -42,6 +43,11 @@ export const createObjectType = vi.fn((params: CreateObjectTypeParams) => {
   return stub<GraphQLType>('ObjectType', { name: params.name, fields: params.fields });
 });
 
+export const createInputObjectType = vi.fn((params: CreateInputObjectTypeParams) => {
+  declare(params.name);
+  return stub<GraphQLType>('InputObjectType', { name: params.name, fields: params.fields });
+});
+
 export const createEnumType = vi.fn((params: CreateEnumTypeParams) => {
   declare(params.name);
   return stub<GraphQLType>('EnumType', { name: params.name, values: params.values });
@@ -52,7 +58,12 @@ export const createSchema = vi.fn((params: CreateSchemaParams) =>
 );
 
 export const newSchemaGenerator = vi.fn(
-  (): SchemaGenerator => ({ createObjectType, createEnumType, createSchema }),
+  (): SchemaGenerator => ({
+    createObjectType,
+    createInputObjectType,
+    createEnumType,
+    createSchema,
+  }),
 );
 
 export const list = vi.fn((type: GraphQLType) => stub<GraphQLType>('List', { of: type }));

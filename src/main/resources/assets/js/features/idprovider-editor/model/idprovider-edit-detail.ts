@@ -9,3 +9,7 @@ const loader = createDetailLoader<IdProviderPermissions>({ load: fetchIdProvider
 export const $idProviderEditDetail = loader.$detail;
 
 export const showIdProviderForEdit = loader.show;
+
+// ! The cache outlives the dialog, so a provider saved and reopened would be seeded from the permissions
+// ! it had before the save. `forget` rather than `invalidate`: it clears without re-emitting `show`.
+export const forgetIdProviderEditDetail = loader.forget;

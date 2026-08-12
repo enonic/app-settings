@@ -3,7 +3,12 @@ import { Outlet, useNavigate } from '@tanstack/react-router';
 import { UserShield } from 'lucide-react';
 import { useMemo } from 'preact/hooks';
 
-import { loadIdProviders, useIdProviders } from '../../entities/principal';
+import {
+  loadIdProviders,
+  receiveIdProvider,
+  reloadIdProviderPrincipalRows,
+  useIdProviders,
+} from '../../entities/principal';
 import { IdProviderEditorDialog } from '../../features/idprovider-editor/IdProviderEditorDialog';
 import { useI18n } from '../../shared/i18n';
 import { visibleEntries } from '../../widgets/browse-list/browse-filter';
@@ -63,10 +68,12 @@ export function IdProvidersPage() {
     [items, searched, selectedApplications],
   );
 
+  const closeItem = () => void navigate({ to: '/id-providers', replace: true });
+
   const section = useBrowseSection({
     openItem: (key) =>
       void navigate({ to: '/id-providers/$id', params: { id: key }, replace: true }),
-    closeItem: () => void navigate({ to: '/id-providers', replace: true }),
+    closeItem,
     items,
     status,
     selection: idProvidersSelection,
@@ -76,7 +83,11 @@ export function IdProvidersPage() {
     // A fresh icon element per row: Preact writes into a vnode as it renders it.
     toRow: (provider) =>
       toIdProviderRow(provider, <UserShield size={24} strokeWidth={1.5} aria-hidden />),
-    reload: () => void loadIdProviders(),
+    reload: () => {
+      // The panel's users and groups are a request of their own, so `Refresh` has to reach them too.
+      reloadIdProviderPrincipalRows();
+      void loadIdProviders();
+    },
   });
 
   return (
@@ -96,8 +107,8 @@ export function IdProvidersPage() {
         sort={<BrowseSort options={sortOptions} value={sort} onChange={setIdProvidersSort} />}
       />
 
-      <IdProviderEditorDialog />
-      <IdProviderDeleteDialog />
+      <IdProviderEditorDialog onSaved={receiveIdProvider} />
+      <IdProviderDeleteDialog activeKey={section.activeKey} onCloseItem={closeItem} />
     </>
   );
 }

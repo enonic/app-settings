@@ -6,6 +6,7 @@ import { PrincipalPicker } from '../../entities/principal/ui/PrincipalPicker';
 import { i18n, useI18n } from '../../shared/i18n';
 import { FieldLabel } from '../../shared/ui/FieldLabel';
 import { FieldSection } from '../../shared/ui/FieldSection';
+import { SelectorPopup } from '../../shared/ui/SelectorPopup';
 import type { GroupFormErrors, GroupForm as GroupFormValues } from './model/group-form';
 
 export type GroupFormProps = {
@@ -87,15 +88,13 @@ export function GroupForm({
               </Selector.Value>
               <Selector.Icon />
             </Selector.Trigger>
-            <Selector.Content>
-              <Selector.Viewport>
-                {providers.map(({ key, displayName }) => (
-                  <Selector.Item key={key} value={key} textValue={displayName}>
-                    <Selector.ItemText>{displayName}</Selector.ItemText>
-                  </Selector.Item>
-                ))}
-              </Selector.Viewport>
-            </Selector.Content>
+            <SelectorPopup>
+              {providers.map(({ key, displayName }) => (
+                <Selector.Item key={key} value={key} textValue={displayName}>
+                  <Selector.ItemText>{displayName}</Selector.ItemText>
+                </Selector.Item>
+              ))}
+            </SelectorPopup>
           </Selector.Root>
           {providerError !== undefined && <p className="text-error text-sm">{providerError}</p>}
         </div>

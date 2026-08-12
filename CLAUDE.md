@@ -27,12 +27,14 @@ against `../xp` rather than re-deriving.
 | Tests                             | `pnpm test` / `pnpm test:watch` |
 | Frontend watch build              | `pnpm dev`                      |
 | Server-side TS → CommonJS         | `pnpm pack:server`              |
+| Java (script bean) tests          | `./gradlew test`                |
 | Build + deploy to local XP        | `./gradlew deploy -Penv=dev`    |
 | Full watch loop (server + assets) | `./gradlew dev`                 |
 
 `pnpm check` is what CI runs: format, lint, client typecheck, server typecheck, tests. Reach for
-Gradle only when descriptors, `build.gradle` or the jar itself matter; for most changes `pnpm check`
-is enough.
+Gradle when descriptors, `build.gradle`, the jar or `src/main/java` matter; for most changes `pnpm check`
+is enough. `./gradlew test` runs the script beans through GraalJS against the golden fixtures under
+`src/test/resources`, and depends on `pnpmPack` because those fixtures require the compiled wrappers.
 
 ### Toolchain
 

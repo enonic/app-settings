@@ -25,12 +25,29 @@ export type { GroupDraft, GroupEdit } from './model/group-commands';
 export { forgetGroupDetails, forgetGroups } from './model/group-detail.load';
 export { beginGroupsLoad, receiveGroups } from './model/groups.store';
 export type { GroupsState } from './model/groups.store';
+export {
+  createIdProvider,
+  deleteIdProviders,
+  updateIdProvider,
+} from './model/id-provider-commands';
+export type { DeletableIdProvider, IdProviderDraft } from './model/id-provider-commands';
+export {
+  forgetIdProviderPrincipalRows,
+  loadMoreIdProviderPrincipals,
+  reloadIdProviderPrincipalRows,
+} from './model/id-provider-principals.load';
+export { idProviderPrincipalsHasMore } from './model/id-provider-principals.store';
+export type {
+  IdProviderPrincipalsState,
+  PrincipalSetState,
+} from './model/id-provider-principals.store';
 export { loadIdProviders } from './model/id-providers.load';
 export {
   $idProviderUserCounts,
   beginIdProviderNamesLoad,
   beginIdProvidersLoad,
   beginIdProviderUserCountsLoad,
+  receiveIdProvider,
   receiveIdProviderNames,
   receiveIdProviders,
   receiveIdProviderUserCounts,
@@ -64,9 +81,13 @@ export type {
   IdProviderName,
   IdProviderPermission,
   IdProviderPermissions,
+  IdProviderPrincipals,
+  PrincipalPage,
   Principal,
   PrincipalKey,
   PrincipalRef,
+  PrincipalSet,
+  PrincipalSetType,
   PrincipalType,
   PublicKey,
   Role,
@@ -95,6 +116,7 @@ export { useGroups } from './model/useGroups';
 export { useIdProvider } from './model/useIdProvider';
 export { useIdProviderName } from './model/useIdProviderName';
 export { useIdProviderNames } from './model/useIdProviderNames';
+export { useIdProviderPrincipals } from './model/useIdProviderPrincipals';
 export { useIdProviders } from './model/useIdProviders';
 export { useRole } from './model/useRole';
 export { useRoles } from './model/useRoles';

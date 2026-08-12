@@ -10,18 +10,18 @@ import { idProvidersDeletion } from './deletion.store';
 const SYSTEM_PROVIDER_KEY = 'system';
 
 /**
- * The provider the installation is built on stays, and a provider with users in it is refused —
- * app-users asks the server the same question through `IdProvider.checkOnDeletable`, which is where
- * this check belongs once there is a server to ask.
- *
- * ! The count decides, never the loaded rows: the list query takes totals without fetching anyone,
- * ! so an empty `items` means nobody asked, not that the provider is empty.
+ * ! The only guard there is: `deleteIdProvider` deletes the provider's node path recursively and refuses
+ * ! nothing, so every user and group under it goes too. The counts decide, never the loaded rows — the
+ * ! list takes totals without fetching anyone.
  */
 function deletable(ctx: ActionContext<IdProvider>): boolean {
   const targets = actionTargets(ctx);
   return (
     targets.length > 0 &&
-    targets.every(({ key, users }) => key !== SYSTEM_PROVIDER_KEY && users.total === 0)
+    targets.every(
+      ({ key, users, groups }) =>
+        key !== SYSTEM_PROVIDER_KEY && users.total === 0 && groups.total === 0,
+    )
   );
 }
 

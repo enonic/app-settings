@@ -1,18 +1,34 @@
 import { useStore } from '@nanostores/preact';
 
+import { deleteIdProviders, loadIdProviders } from '../../entities/principal';
 import { DeleteConfirmDialog } from '../../shared/ui/dialogs/DeleteConfirmDialog';
 import { idProvidersDeletion } from './model/deletion.store';
+import { idProvidersSelection } from './model/selection.store';
 
-export function IdProviderDeleteDialog() {
+export type IdProviderDeleteDialogProps = {
+  activeKey?: string;
+  onCloseItem: () => void;
+};
+
+export function IdProviderDeleteDialog({ activeKey, onCloseItem }: IdProviderDeleteDialogProps) {
   const targets = useStore(idProvidersDeletion.$payload);
 
   return (
     <DeleteConfirmDialog
       open={targets !== undefined}
       targets={(targets ?? []).map(({ key, displayName }) => ({ key, label: displayName }))}
-      // TODO: [#63] Enabled once `deleteIdProviders` exists, which waits on the Java handlers of #62.
-      confirmDisabled
       onClose={idProvidersDeletion.close}
+      onConfirm={() => {
+        const confirmed = targets ?? [];
+        idProvidersDeletion.close();
+
+        void deleteIdProviders(confirmed, {
+          resync: () => void loadIdProviders(),
+          closeItem: onCloseItem,
+          activeKey,
+          selection: idProvidersSelection,
+        });
+      }}
     />
   );
 }

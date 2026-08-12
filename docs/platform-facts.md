@@ -161,6 +161,7 @@ on each separately for that reason.
 | macros                                                                  | ✅ Java — our `/lib/macro`; no `lib-macro` exists                      |
 | api descriptors                                                         | ✅ Java — our `/lib/api`                                               |
 | id-provider descriptor (mode + config form)                             | ✅ Java — our `/lib/idprovider`; `IdProviderDescriptorService`         |
+| id provider read-one, update, delete, permissions                       | ✅ Java — our `/lib/idprovider`; `lib-auth` has only list + create     |
 | webapp deployment url                                                   | ✅ Java — our `/lib/webapp`; JS cannot read another app's resources    |
 
 Grepped all 25 XP libs for all 13 `*DescriptorService` interfaces. **One is reachable:**
@@ -361,6 +362,42 @@ old value. **The empty string is what clears one** — it converts to `""`, whic
 and `ModifyGroupHandler` are written the same way, so this holds for every principal edit, and it is invisible
 to a unit test that asserts on its own editor rather than on what the platform does with the result. The read
 side maps `""` back to absent (`nonEmpty`), so nothing downstream has to know.
+
+## An id provider's config loses its types through `lib/xp/auth`, and four other write quirks
+
+XP 8.1 grew `createIdProvider` and `getIdProviders` in `lib/xp/auth`; everything else about a provider is
+still `SecurityService` only. Five things about the write path are not visible from the signatures:
+
+- **`createIdProvider` cannot store a typed config.** `CreateIdProviderHandler` builds the tree with
+  `PropertyTree.fromMap( config.getMap() )`, which infers a `ValueType` per JS value — so a `Reference`
+  arrives as a `String` and a `GeoPoint` as text. Nothing reports it; the value is simply the wrong type
+  when the id provider application reads its own config back. Our `/lib/idprovider` create exists for that
+  one reason, with the `{name, type, values}` codec app-users uses.
+- **`UpdateIdProviderParams.update` applies a field only when it is non-null** — the same rule the
+  `modify*` editors follow, one level up. Without an editor a description cannot be cleared and a provider
+  cannot be unbound from its application; with one, the fields are assigned whatever the editor left.
+- **`updateIdProvider` answers `null` for a key nothing answers to** (`SecurityServiceImpl:885-891`)
+  rather than throwing, so a pre-read to tell "gone" from "failed" buys nothing.
+- **Permissions are asserted, never patched, and only when non-null.** `SecurityServiceImpl:899` skips the
+  whole permission write for a null list; a list that is present replaces the ACL on the provider node and
+  on its `users` and `groups` children, merged with the root permissions. There is no add/remove form.
+- **`CreateIdProviderParams` turns a null permission list into an empty one** (`:27-28`), so a provider
+  created without permissions is reachable through the inherited root permissions alone — which is not the
+  same as the three entries app-users seeds a new provider with.
+- **A created provider is not in the list until the index catches up.** `getIdProviders` is
+  `nodeService.findByParent` — a search — while `createIdProvider` writes the three nodes with no
+  refresh at all (`SecurityServiceImpl:832-890`). So a list re-read straight after a create answers
+  without it. The asymmetry is easy to miss: `deleteIdProvider` passes `RefreshMode.ALL` explicitly, and
+  `updateIdProvider` refreshes as a side effect of `setNodePermissions` (`:930-934`) — but only when the
+  update carried permissions. **A write's own answer is what a list should be patched with**, which is
+  what `receiveIdProvider` does.
+- **`deleteIdProvider` refuses nothing and takes everything with it.** It is one
+  `nodeService.delete( nodePath )` on the provider's path (`SecurityServiceImpl:881-901`), which is
+  recursive — every user and group filed under the provider is deleted with it, with no warning, no count
+  and nothing to undo. The only failure it reports is `IdProviderNotFoundException`, for a path that was
+  not there. **Whether a provider is empty is the client's question to ask**, which is what the Delete
+  action's `deletable` guard does with the `users` and `groups` totals; app-users asks its own server the
+  same thing through `IdProvider.checkOnDeletable`.
 
 ## `findUsers` sorts; `findPrincipals` cannot
 

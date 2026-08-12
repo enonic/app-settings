@@ -83,7 +83,8 @@ src/main/resources/
   lib/task.ts        lib/api.ts
   lib/admin-tool.ts  lib/webapp.ts
   lib/admin-extension.ts
-  lib/idprovider.ts                  grows the app-users ID-provider surface in Phase 3
+  lib/idprovider.ts                  the ID-provider surface lib/xp/auth does not reach
+  lib/publickey.ts                   the kid a stored public key is filed under
   types/graphql.d.ts
 ```
 
@@ -118,9 +119,9 @@ src/main/java/com/enonic/app/settings/
   lib/adminextension/  ListAdminExtensionsHandler, AdminExtensionDescriptorMapper
   lib/api/             ListApisHandler, ApiDescriptorMapper
   lib/webapp/          HasWebappHandler
-  lib/idprovider/      GetIdProviderDescriptorHandler, IdProviderDescriptorMapper
-                       + the 19 files from app-users land here in Phase 3
-  handler/             KidGeneratorHandler                                          (Phase 3)
+  lib/idprovider/      the whole id provider surface: descriptor, permissions, and Get/Create/Update/
+                       Delete with their mappers and the two ScriptValue translators
+  lib/publickey/       GenerateKidHandler
 ```
 
 One package per entity, each backing one `lib/*.ts` of the same name — `com.enonic.xp.lib.schema` is the
@@ -478,8 +479,11 @@ and as its own issue (#37), because it is the only section that cannot load whol
   on demand_ below.
 - `idProviders` on `getIdProviders`, with `IdProvider.application` naming the bound application from its
   own descriptor, and `users` / `groups` as a `PrincipalSet` whose `total` costs a `count: 0` search and
-  whose `items` is deliberately never selected by the list query — a provider may hold a whole corporate
-  directory. No `roles` field: that aggregate has no cheap query behind it, see #23.
+  whose `items` takes the `start` and `count` of a page — a provider may hold a whole corporate
+  directory, so the list query selects the totals alone and the details panel pages through the rows by
+  key. **The page is not sorted, and that is what makes paging sound**: `findPrincipals` takes no order,
+  so sorting a page would order that page alone and the next would restart the alphabet below it. No
+  `roles` field: that aggregate has no cheap query behind it, see #23.
 - `idProvider(key)` and `defaultIdProviderPermissions`, which the provider dialog needs. Both answer in
   `IdProviderPermission`s, and both go through Java — `lib/xp/auth` exposes neither an access control
   list nor a read-one. `IdProvider.permissions` is one bean call, so no list query selects it.
@@ -719,11 +723,78 @@ The rest of the group mutations:
 - **`removePublicKey` answers whether the key is gone**, not whether this call removed it: a `kid` nothing
   answers to satisfies the caller's intent either way.
 
+#### ID provider handlers from app-users ([#62](https://github.com/enonic/app-settings/issues/62))
+
+The ID-provider beans, and nothing user-visible: `lib/idprovider.ts` now reads one provider, creates,
+updates and deletes them, beside the descriptor and permissions reads that came with Applications. What
+landed is **not** the 19 files as-is — XP 8.1's `lib/xp/auth` has grown since app-users was written, and
+this app has no lib-admin-ui to serve.
+
+- **Only what no JS binding reaches.** `getIdProviders` and `createIdProvider` exist in `lib/xp/auth`;
+  reading one provider, updating one, deleting one and the permissions do not. `GetIdProvidersHandler` and
+  `GetIdProviderModeHandler` were dropped for that reason — the mode is already on
+  `GetIdProviderDescriptorHandler`, together with `hasConfig` — as were `PrincipalMapper` and
+  `PropertyTreeMapper`, which app-users needs only to serialize a user's profile.
+- **`createIdProvider` is here anyway, and the config is why.** XP's own builds the tree with
+  `PropertyTree.fromMap`, which infers a type per JS value: a `Reference` is stored as a `String` and a
+  `GeoPoint` as text. An id provider's config is filled from the form its application declares, so the
+  `{name, type, values}` codec is what survives the round trip, and `*-test.js` pins it — including the two
+  absences nothing else records, a null `Reference` dropped from `values` and a null `Long` kept as `{}`.
+  What crosses GraphQL is still open, see _Pending_.
+- **An update states what the provider is to hold**, not what moved — a provider has one of each, so there
+  is no list to diff and the change-list reasoning #59 settled does not apply. `idProviderConfig` is a
+  required argument that may be null, because omitting it would silently unbind a provider from its
+  application. Permissions are the one exception: omitted leaves them alone, since that is what
+  `SecurityServiceImpl` does with a null list, and a list replaces them wholesale, which is the only write
+  XP offers.
+- **The update goes through an editor even though the caller has every field.**
+  `UpdateIdProviderParams.update` applies a field only when it is non-null, so without one a description
+  cannot be cleared and a provider cannot be unbound.
+- **A refused delete is a value, not a throw.** Several providers are one call, and the second must not be
+  lost because the first refused; `deleteIdProvider` throws both for a key nothing answers to and for a
+  provider the platform will not part with, and the message is the only thing that tells them apart.
+- **An entry naming a principal that no longer exists is dropped rather than written**, on both writes. A
+  relationship to a deleted principal reads back as an access level with no name beside it, and nothing in
+  the UI can then remove it.
+- **`./gradlew test` is now part of the build.** These are the first Java tests here, and they run the
+  handlers through GraalJS exactly as XP does — the fixtures `require('/lib/idprovider')`, which exists as
+  TypeScript only, so `test` depends on `pnpmPack` to put the compiled wrapper on the classpath.
+
+#### ID provider mutations ([#63](https://github.com/enonic/app-settings/issues/63))
+
+`createIdProvider`, `updateIdProvider` and `deleteIdProviders` on the schema, which is what lights the ID
+provider dialog's `Save` and the section's `Delete`. With them every section can be edited from the tool.
+
+- **A provider states what it holds; it is not a change list.** #59 settled change lists for groups and
+  roles because a membership list is something several people move entries in and out of. A provider has
+  one display name, one description, one binding and one ACL, and the dialog has read all four — so
+  `updateIdProvider` rewrites them, an omitted `application` unbinds and an omitted `description` clears.
+  Permissions are the one argument that is left alone when omitted, because that is what
+  `SecurityServiceImpl` does with a null list.
+- **The configuration is not in the mutation at all**, and that is not the same as writing an empty one:
+  an update that names the application the provider is already bound to keeps the stored config
+  untouched, and only a change of application starts an empty one. Nothing renders a config until #64, so
+  sending what the dialog knows about would quietly delete what configured the login.
+- **Permissions travel as an input object**, `[IdProviderPermissionInput!]` of `{principal, access}` —
+  the first input type in this schema, so `createInputObjectType` joined `types/graphql.d.ts` and the
+  lib-graphql double. Parallel key/level lists were the alternative and are a shape that can arrive
+  mismatched.
+- **Deleting a provider deletes everything filed under it, and the platform refuses nothing.**
+  `deleteIdProvider` is a recursive node delete — see `platform-facts.md`. So the product question the
+  issue raised is answered on the client: `Delete` is offered only for a provider whose `users` and
+  `groups` totals are both zero. That guard is the whole answer, so the confirmation is the generic one
+  the other sections ask — a warning about the users and groups going too would describe a provider the
+  action is not offered for.
+- **A saved provider is put back into the list, not reloaded.** `createIdProvider` writes without
+  refreshing the index and `getIdProviders` is a search, so the reload the other sections do answers
+  without the provider that was just created — see `platform-facts.md`. The mutation answers with every
+  field a row shows, so `receiveIdProvider` patches the store with it; the same call covers an edit. It
+  is the reasoning behind `replaceUser` in #60, for a different cause.
+- **`deleteIdProviders` is its own field, not `deletePrincipals`.** An id provider is not a principal, its
+  key has none of a principal key's structure, and the outcome type is its own for the same reason.
+
 The rest of this section is unchanged:
 
-- Bring `lib/auth/**` (19 files) + `KidGeneratorHandler`, package renamed to `com.enonic.xp.app.settings`.
-  Bring their `src/test/resources/**/*-test.js` fixtures — they pin the `PropertyTree` wire format and
-  nothing else does.
 - The JS wrapper is `lib/idprovider.ts`, **not** `lib/auth.ts` — that name is the `adminOnly` guard.
 - Do **not** bring: the 31 JAX-RS/`json/` files (they exist only for lib-admin-ui's loaders and combo
   boxes, which die with it), or `GraphQLSchemaSynchronizer` (a 10-line `synchronized` shim guarding an
@@ -775,11 +846,12 @@ patterns are visible. None of them blocks Phase 3.
 
 Two open questions, neither of which is a phase:
 
-1. **`idProviderConfig` modelling.** Today it crosses GraphQL as a `JSON.stringify`'d `PropertyTree` with
-   a hand-rolled `{name, type, values}` codec, and the typing fidelity is load-bearing — a null `Long`
-   serializes to `{}`, a null `Reference` is dropped entirely. Options: keep `String` + `JSON.parse`, use
-   lib-graphql's unused `Json` scalar, or model it properly. Bringing the 19 Java files means the codec
-   survives either way, so this is a schema-design choice, not a blocker. Decide during Phase 3.
+1. **`idProviderConfig` modelling.** Settled below the schema and open above it. #62 kept the
+   `{name, type, values}` codec at the JS/Java boundary, because the typing fidelity is load-bearing —
+   a null `Long` serializes to `{}`, a null `Reference` is dropped entirely, and `PropertyTree.fromMap`
+   can carry neither. What is still undecided is how it crosses GraphQL: a `String` the client parses, as
+   app-users does, lib-graphql's unused `Json` scalar, or a modelled type. Decide with the config form
+   ([#64](https://github.com/enonic/app-settings/issues/64)), which is the only thing that reads it.
 2. **Stopped applications.** Every `applicationInfo` list resolves through `ResourceService`, so it is
    unknown whether a stopped-but-installed app still reports its descriptors or answers empty. If it
    answers empty, the panel needs an unavailable state distinct from "ships none" — one field cannot

@@ -6,24 +6,40 @@ import {
   fetchIdProviderApplications,
   type IdProviderApplication,
 } from '../../entities/application';
-import { fetchDefaultIdProviderPermissions } from '../../entities/principal';
+import {
+  createIdProvider,
+  fetchDefaultIdProviderPermissions,
+  updateIdProvider,
+  type IdProvider,
+} from '../../entities/principal';
 import { visitedErrors } from '../../shared/form';
 import { i18n, useI18n } from '../../shared/i18n';
 import { DialogIdentityHeader } from '../../shared/ui/dialogs/DialogIdentityHeader';
 import { ModalDialog } from '../../shared/ui/dialogs/ModalDialog';
 import { IdProviderForm } from './IdProviderForm';
-import { $idProviderEditDetail, showIdProviderForEdit } from './model/idprovider-edit-detail';
+import {
+  $idProviderEditDetail,
+  forgetIdProviderEditDetail,
+  showIdProviderForEdit,
+} from './model/idprovider-edit-detail';
 import { $idProviderEditor, closeIdProviderEditor } from './model/idprovider-editor.store';
 import {
+  ID_PROVIDER_FORM_FIELDS,
   initialIdProviderForm,
   isSystemIdProvider,
   nextIdProviderForm,
+  sameIdProviderForm,
   validateIdProviderForm,
   type IdProviderFormField,
   type IdProviderForm as IdProviderFormValues,
 } from './model/idprovider-form';
 
-export function IdProviderEditorDialog() {
+export type IdProviderEditorDialogProps = {
+  /** The written provider rather than a reload, for the reason `receiveIdProvider` gives. */
+  onSaved: (written: IdProvider) => void;
+};
+
+export function IdProviderEditorDialog({ onSaved }: IdProviderEditorDialogProps) {
   const editor = useStore($idProviderEditor);
   const detail = useStore($idProviderEditDetail);
   const editedKey = editor?.mode === 'edit' ? editor.provider.key : undefined;
@@ -32,21 +48,30 @@ export function IdProviderEditorDialog() {
   const editTitle = useI18n('idProviders.dialog.editTitle');
   const displayNameLabel = useI18n('idProviders.dialog.displayName');
   const displayNamePlaceholder = useI18n('idProviders.dialog.displayNamePlaceholder');
+  const permissionsFailed = useI18n('idProviders.dialog.permissionsFailed');
   const saveLabel = useI18n('browse.dialog.save');
   const cancelLabel = useI18n('browse.dialog.cancel');
   const closeLabel = useI18n('browse.dialog.close');
 
   const [values, setValues] = useState<IdProviderFormValues | undefined>();
+  // What the server holds, kept beside what the user is editing, so `Save` can tell the two apart.
+  const [saved, setSaved] = useState<IdProviderFormValues | undefined>();
   const [nameEdited, setNameEdited] = useState(false);
   const [visited, setVisited] = useState<ReadonlySet<IdProviderFormField>>(new Set());
   const [applications, setApplications] = useState<readonly IdProviderApplication[]>([]);
   const [defaultPrincipals, setDefaultPrincipals] = useState<ReadonlySet<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+  const [failure, setFailure] = useState<string | undefined>();
 
   useEffect(() => {
-    setValues(editor === undefined ? undefined : initialIdProviderForm(editor));
+    const opened = editor === undefined ? undefined : initialIdProviderForm(editor);
+    setValues(opened);
+    setSaved(opened);
     setNameEdited(false);
     setVisited(new Set());
     setDefaultPrincipals(new Set());
+    setSaving(false);
+    setFailure(undefined);
     showIdProviderForEdit(editedKey);
   }, [editor, editedKey]);
 
@@ -61,6 +86,11 @@ export function IdProviderEditorDialog() {
       current === undefined || current.permissions.length > 0
         ? current
         : { ...current, permissions: loaded.permissions },
+    );
+
+    // ! From the server, never from the edited values, which would report an edit as no change.
+    setSaved((current) =>
+      current === undefined ? current : { ...current, permissions: loaded.permissions },
     );
   }, [detail.item, editedKey]);
 
@@ -85,6 +115,13 @@ export function IdProviderEditorDialog() {
 
         if (create) {
           setValues((current) =>
+            current === undefined || current.permissions.length > 0
+              ? current
+              : { ...current, permissions },
+          );
+
+          // What the dialog opened with, not an edit — otherwise a new provider is dirty before it is typed.
+          setSaved((current) =>
             current === undefined || current.permissions.length > 0
               ? current
               : { ...current, permissions },
@@ -130,6 +167,9 @@ export function IdProviderEditorDialog() {
 
   const shownErrors = useMemo(() => visitedErrors(errors, visited), [errors, visited]);
 
+  const unchanged =
+    values !== undefined && saved !== undefined && sameIdProviderForm(saved, values);
+
   const handleChange = (next: IdProviderFormValues): void => {
     if (values === undefined || editor === undefined) {
       return;
@@ -140,18 +180,55 @@ export function IdProviderEditorDialog() {
     setNameEdited(change.nameEdited);
   };
 
+  const handleSave = async (): Promise<void> => {
+    if (values === undefined || editor === undefined) {
+      return;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setVisited(new Set(ID_PROVIDER_FORM_FIELDS));
+      return;
+    }
+
+    setSaving(true);
+    setFailure(undefined);
+
+    const written =
+      editor.mode === 'edit'
+        ? await updateIdProvider(editor.provider.key, values)
+        : await createIdProvider(values);
+
+    written.match(
+      (provider) => {
+        forgetIdProviderEditDetail();
+        closeIdProviderEditor();
+        onSaved(provider);
+      },
+      (error) => {
+        setSaving(false);
+        setFailure(error.message);
+      },
+    );
+  };
+
   return (
     <ModalDialog
       open={editor !== undefined}
       title={editor?.mode === 'edit' ? editTitle : createTitle}
       size="wide"
       primaryLabel={saveLabel}
-      // TODO: [#63] Enabled by the form being error-free once the provider mutations exist, which wait
-      // on the Java handlers of #62.
-      primaryDisabled
+      primaryDisabled={saving || unchanged}
       cancelLabel={cancelLabel}
       closeLabel={closeLabel}
-      onClose={closeIdProviderEditor}
+      error={failure ?? (detail.status === 'error' ? permissionsFailed : undefined)}
+      // ! Stays put while the write is in flight. Closing would leave the rejection with no screen to
+      // ! land on, and the command hands it back rather than notifying for exactly that reason.
+      onClose={() => {
+        if (!saving) {
+          closeIdProviderEditor();
+        }
+      }}
+      onPrimary={() => void handleSave()}
       header={
         values === undefined ? undefined : (
           <DialogIdentityHeader
