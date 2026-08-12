@@ -22,6 +22,12 @@ const populated: IdProvider = {
   users: { total: 1 },
   groups: { total: 0 },
 };
+const grouped: IdProvider = {
+  key: 'partners-old',
+  displayName: 'Partners (old)',
+  users: { total: 0 },
+  groups: { total: 2 },
+};
 
 function context(overrides: Partial<ActionContext<IdProvider>> = {}): ActionContext<IdProvider> {
   return { selected: [], active: undefined, ...overrides };
@@ -70,5 +76,10 @@ describe('delete provider', () => {
   it('refuses a provider that still has users', () => {
     expect(action('delete').enabled(context({ selected: [populated] }))).toBe(false);
     expect(action('delete').enabled(context({ selected: [empty, populated] }))).toBe(false);
+  });
+
+  // The platform deletes the provider's whole node path, so groups go with it as silently as users do.
+  it('refuses a provider that still has groups', () => {
+    expect(action('delete').enabled(context({ selected: [grouped] }))).toBe(false);
   });
 });

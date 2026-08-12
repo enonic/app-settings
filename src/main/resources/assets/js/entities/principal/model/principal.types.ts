@@ -181,6 +181,22 @@ export type IdProviderPermissions = {
   permissions: readonly IdProviderPermission[];
 };
 
+/** Which of a provider's two sets a read is about. */
+export type PrincipalSetType = 'user' | 'group';
+
+/** One page of a set, with how many there are in all. */
+export type PrincipalPage = {
+  total: number;
+  items: readonly PrincipalRef[];
+};
+
+/** The principals a provider holds, read by key and a page at a time: it may hold a whole directory. */
+export type IdProviderPrincipals = {
+  key: string;
+  users: PrincipalPage;
+  groups: PrincipalPage;
+};
+
 export type BoundApplication = {
   key: string;
   displayName: string;

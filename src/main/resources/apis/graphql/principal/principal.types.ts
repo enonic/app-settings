@@ -73,8 +73,10 @@ export const PrincipalSetType: GraphQLType = generator.createObjectType({
     items: {
       type: nonNull(list(nonNull(PrincipalType))),
       description:
-        'Every principal in the set, sorted by display name. Unbounded — ask for it knowingly.',
-      resolve: (env: { source: PrincipalSetSource }) => listPrincipals(env.source),
+        'A page of the set, in the order the search answered — `findPrincipals` takes no order, so paging is sound only as long as nothing re-sorts it. `count: -1` is every row, which on a directory-backed provider is the whole directory.',
+      args: { start: nonNull(GraphQLInt), count: nonNull(GraphQLInt) },
+      resolve: (env: { source: PrincipalSetSource; args: { start: number; count: number } }) =>
+        listPrincipals(env.source, env.args.start, env.args.count),
     },
   },
 });

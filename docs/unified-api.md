@@ -479,8 +479,11 @@ and as its own issue (#37), because it is the only section that cannot load whol
   on demand_ below.
 - `idProviders` on `getIdProviders`, with `IdProvider.application` naming the bound application from its
   own descriptor, and `users` / `groups` as a `PrincipalSet` whose `total` costs a `count: 0` search and
-  whose `items` is deliberately never selected by the list query — a provider may hold a whole corporate
-  directory. No `roles` field: that aggregate has no cheap query behind it, see #23.
+  whose `items` takes the `start` and `count` of a page — a provider may hold a whole corporate
+  directory, so the list query selects the totals alone and the details panel pages through the rows by
+  key. **The page is not sorted, and that is what makes paging sound**: `findPrincipals` takes no order,
+  so sorting a page would order that page alone and the next would restart the alphabet below it. No
+  `roles` field: that aggregate has no cheap query behind it, see #23.
 - `idProvider(key)` and `defaultIdProviderPermissions`, which the provider dialog needs. Both answer in
   `IdProviderPermission`s, and both go through Java — `lib/xp/auth` exposes neither an access control
   list nor a read-one. `IdProvider.permissions` is one bean call, so no list query selects it.
@@ -756,6 +759,39 @@ this app has no lib-admin-ui to serve.
 - **`./gradlew test` is now part of the build.** These are the first Java tests here, and they run the
   handlers through GraalJS exactly as XP does — the fixtures `require('/lib/idprovider')`, which exists as
   TypeScript only, so `test` depends on `pnpmPack` to put the compiled wrapper on the classpath.
+
+#### ID provider mutations ([#63](https://github.com/enonic/app-settings/issues/63))
+
+`createIdProvider`, `updateIdProvider` and `deleteIdProviders` on the schema, which is what lights the ID
+provider dialog's `Save` and the section's `Delete`. With them every section can be edited from the tool.
+
+- **A provider states what it holds; it is not a change list.** #59 settled change lists for groups and
+  roles because a membership list is something several people move entries in and out of. A provider has
+  one display name, one description, one binding and one ACL, and the dialog has read all four — so
+  `updateIdProvider` rewrites them, an omitted `application` unbinds and an omitted `description` clears.
+  Permissions are the one argument that is left alone when omitted, because that is what
+  `SecurityServiceImpl` does with a null list.
+- **The configuration is not in the mutation at all**, and that is not the same as writing an empty one:
+  an update that names the application the provider is already bound to keeps the stored config
+  untouched, and only a change of application starts an empty one. Nothing renders a config until #64, so
+  sending what the dialog knows about would quietly delete what configured the login.
+- **Permissions travel as an input object**, `[IdProviderPermissionInput!]` of `{principal, access}` —
+  the first input type in this schema, so `createInputObjectType` joined `types/graphql.d.ts` and the
+  lib-graphql double. Parallel key/level lists were the alternative and are a shape that can arrive
+  mismatched.
+- **Deleting a provider deletes everything filed under it, and the platform refuses nothing.**
+  `deleteIdProvider` is a recursive node delete — see `platform-facts.md`. So the product question the
+  issue raised is answered on the client: `Delete` is offered only for a provider whose `users` and
+  `groups` totals are both zero. That guard is the whole answer, so the confirmation is the generic one
+  the other sections ask — a warning about the users and groups going too would describe a provider the
+  action is not offered for.
+- **A saved provider is put back into the list, not reloaded.** `createIdProvider` writes without
+  refreshing the index and `getIdProviders` is a search, so the reload the other sections do answers
+  without the provider that was just created — see `platform-facts.md`. The mutation answers with every
+  field a row shows, so `receiveIdProvider` patches the store with it; the same call covers an edit. It
+  is the reasoning behind `replaceUser` in #60, for a different cause.
+- **`deleteIdProviders` is its own field, not `deletePrincipals`.** An id provider is not a principal, its
+  key has none of a principal key's structure, and the outcome type is its own for the same reason.
 
 The rest of this section is unchanged:
 

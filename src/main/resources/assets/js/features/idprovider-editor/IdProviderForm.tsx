@@ -7,6 +7,7 @@ import { i18n, useI18n } from '../../shared/i18n';
 import { FieldLabel } from '../../shared/ui/FieldLabel';
 import { FieldSection } from '../../shared/ui/FieldSection';
 import { ItemLabel } from '../../shared/ui/ItemLabel';
+import { SelectorPopup } from '../../shared/ui/SelectorPopup';
 import { ConfigDialog } from './ConfigDialog';
 import type {
   IdProviderFormErrors,
@@ -105,15 +106,13 @@ export function IdProviderForm({
               <Selector.Value placeholder={applicationPlaceholder} />
               <Selector.Icon />
             </Selector.Trigger>
-            <Selector.Content>
-              <Selector.Viewport>
-                {applications.map(({ key, displayName }) => (
-                  <Selector.Item key={key} value={key} textValue={displayName}>
-                    <Selector.ItemText>{displayName}</Selector.ItemText>
-                  </Selector.Item>
-                ))}
-              </Selector.Viewport>
-            </Selector.Content>
+            <SelectorPopup>
+              {applications.map(({ key, displayName }) => (
+                <Selector.Item key={key} value={key} textValue={displayName}>
+                  <Selector.ItemText>{displayName}</Selector.ItemText>
+                </Selector.Item>
+              ))}
+            </SelectorPopup>
           </Selector.Root>
 
           {values.application !== '' && (

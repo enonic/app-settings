@@ -70,6 +70,42 @@ export function nextIdProviderForm(
   return { values: { ...next, name: derivePrincipalName(next.displayName) }, nameEdited: false };
 }
 
+/** Every field that can carry an error, for the pass `Save` makes when one is still hidden. */
+export const ID_PROVIDER_FORM_FIELDS: readonly IdProviderFormField[] = [
+  'name',
+  'displayName',
+  'permissions',
+];
+
+/**
+ * Whether the form still says what the server holds, which is what keeps `Save` dark. Permissions are
+ * compared by principal *and* access: narrowing one moves no entry but is the whole edit.
+ */
+export function sameIdProviderForm(saved: IdProviderForm, edited: IdProviderForm): boolean {
+  return (
+    saved.name.trim() === edited.name.trim() &&
+    saved.displayName.trim() === edited.displayName.trim() &&
+    saved.description.trim() === edited.description.trim() &&
+    saved.application === edited.application &&
+    samePermissions(saved.permissions, edited.permissions)
+  );
+}
+
+function samePermissions(
+  saved: readonly IdProviderPermission[],
+  edited: readonly IdProviderPermission[],
+): boolean {
+  if (saved.length !== edited.length) {
+    return false;
+  }
+
+  return saved.every((entry) =>
+    edited.some(
+      ({ principal, access }) => principal.key === entry.principal.key && access === entry.access,
+    ),
+  );
+}
+
 export function validateIdProviderForm(
   form: IdProviderForm,
   mode: IdProviderEditorPayload['mode'],

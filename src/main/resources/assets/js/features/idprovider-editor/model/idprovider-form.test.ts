@@ -6,6 +6,7 @@ import {
   isSystemIdProvider,
   nextIdProviderForm,
   pinnedPermissions,
+  sameIdProviderForm,
   validateIdProviderForm,
   withPermissionAccess,
   withPermissionPrincipals,
@@ -229,5 +230,59 @@ describe('withPermissionAccess', () => {
     const current: IdProviderPermission[] = [{ principal: admins, access: 'READ' }];
 
     expect(withPermissionAccess(current, 'user:system:su', 'ADMINISTRATOR')).toEqual(current);
+  });
+});
+
+describe('sameIdProviderForm', () => {
+  it('reports a form nobody has touched as unchanged', () => {
+    expect(sameIdProviderForm(form(), form())).toBe(true);
+  });
+
+  it('ignores the whitespace the command trims off anyway', () => {
+    expect(sameIdProviderForm(form(), form({ displayName: '  Company directory  ' }))).toBe(true);
+  });
+
+  it('sees the binding change, including one removed', () => {
+    expect(sameIdProviderForm(form(), form({ application: 'com.example.oidc' }))).toBe(false);
+    expect(sameIdProviderForm(form(), form({ application: '' }))).toBe(false);
+  });
+
+  it('sees a principal added and a principal removed', () => {
+    expect(
+      sameIdProviderForm(
+        form(),
+        form({
+          permissions: [
+            { principal: admins, access: 'ADMINISTRATOR' },
+            { principal: editors, access: 'READ' },
+          ],
+        }),
+      ),
+    ).toBe(false);
+    expect(sameIdProviderForm(form(), form({ permissions: [] }))).toBe(false);
+  });
+
+  // The edit that moves no entry: narrowing somebody who is already on the list.
+  it('sees an access level narrowed', () => {
+    expect(
+      sameIdProviderForm(form(), form({ permissions: [{ principal: admins, access: 'READ' }] })),
+    ).toBe(false);
+  });
+
+  it('ignores the order the permissions happen to be in', () => {
+    const saved = form({
+      permissions: [
+        { principal: admins, access: 'ADMINISTRATOR' },
+        { principal: editors, access: 'READ' },
+      ],
+    });
+    const edited = form({
+      permissions: [
+        { principal: editors, access: 'READ' },
+        { principal: admins, access: 'ADMINISTRATOR' },
+      ],
+    });
+
+    expect(sameIdProviderForm(saved, edited)).toBe(true);
   });
 });

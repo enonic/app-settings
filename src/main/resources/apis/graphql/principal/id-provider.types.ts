@@ -1,4 +1,4 @@
-import { GraphQLString, list, nonNull, type GraphQLType } from '/lib/graphql';
+import { GraphQLBoolean, GraphQLString, list, nonNull, type GraphQLType } from '/lib/graphql';
 
 import { generator } from '../schema/generator';
 import {
@@ -42,6 +42,39 @@ export const IdProviderPermissionType: GraphQLType = generator.createObjectType(
     access: {
       type: IdProviderAccessType,
       description: 'Absent for an entry the list carries no access for, which XP does not produce.',
+    },
+  },
+});
+
+export const IdProviderPermissionInputType: GraphQLType = generator.createInputObjectType({
+  name: 'IdProviderPermissionInput',
+  description:
+    'One entry of a permissions write. The principal is a key rather than a principal, since a write names what it grants to, not what that principal is.',
+  fields: {
+    principal: {
+      type: nonNull(GraphQLString),
+    },
+    access: {
+      type: nonNull(IdProviderAccessType),
+    },
+  },
+});
+
+export const IdProviderDeletionType: GraphQLType = generator.createObjectType({
+  name: 'IdProviderDeletion',
+  description:
+    'What became of one provider a delete was asked for. Its own type rather than `PrincipalDeletion`: an id provider is not a principal.',
+  fields: {
+    key: {
+      type: nonNull(GraphQLString),
+      description: 'The key that was asked for, so an outcome can be matched back to its target.',
+    },
+    deleted: {
+      type: nonNull(GraphQLBoolean),
+    },
+    reason: {
+      type: GraphQLString,
+      description: 'Why the provider is still there. Null when it is gone.',
     },
   },
 });

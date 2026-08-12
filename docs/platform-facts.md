@@ -384,6 +384,13 @@ still `SecurityService` only. Five things about the write path are not visible f
 - **`CreateIdProviderParams` turns a null permission list into an empty one** (`:27-28`), so a provider
   created without permissions is reachable through the inherited root permissions alone — which is not the
   same as the three entries app-users seeds a new provider with.
+- **A created provider is not in the list until the index catches up.** `getIdProviders` is
+  `nodeService.findByParent` — a search — while `createIdProvider` writes the three nodes with no
+  refresh at all (`SecurityServiceImpl:832-890`). So a list re-read straight after a create answers
+  without it. The asymmetry is easy to miss: `deleteIdProvider` passes `RefreshMode.ALL` explicitly, and
+  `updateIdProvider` refreshes as a side effect of `setNodePermissions` (`:930-934`) — but only when the
+  update carried permissions. **A write's own answer is what a list should be patched with**, which is
+  what `receiveIdProvider` does.
 - **`deleteIdProvider` refuses nothing and takes everything with it.** It is one
   `nodeService.delete( nodePath )` on the provider's path (`SecurityServiceImpl:881-901`), which is
   recursive — every user and group filed under the provider is deleted with it, with no warning, no count

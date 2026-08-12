@@ -27,6 +27,13 @@ onChange />` with no children is an empty bordered box. Compose `<SearchField.Ic
   row geometry, hover, selected state and keyboard navigation, and `treeListRowVariants` in
   `../npm-enonic-ui/src/components/tree-list/tree-list.tsx` is where those classes are written down —
   copy the styles, do not adopt the component for a flat list.
+- **A `Selector` inside a dialog needs `shared/ui/SelectorPopup`**, never a bare `Selector.Content`.
+  `Selector.Content` registers its portalled element with the enclosing dialog so that picking an option
+  does not read as a click outside the dialog — but it registers once and renders `null` while closed
+  instead of unmounting, so from the **second** open onward the dialog knows only the first popup element
+  and closes on the pick. `SelectorPopup` carries the `data-click-outside-ignore` that settles it, and the
+  reasoning is written down there. `Combobox` is unaffected — its portal unmounts the popup — which is why
+  `PrincipalPicker` never showed this.
 - **`Separator label="…"`** already applies `text-subtle uppercase tracking-wider` to the label — do
   not restate those, and keep the phrase sentence-case in `phrases.properties`.
 - **`Avatar.Fallback`** renders only while `imageLoadingStatus` is `idle` or `error`; with no

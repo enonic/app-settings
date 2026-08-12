@@ -1,6 +1,7 @@
 import { type GraphQLType } from '/lib/graphql';
 
 import { groupMutationFields } from '../principal/group.fields';
+import { idProviderMutationFields } from '../principal/id-provider.fields';
 import { principalMutationFields } from '../principal/principal.fields';
 import { roleMutationFields } from '../principal/role.fields';
 import { userMutationFields } from '../principal/user.fields';
@@ -17,6 +18,7 @@ export const MutationType: GraphQLType = generator.createObjectType({
   fields: {
     ...principalMutationFields,
     ...groupMutationFields,
+    ...idProviderMutationFields,
     ...roleMutationFields,
     ...userMutationFields,
   },

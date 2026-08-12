@@ -9,6 +9,7 @@ import type {
 import { PrincipalPicker } from '../../entities/principal/ui/PrincipalPicker';
 import { i18n, useI18n, useLabelled } from '../../shared/i18n';
 import { FieldSection } from '../../shared/ui/FieldSection';
+import { SelectorPopup } from '../../shared/ui/SelectorPopup';
 import {
   pinnedPermissions,
   withPermissionAccess,
@@ -85,15 +86,13 @@ export function PermissionsSection({
               </Selector.Value>
               <Selector.Icon />
             </Selector.Trigger>
-            <Selector.Content>
-              <Selector.Viewport>
-                {levels.map(({ value, label }) => (
-                  <Selector.Item key={value} value={value} textValue={label}>
-                    <Selector.ItemText>{label}</Selector.ItemText>
-                  </Selector.Item>
-                ))}
-              </Selector.Viewport>
-            </Selector.Content>
+            <SelectorPopup>
+              {levels.map(({ value, label }) => (
+                <Selector.Item key={value} value={value} textValue={label}>
+                  <Selector.ItemText>{label}</Selector.ItemText>
+                </Selector.Item>
+              ))}
+            </SelectorPopup>
           </Selector.Root>
         )}
       />

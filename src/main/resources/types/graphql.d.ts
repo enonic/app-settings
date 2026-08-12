@@ -45,6 +45,13 @@ export type CreateObjectTypeParams = {
   description?: string;
 };
 
+/** An input object carries no resolvers, so its fields are types and descriptions only. */
+export type CreateInputObjectTypeParams = {
+  name: string;
+  fields: Record<string, { type: GraphQLType; description?: string }>;
+  description?: string;
+};
+
 export type CreateEnumTypeParams = {
   name: string;
   values: string[];
@@ -58,6 +65,7 @@ export type CreateSchemaParams = {
 
 export type SchemaGenerator = {
   createObjectType(params: CreateObjectTypeParams): GraphQLType;
+  createInputObjectType(params: CreateInputObjectTypeParams): GraphQLType;
   createEnumType(params: CreateEnumTypeParams): GraphQLType;
   createSchema(params: CreateSchemaParams): GraphQLSchema;
 };

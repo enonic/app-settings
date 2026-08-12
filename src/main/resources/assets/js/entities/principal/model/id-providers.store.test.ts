@@ -8,6 +8,7 @@ import {
   $idProviderNameByKey,
   $idProviderNames,
   $idProviders,
+  receiveIdProvider,
   receiveIdProviderNames,
 } from './id-providers.store';
 import type { IdProvider } from './principal.types';
@@ -134,5 +135,27 @@ describe('the provider names the other sections read', () => {
     expect($idProviderNames.get().items).toEqual([{ key: 'system', displayName: 'System' }]);
     expect($idProviderNames.get().status).toBe('error');
     expect($idProviderNames.get().error).toBe('Providers are unreachable');
+  });
+});
+
+describe('receiveIdProvider', () => {
+  // ! The reason this exists rather than a reload: a create is not in the search index yet.
+  it('adds a provider the list has never seen', () => {
+    $idProviders.set({ status: 'ready', items: [provider('ldap')] });
+
+    receiveIdProvider(provider('intranet'));
+
+    expect($idProviders.get().items.map(({ key }) => key)).toEqual(['ldap', 'intranet']);
+  });
+
+  it('replaces the row of a provider it already carries, leaving the rest alone', () => {
+    $idProviders.set({ status: 'ready', items: [provider('ldap'), provider('intranet')] });
+
+    receiveIdProvider({ ...provider('intranet'), displayName: 'Renamed' });
+
+    expect($idProviders.get().items).toEqual([
+      provider('ldap'),
+      { ...provider('intranet'), displayName: 'Renamed' },
+    ]);
   });
 });
