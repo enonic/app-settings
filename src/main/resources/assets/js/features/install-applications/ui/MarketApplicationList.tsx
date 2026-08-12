@@ -1,9 +1,15 @@
-import { Button, Skeleton } from '@enonic/ui';
+import { Button, cn, Skeleton } from '@enonic/ui';
 
 import type { MarketApplicationsState } from '../../../entities/market';
 import { useI18n } from '../../../shared/i18n';
 import type { MarketInstall } from '../model/install.store';
 import type { MarketRow } from '../model/market-rows';
+import {
+  MARKET_ACTION_CELL_CLASS,
+  MARKET_GRID_CLASS,
+  MARKET_VERSION_CELL_CLASS,
+} from './market-columns';
+import { MarketApplicationListHeader } from './MarketApplicationListHeader';
 import { MarketApplicationRow } from './MarketApplicationRow';
 
 export type MarketApplicationListProps = {
@@ -37,13 +43,22 @@ export function MarketApplicationList({
 
   if (status === 'loading') {
     return (
-      <div className="flex flex-col gap-1.5" aria-busy="true">
+      <div role="table" aria-busy="true">
+        <MarketApplicationListHeader />
+
         {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-          <Skeleton.Group key={index} className="flex items-center gap-2.5 px-2.5 py-2">
-            <Skeleton shape="rectangle" className="size-6 shrink-0" />
-            <div className="flex flex-col gap-1">
-              <Skeleton shape="rectangle" className="h-5 w-36" />
-              <Skeleton shape="rectangle" className="h-4 w-24" />
+          <Skeleton.Group key={index} className={cn(MARKET_GRID_CLASS, 'min-h-12 py-2')}>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <Skeleton shape="rectangle" className="size-6 shrink-0" />
+              <div className="flex flex-col gap-1">
+                <Skeleton shape="rectangle" className="h-5 w-36" />
+                <Skeleton shape="rectangle" className="h-4 w-24" />
+              </div>
+            </div>
+            <Skeleton shape="rectangle" className={cn(MARKET_VERSION_CELL_CLASS, 'h-4 w-12')} />
+            <Skeleton shape="rectangle" className={cn(MARKET_VERSION_CELL_CLASS, 'h-4 w-12')} />
+            <div className={MARKET_ACTION_CELL_CLASS}>
+              <Skeleton shape="rectangle" className="h-9 w-24" />
             </div>
           </Skeleton.Group>
         ))}
@@ -75,7 +90,9 @@ export function MarketApplicationList({
   }
 
   return (
-    <div role="list" className="flex flex-col">
+    <div role="table">
+      <MarketApplicationListHeader />
+
       {rows.map((row) => (
         <MarketApplicationRow
           key={row.key}
