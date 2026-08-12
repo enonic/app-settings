@@ -1,33 +1,33 @@
 import { Link } from '@enonic/ui';
 
 import type { Application } from '../../../entities/application';
-import { formatDateTime } from '../../../shared/format';
-import { i18n } from '../../../shared/i18n';
+import { i18n, useI18n } from '../../../shared/i18n';
 import { DetailsPanel } from '../../../widgets/details-panel/DetailsPanel';
 import { systemVersionPhrase } from '../model/application-details';
+import { ApplicationUpdateField } from './ApplicationUpdateField';
 
 export type ApplicationSummarySectionProps = {
   application: Application;
 };
 
-// TODO: [#3] The available version and its update button need the market call — § 5.8 of
-// docs/browse-framework.md.
 export function ApplicationSummarySection({ application }: ApplicationSummarySectionProps) {
-  const { key, version, modifiedTime, minSystemVersion, maxSystemVersion, vendorName, vendorUrl } =
+  const { key, description, version, minSystemVersion, maxSystemVersion, vendorName, vendorUrl } =
     application;
+
+  const vendorLinkLabel = useI18n('applications.details.vendorLink');
   const systemVersion = systemVersionPhrase(minSystemVersion, maxSystemVersion);
 
   return (
     <DetailsPanel.Section labelKey="applications.details.application">
-      {modifiedTime !== undefined && (
-        <DetailsPanel.Field labelKey="applications.details.installed">
-          {formatDateTime(modifiedTime)}
-        </DetailsPanel.Field>
+      {description !== undefined && (
+        <DetailsPanel.Field labelKey="applications.details.info">{description}</DetailsPanel.Field>
       )}
 
       {version !== undefined && (
         <DetailsPanel.Field labelKey="applications.details.version">{version}</DetailsPanel.Field>
       )}
+
+      <ApplicationUpdateField application={application} />
 
       <DetailsPanel.Field labelKey="applications.details.key">{key}</DetailsPanel.Field>
 
@@ -36,9 +36,10 @@ export function ApplicationSummarySection({ application }: ApplicationSummarySec
           {vendorUrl === undefined ? (
             vendorName
           ) : (
-            <Link href={vendorUrl} newTab>
+            <span className="inline-flex items-center gap-1">
               {vendorName}
-            </Link>
+              <Link href={vendorUrl} newTab rightIcon aria-label={vendorLinkLabel} />
+            </span>
           )}
         </DetailsPanel.Field>
       )}

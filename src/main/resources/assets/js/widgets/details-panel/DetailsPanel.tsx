@@ -14,7 +14,9 @@ export type DetailsHeaderProps = {
   title: string;
   subtitle?: string;
   icon?: ReactNode;
-  /** Top-right control, e.g. the Applications state dropdown. */
+  /** Inline after the title, e.g. a link out to the item's page on another site. */
+  titleAction?: ReactNode;
+  /** Under the title block, e.g. the Applications state dropdown. */
   action?: ReactNode;
 };
 
@@ -59,17 +61,21 @@ function DetailsPanelRoot({ children }: DetailsPanelProps) {
   return <div className="flex min-h-0 flex-col gap-5 overflow-auto p-10">{children}</div>;
 }
 
-export function DetailsHeader({ title, subtitle, icon, action }: DetailsHeaderProps) {
+export function DetailsHeader({ title, subtitle, icon, titleAction, action }: DetailsHeaderProps) {
   return (
     <div className="flex items-center gap-5">
       {icon && <div className="flex size-12 shrink-0 items-center justify-center">{icon}</div>}
 
       <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-        <h3 className="truncate text-2xl font-semibold">{title}</h3>
-        {subtitle && <p className="text-subtle truncate text-base">{subtitle}</p>}
-      </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <h3 className="truncate text-2xl font-semibold">{title}</h3>
+          {titleAction}
+        </div>
 
-      {action}
+        {subtitle && <p className="text-subtle truncate text-base">{subtitle}</p>}
+
+        {action && <div className="flex">{action}</div>}
+      </div>
     </div>
   );
 }

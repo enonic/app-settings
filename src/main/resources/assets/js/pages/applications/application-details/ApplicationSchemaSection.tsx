@@ -1,20 +1,20 @@
 import type { ApplicationInfo } from '../../../entities/application';
 import { DetailsPanel } from '../../../widgets/details-panel/DetailsPanel';
-import { siteGroups } from '../model/application-site';
+import { schemaGroups } from '../model/application-schema';
 
-export type ApplicationSiteSectionProps = {
+export type ApplicationSchemaSectionProps = {
   info?: ApplicationInfo;
 };
 
-export function ApplicationSiteSection({ info }: ApplicationSiteSectionProps) {
-  const groups = siteGroups(info);
+export function ApplicationSchemaSection({ info }: ApplicationSchemaSectionProps) {
+  const groups = schemaGroups(info);
 
   if (groups.length === 0) {
     return null;
   }
 
   return (
-    <DetailsPanel.Section labelKey="applications.details.site">
+    <DetailsPanel.Section labelKey="applications.details.schemas">
       <div className="grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-6">
         {groups.map(({ labelKey, items }) => (
           <DetailsPanel.Subsection key={labelKey} labelKey={labelKey}>
