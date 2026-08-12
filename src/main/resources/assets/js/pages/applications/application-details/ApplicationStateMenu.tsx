@@ -31,7 +31,13 @@ export function ApplicationStateMenu({ application }: ApplicationStateMenuProps)
   return (
     <Menu>
       <Menu.Trigger asChild>
-        <Button variant="outline" size="sm" label={stateLabel} endIcon={ChevronDown} />
+        <Button
+          variant="outline"
+          size="sm"
+          label={stateLabel}
+          endIcon={ChevronDown}
+          className="w-40"
+        />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Content className="min-w-24">

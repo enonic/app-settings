@@ -4,6 +4,7 @@ import type { Application } from '../../../entities/application';
 import { i18n, useI18n } from '../../../shared/i18n';
 import { DetailsPanel } from '../../../widgets/details-panel/DetailsPanel';
 import { systemVersionPhrase } from '../model/application-details';
+import { ApplicationUpdateField } from './ApplicationUpdateField';
 
 export type ApplicationSummarySectionProps = {
   application: Application;
@@ -25,6 +26,8 @@ export function ApplicationSummarySection({ application }: ApplicationSummarySec
       {version !== undefined && (
         <DetailsPanel.Field labelKey="applications.details.version">{version}</DetailsPanel.Field>
       )}
+
+      <ApplicationUpdateField application={application} />
 
       <DetailsPanel.Field labelKey="applications.details.key">{key}</DetailsPanel.Field>
 
