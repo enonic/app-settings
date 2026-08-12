@@ -59,6 +59,7 @@ export type MarketApplicationSource = {
   versions: MarketApplicationVersion[];
   installedVersion?: string;
   updateAvailable: boolean;
+  installedAhead: boolean;
 };
 
 export type MarketVersionDto = {
@@ -184,6 +185,10 @@ export function toMarketApplications(
     }
 
     const installedVersion = installed[key];
+    const marketAgainstInstalled =
+      installedVersion === undefined
+        ? undefined
+        : compareVersions(latest.version, installedVersion);
 
     applications.push({
       key,
@@ -194,8 +199,8 @@ export function toMarketApplications(
       latest,
       versions,
       installedVersion,
-      updateAvailable:
-        installedVersion !== undefined && compareVersions(latest.version, installedVersion) > 0,
+      updateAvailable: marketAgainstInstalled !== undefined && marketAgainstInstalled > 0,
+      installedAhead: marketAgainstInstalled !== undefined && marketAgainstInstalled < 0,
     });
   }
 

@@ -209,6 +209,7 @@ describe('toMarketApplications', () => {
 
     expect(application?.installedVersion).toBe('7.3.4');
     expect(application?.updateAvailable).toBe(true);
+    expect(application?.installedAhead).toBe(false);
   });
 
   it('reports no update for an instance already on the newest version', () => {
@@ -218,15 +219,17 @@ describe('toMarketApplications', () => {
     });
 
     expect(application?.updateAvailable).toBe(false);
+    expect(application?.installedAhead).toBe(false);
   });
 
-  it('reports no update for an instance ahead of the market', () => {
+  it('reports an instance ahead of the market as such, with no update', () => {
     const [application] = toMarketApplications([guillotine], {
       ...context,
       installed: { 'com.enonic.app.guillotine': '8.1.0' },
     });
 
     expect(application?.updateAvailable).toBe(false);
+    expect(application?.installedAhead).toBe(true);
   });
 
   it('reports nothing installed for an application this instance does not have', () => {
@@ -234,6 +237,7 @@ describe('toMarketApplications', () => {
 
     expect(application?.installedVersion).toBeUndefined();
     expect(application?.updateAvailable).toBe(false);
+    expect(application?.installedAhead).toBe(false);
   });
 
   it('drops an application with no version this XP can run', () => {

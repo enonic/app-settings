@@ -4,11 +4,6 @@ import type { MarketApplicationsState } from '../../../entities/market';
 import { useI18n } from '../../../shared/i18n';
 import type { MarketInstall } from '../model/install.store';
 import type { MarketRow } from '../model/market-rows';
-import {
-  MARKET_ACTION_CELL_CLASS,
-  MARKET_GRID_CLASS,
-  MARKET_VERSION_CELL_CLASS,
-} from './market-columns';
 import { MarketApplicationListHeader } from './MarketApplicationListHeader';
 import { MarketApplicationRow } from './MarketApplicationRow';
 
@@ -16,16 +11,25 @@ export type MarketApplicationListProps = {
   status: MarketApplicationsState['status'];
   rows: readonly MarketRow[];
   searching: boolean;
-  /**
-   * The installs in flight, by market key. Read once here rather than per row: a progress event would
-   * otherwise re-render every row on the list.
-   */
   installs: Readonly<Record<string, MarketInstall>>;
   onInstall: (row: MarketRow) => void;
   onRetry: () => void;
 };
 
 const SKELETON_ROWS = 8;
+
+/**
+ * The one grid the header, the rows and the skeleton are laid out on. Widths are fixed rather than
+ * content-sized: `auto` columns are measured per grid, so every row would find its own widths and the
+ * header would stand over none of them. Safe here because the dialog is a fixed `max-w-5xl`.
+ */
+export const MARKET_GRID_CLASS =
+  'grid grid-cols-[minmax(0,1fr)_7.5rem_7rem_7rem] items-center gap-2.5 px-2.5';
+
+/** Wide enough for `6.1.0.SNAPSHOT`, which is what a dev build puts in the installed column. */
+export const MARKET_VERSION_CELL_CLASS = 'text-subtle justify-self-end text-sm whitespace-nowrap';
+
+export const MARKET_ACTION_CELL_CLASS = 'flex justify-center';
 
 /** What Enonic Market offers, or why there is nothing to offer. */
 export function MarketApplicationList({
@@ -46,22 +50,24 @@ export function MarketApplicationList({
       <div role="table" aria-busy="true">
         <MarketApplicationListHeader />
 
-        {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-          <Skeleton.Group key={index} className={cn(MARKET_GRID_CLASS, 'min-h-12 py-2')}>
-            <div className="flex min-w-0 items-center gap-2.5">
-              <Skeleton shape="rectangle" className="size-6 shrink-0" />
-              <div className="flex flex-col gap-1">
-                <Skeleton shape="rectangle" className="h-5 w-36" />
-                <Skeleton shape="rectangle" className="h-4 w-24" />
+        <div role="rowgroup" className="pt-3">
+          {Array.from({ length: SKELETON_ROWS }, (_, index) => (
+            <Skeleton.Group key={index} className={cn(MARKET_GRID_CLASS, 'min-h-12 py-2')}>
+              <div className="flex min-w-0 items-center gap-2.5">
+                <Skeleton shape="rectangle" className="size-6 shrink-0" />
+                <div className="flex flex-col gap-1">
+                  <Skeleton shape="rectangle" className="h-5 w-36" />
+                  <Skeleton shape="rectangle" className="h-4 w-24" />
+                </div>
               </div>
-            </div>
-            <Skeleton shape="rectangle" className={cn(MARKET_VERSION_CELL_CLASS, 'h-4 w-12')} />
-            <Skeleton shape="rectangle" className={cn(MARKET_VERSION_CELL_CLASS, 'h-4 w-12')} />
-            <div className={MARKET_ACTION_CELL_CLASS}>
-              <Skeleton shape="rectangle" className="h-9 w-24" />
-            </div>
-          </Skeleton.Group>
-        ))}
+              <Skeleton shape="rectangle" className={cn(MARKET_VERSION_CELL_CLASS, 'h-4 w-12')} />
+              <Skeleton shape="rectangle" className={cn(MARKET_VERSION_CELL_CLASS, 'h-4 w-12')} />
+              <div className={MARKET_ACTION_CELL_CLASS}>
+                <Skeleton shape="rectangle" className="h-9 w-24" />
+              </div>
+            </Skeleton.Group>
+          ))}
+        </div>
       </div>
     );
   }
@@ -93,14 +99,16 @@ export function MarketApplicationList({
     <div role="table">
       <MarketApplicationListHeader />
 
-      {rows.map((row) => (
-        <MarketApplicationRow
-          key={row.key}
-          row={row}
-          install={installs[row.key]}
-          onInstall={onInstall}
-        />
-      ))}
+      <div role="rowgroup" className="pt-3">
+        {rows.map((row) => (
+          <MarketApplicationRow
+            key={row.key}
+            row={row}
+            install={installs[row.key]}
+            onInstall={onInstall}
+          />
+        ))}
+      </div>
     </div>
   );
 }

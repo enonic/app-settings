@@ -1,7 +1,7 @@
 import { cn } from '@enonic/ui';
 
 import { useI18n } from '../../../shared/i18n';
-import { MARKET_GRID_CLASS } from './market-columns';
+import { MARKET_GRID_CLASS } from './MarketApplicationList';
 
 /**
  * The column titles. Sticky inside the dialog's scroll container rather than fixed above it: a header
