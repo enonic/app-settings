@@ -57,14 +57,12 @@ export const createSchema = vi.fn((params: CreateSchemaParams) =>
   stub<GraphQLSchema>('Schema', { query: params.query, mutation: params.mutation }),
 );
 
-export const newSchemaGenerator = vi.fn(
-  (): SchemaGenerator => ({
-    createObjectType,
-    createInputObjectType,
-    createEnumType,
-    createSchema,
-  }),
-);
+export const newSchemaGenerator = vi.fn((): SchemaGenerator => ({
+  createObjectType,
+  createInputObjectType,
+  createEnumType,
+  createSchema,
+}));
 
 export const list = vi.fn((type: GraphQLType) => stub<GraphQLType>('List', { of: type }));
 
