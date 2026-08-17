@@ -1,9 +1,9 @@
 import { useStore } from '@nanostores/preact';
 import { Outlet, useNavigate } from '@tanstack/react-router';
-import { Users } from 'lucide-react';
 import { useMemo } from 'preact/hooks';
 
 import { useGroups, useIdProviderName } from '../../entities/principal';
+import { PrincipalIcon } from '../../entities/principal/ui/PrincipalIcon';
 import { GroupEditorDialog } from '../../features/group-editor/GroupEditorDialog';
 import { useI18n } from '../../shared/i18n';
 import { visibleEntries } from '../../widgets/browse-list/browse-filter';
@@ -74,8 +74,7 @@ export function GroupsPage() {
     resetOnLeave: [groupsFilter],
     visible,
     // A fresh icon element per row: Preact writes into a vnode as it renders it.
-    toRow: (group) =>
-      toGroupRow(group, <Users size={24} strokeWidth={1.5} aria-hidden />, providerName),
+    toRow: (group) => toGroupRow(group, <PrincipalIcon principal={group} />, providerName),
     reload: () => void loadGroupsScreen(),
   });
 

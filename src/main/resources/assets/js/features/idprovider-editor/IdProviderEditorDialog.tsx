@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/preact';
-import { KeyRound } from 'lucide-react';
+import { ShieldLock } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 
 import {
@@ -232,7 +232,7 @@ export function IdProviderEditorDialog({ onSaved }: IdProviderEditorDialogProps)
       header={
         values === undefined ? undefined : (
           <DialogIdentityHeader
-            icon={<KeyRound size={40} strokeWidth={1.5} aria-hidden />}
+            icon={<ShieldLock size={40} strokeWidth={1.5} aria-hidden />}
             label={displayNameLabel}
             placeholder={displayNamePlaceholder}
             value={values.displayName}

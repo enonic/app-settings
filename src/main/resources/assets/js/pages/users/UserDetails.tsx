@@ -1,5 +1,4 @@
 import { Button, Checkbox } from '@enonic/ui';
-import { CircleUserRound, UserPen, Users } from 'lucide-react';
 import { useState } from 'preact/hooks';
 
 import {
@@ -9,6 +8,7 @@ import {
   type PrincipalRef,
   type UserDetail,
 } from '../../entities/principal';
+import { PrincipalIcon } from '../../entities/principal/ui/PrincipalIcon';
 import { openUserEditor } from '../../features/user-editor';
 import { useI18n } from '../../shared/i18n';
 import { filledSections } from '../../widgets/details-panel/details-panel';
@@ -40,14 +40,14 @@ export function UserDetails({ user }: UserDetailsProps) {
   // ! No description and no created/modified pair, though the mockups draw both: XP stores neither for a
   // ! user — see the `disabled` and `modifiedTime` entries in `docs/platform-facts.md`.
   const memberships = filledSections([
-    { labelKey: 'users.details.roles', icon: UserPen, items: roles, provenance: false },
-    { labelKey: 'users.details.groups', icon: Users, items: groups, provenance: true },
+    { labelKey: 'users.details.roles', items: roles, provenance: false },
+    { labelKey: 'users.details.groups', items: groups, provenance: true },
   ]);
 
   return (
     <DetailsPanel>
       <DetailsPanel.Header
-        icon={<CircleUserRound size={48} strokeWidth={1.5} aria-hidden />}
+        icon={<PrincipalIcon principal={user} size="lg" />}
         title={displayName}
         subtitle={login}
       />
@@ -84,13 +84,13 @@ export function UserDetails({ user }: UserDetailsProps) {
         </DetailsPanel.Section>
       )}
 
-      {memberships.map(({ labelKey, icon: Icon, items, provenance }) => (
+      {memberships.map(({ labelKey, items, provenance }) => (
         <DetailsPanel.Section key={labelKey} labelKey={labelKey} count={items.length}>
           <DetailsPanel.List>
             {items.map((principal) => (
               <DetailsPanel.ListItem
                 key={principal.key}
-                icon={<Icon size={24} strokeWidth={1.5} aria-hidden />}
+                icon={<PrincipalIcon principal={principal} />}
                 title={principal.displayName}
                 subtitle={principalName(principal.key)}
                 // A role belongs to no provider, so only a group carries one.

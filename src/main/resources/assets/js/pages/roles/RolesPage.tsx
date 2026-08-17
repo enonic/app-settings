@@ -1,9 +1,9 @@
 import { useStore } from '@nanostores/preact';
 import { Outlet, useNavigate } from '@tanstack/react-router';
-import { UserPen } from 'lucide-react';
 import { useMemo } from 'preact/hooks';
 
 import { useRoles } from '../../entities/principal';
+import { PrincipalIcon } from '../../entities/principal/ui/PrincipalIcon';
 import { useProjects } from '../../entities/project';
 import { RoleEditorDialog } from '../../features/role-editor/RoleEditorDialog';
 import { useI18n } from '../../shared/i18n';
@@ -86,7 +86,7 @@ export function RolesPage() {
     resetOnLeave: [rolesFilter],
     visible,
     // A fresh icon element per row: Preact writes into a vnode as it renders it.
-    toRow: (role) => toRoleRow(role, <UserPen size={24} strokeWidth={1.5} aria-hidden />),
+    toRow: (role) => toRoleRow(role, <PrincipalIcon principal={role} />),
     // One request again, so a project added since the last load reaches the filter along with the roles.
     reload: () => void loadRolesScreen(),
   });

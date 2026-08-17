@@ -41,7 +41,7 @@ Per-section differences are **data only**:
 
 |                       | Applications                            | Users                                       | Groups                                                                | ID Providers                                             |
 | --------------------- | --------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------- |
-| Toolbar actions       | Install / Uninstall / Start / Stop      | New user / Edit / Delete                    | New group / Edit / Delete                                             | New provider / Edit / Delete                             |
+| Toolbar actions       | Install / Uninstall / Start / Stop      | New / Edit / Delete                         | New / Edit / Delete                                                   | New / Edit / Delete                                      |
 | Row subtitle          | description                             | user name                                   | group name                                                            | provider key                                             |
 | Row meta cells        | installed + available version, state    | ID provider                                 | ID provider                                                           | bound application                                        |
 | Details header action | state dropdown                          | —                                           | —                                                                     | —                                                        |
@@ -51,7 +51,7 @@ That table is the whole justification for the framework: same widgets, different
 
 Roles is deliberately absent from the table: it is the day-0 consumer of the framework and ships with
 the plainest possible mapping — title, the role key as its subtitle, no meta cells,
-`New role / Edit / Delete` — so that nothing section-specific hides a gap in the shared widgets.
+`New / Edit / Delete` — so that nothing section-specific hides a gap in the shared widgets.
 
 Under a display name goes the principal's own **name** — `alice`, `administrators`, `cms.admin` —
 never the `role:system.admin` wire form and never a path: `principalName()` in `entities/principal`

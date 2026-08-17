@@ -1,5 +1,5 @@
 import { Button } from '@enonic/ui';
-import { CircleUserRound, UserShield, Users } from 'lucide-react';
+import { ShieldLock } from 'lucide-react';
 
 import {
   idProviderPrincipalsHasMore,
@@ -9,6 +9,7 @@ import {
   type IdProviderPrincipalsState,
   type PrincipalSetType,
 } from '../../entities/principal';
+import { PrincipalIcon } from '../../entities/principal/ui/PrincipalIcon';
 import { openIdProviderEditor } from '../../features/idprovider-editor';
 import { useI18n } from '../../shared/i18n';
 import { countedSections } from '../../widgets/details-panel/details-panel';
@@ -40,14 +41,12 @@ export function IdProviderDetails({
   const sections = countedSections([
     {
       labelKey: 'idProviders.details.users',
-      icon: CircleUserRound,
       type: 'user' as PrincipalSetType,
       set: principals?.users ?? provider.users,
       rows: principals?.users,
     },
     {
       labelKey: 'idProviders.details.groups',
-      icon: Users,
       type: 'group' as PrincipalSetType,
       set: principals?.groups ?? provider.groups,
       rows: principals?.groups,
@@ -57,7 +56,7 @@ export function IdProviderDetails({
   return (
     <DetailsPanel>
       <DetailsPanel.Header
-        icon={<UserShield size={48} strokeWidth={1.5} aria-hidden />}
+        icon={<ShieldLock size={48} strokeWidth={1.5} aria-hidden />}
         title={displayName}
         subtitle={key}
       />
@@ -83,7 +82,7 @@ export function IdProviderDetails({
         </DetailsPanel.Field>
       </DetailsPanel.Section>
 
-      {sections.map(({ labelKey, icon: Icon, type, set, rows }) => (
+      {sections.map(({ labelKey, type, set, rows }) => (
         <DetailsPanel.Section key={labelKey} labelKey={labelKey} count={set.total}>
           {/* Absent rows are "not read yet", not "none", so the heading and its count stand alone
               rather than over an empty list. */}
@@ -93,7 +92,7 @@ export function IdProviderDetails({
                 {rows.items.map((principal) => (
                   <DetailsPanel.ListItem
                     key={principal.key}
-                    icon={<Icon size={24} strokeWidth={1.5} aria-hidden />}
+                    icon={<PrincipalIcon principal={principal} />}
                     title={principal.displayName}
                     subtitle={principalName(principal.key)}
                   />
