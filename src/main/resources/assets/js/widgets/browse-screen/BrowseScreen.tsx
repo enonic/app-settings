@@ -114,8 +114,8 @@ export function BrowseScreen<T>({
           <BrowseSearch value={query} onChange={onQueryChange} />
 
           <BrowseListHeader
-            allSelected={selectAllState(rows, selectedKeys)}
-            onSelectAllChange={handleSelectAllChange}
+            allSelected={managedMode ? undefined : selectAllState(rows, selectedKeys)}
+            onSelectAllChange={managedMode ? undefined : handleSelectAllChange}
             onRefresh={onRefresh}
             filter={filter}
             sort={sort}
@@ -130,6 +130,7 @@ export function BrowseScreen<T>({
               onSelectionChange={onSelectionChange}
               onActiveChange={onActiveChange}
               onRowActivate={handleRowActivate}
+              selectable={managedMode !== true}
               status={status}
               emptyLabel={query.trim() ? noMatchesLabel : emptyLabel}
               hasMore={hasMore}

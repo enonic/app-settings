@@ -50,7 +50,7 @@ export function ApplicationsPage() {
   const sort = useStore($applicationsSort);
   const { items: marketItems } = useMarketApplications();
   const uploads = useStore($applicationUploads);
-  const managedMode = isAppsManagedMode();
+  const appsManagedMode = isAppsManagedMode();
 
   const emptyLabel = useI18n('applications.list.empty');
   const uploadingLabel = useI18n('applications.list.uploading');
@@ -132,7 +132,7 @@ export function ApplicationsPage() {
     leadingRows: uploadRows,
     reload: () => {
       void loadApplications();
-      if (!managedMode) {
+      if (!appsManagedMode) {
         void loadMarketApplications();
       }
     },
@@ -143,7 +143,7 @@ export function ApplicationsPage() {
       <BrowseScreen
         {...section}
         actions={APPLICATION_ACTIONS}
-        managedMode={managedMode}
+        managedMode={appsManagedMode}
         notice={<ManagedModeBanner title={managedTitle} help={managedHelp} />}
         emptyLabel={emptyLabel}
         details={<Outlet />}
@@ -157,7 +157,7 @@ export function ApplicationsPage() {
         sort={<BrowseSort options={sortOptions} value={sort} onChange={setApplicationsSort} />}
       />
 
-      {!managedMode && (
+      {!appsManagedMode && (
         <>
           <InstallApplicationsDialog />
           <UninstallApplicationsDialog />
