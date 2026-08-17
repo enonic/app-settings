@@ -22,6 +22,21 @@ Copy the built JAR to `$XP_HOME/deploy`, or let Gradle do it:
 ./gradlew deploy
 ```
 
+## Configuration
+
+Optional, in `$XP_HOME/config/com.enonic.xp.app.settings.cfg`:
+
+| Key                        | Default                                 | Effect                                                                                                                                       |
+| -------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `applications.managedMode` | off                                     | `true` puts the Applications section in managed mode: it lists what is installed and offers nothing that changes it. Any other value is off. |
+| `marketApiUrl`             | `https://market.enonic.com/api/graphql` | Where Enonic Market is read from.                                                                                                            |
+
+Both values are trimmed, so trailing whitespace in the file is harmless.
+
+Managed mode is for installs where applications arrive through a deploy pipeline rather than through
+this tool. It is a UI affordance, not a security boundary — the platform's own `server:app` api stays
+open to `role:system.admin` — and it leaves the other four sections alone.
+
 ## Building
 
 ```

@@ -14,6 +14,7 @@ import { loadMarketApplications, useMarketApplications } from '../../entities/ma
 import { ConfirmMajorUpdateDialog } from '../../features/install-applications/ui/ConfirmMajorUpdateDialog';
 import { InstallApplicationsDialog } from '../../features/install-applications/ui/InstallApplicationsDialog';
 import { UninstallApplicationsDialog } from '../../features/uninstall-applications/ui/UninstallApplicationsDialog';
+import { isAppsManagedMode } from '../../shared/config';
 import { i18n, useI18n } from '../../shared/i18n';
 import { ProgressBar } from '../../shared/ui/ProgressBar';
 import { sortByDisplayName, type SortDirection } from '../../widgets/browse-list/browse-sort';
@@ -21,6 +22,7 @@ import { BrowseFilter } from '../../widgets/browse-list/BrowseFilter';
 import { BrowseSort } from '../../widgets/browse-list/BrowseSort';
 import { BrowseScreen } from '../../widgets/browse-screen/BrowseScreen';
 import { useBrowseSection } from '../../widgets/browse-screen/useBrowseSection';
+import { ManagedModeBanner } from '../../widgets/browse-toolbar/ManagedModeBanner';
 import { APPLICATION_ACTIONS } from './model/applications.actions';
 import {
   filterApplicationsBySystem,
@@ -48,12 +50,15 @@ export function ApplicationsPage() {
   const sort = useStore($applicationsSort);
   const { items: marketItems } = useMarketApplications();
   const uploads = useStore($applicationUploads);
+  const appsManagedMode = isAppsManagedMode();
 
   const emptyLabel = useI18n('applications.list.empty');
   const uploadingLabel = useI18n('applications.list.uploading');
   const systemLabel = useI18n('applications.filter.system');
   const sortAscLabel = useI18n('applications.sort.nameAsc');
   const sortDescLabel = useI18n('applications.sort.nameDesc');
+  const managedTitle = useI18n('applications.managed.title');
+  const managedHelp = useI18n('applications.managed.help');
 
   const sortOptions = useMemo(
     () => [
@@ -127,7 +132,9 @@ export function ApplicationsPage() {
     leadingRows: uploadRows,
     reload: () => {
       void loadApplications();
-      void loadMarketApplications();
+      if (!appsManagedMode) {
+        void loadMarketApplications();
+      }
     },
   });
 
@@ -136,6 +143,8 @@ export function ApplicationsPage() {
       <BrowseScreen
         {...section}
         actions={APPLICATION_ACTIONS}
+        managedMode={appsManagedMode}
+        notice={<ManagedModeBanner title={managedTitle} help={managedHelp} />}
         emptyLabel={emptyLabel}
         details={<Outlet />}
         filter={
@@ -148,10 +157,13 @@ export function ApplicationsPage() {
         sort={<BrowseSort options={sortOptions} value={sort} onChange={setApplicationsSort} />}
       />
 
-      <InstallApplicationsDialog />
-      <UninstallApplicationsDialog />
-      {/* Opened from the details panel */}
-      <ConfirmMajorUpdateDialog />
+      {!appsManagedMode && (
+        <>
+          <InstallApplicationsDialog />
+          <UninstallApplicationsDialog />
+          <ConfirmMajorUpdateDialog />
+        </>
+      )}
     </>
   );
 }

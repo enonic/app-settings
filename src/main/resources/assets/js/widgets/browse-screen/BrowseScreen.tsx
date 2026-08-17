@@ -32,6 +32,10 @@ export type BrowseScreenProps<T> = {
   emptyLabel: string;
   /** The details column, normally the section's `<Outlet />`. */
   details: ReactNode;
+  /** Managed mode: no action is offered anywhere — toolbar, row menu or double click. */
+  managedMode?: boolean;
+  /** What stands in the action row's place, normally `ManagedModeBanner` with the section's copy. */
+  notice?: ReactNode;
   onQueryChange: (query: string) => void;
   onSelectionChange: (keys: ReadonlySet<string>) => void;
   onActiveChange: (key: string | undefined) => void;
@@ -61,6 +65,8 @@ export function BrowseScreen<T>({
   query,
   emptyLabel,
   details,
+  managedMode,
+  notice,
   onQueryChange,
   onSelectionChange,
   onActiveChange,
@@ -82,7 +88,7 @@ export function BrowseScreen<T>({
    */
   const handleRowActivate = (key: string): void => {
     const active = itemAt(key);
-    if (active === undefined) {
+    if (managedMode || active === undefined) {
       return;
     }
 
@@ -102,20 +108,21 @@ export function BrowseScreen<T>({
 
   return (
     <BrowseLayout
-      toolbar={<BrowseToolbar actions={labelledActions} context={context} />}
+      toolbar={managedMode ? notice : <BrowseToolbar actions={labelledActions} context={context} />}
       list={
         <>
           <BrowseSearch value={query} onChange={onQueryChange} />
 
           <BrowseListHeader
-            allSelected={selectAllState(rows, selectedKeys)}
-            onSelectAllChange={handleSelectAllChange}
+            allSelected={managedMode ? undefined : selectAllState(rows, selectedKeys)}
+            onSelectAllChange={managedMode ? undefined : handleSelectAllChange}
             onRefresh={onRefresh}
             filter={filter}
             sort={sort}
           />
 
-          <BrowseListContextMenu actions={labelledActions} context={context}>
+          {/* The row menu is the toolbar's list, so managed mode empties it and it renders nothing. */}
+          <BrowseListContextMenu actions={managedMode ? [] : labelledActions} context={context}>
             <BrowseList
               rows={rows}
               activeKey={activeKey}
@@ -123,6 +130,7 @@ export function BrowseScreen<T>({
               onSelectionChange={onSelectionChange}
               onActiveChange={onActiveChange}
               onRowActivate={handleRowActivate}
+              selectable={managedMode !== true}
               status={status}
               emptyLabel={query.trim() ? noMatchesLabel : emptyLabel}
               hasMore={hasMore}

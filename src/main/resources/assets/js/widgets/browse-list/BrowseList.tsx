@@ -28,6 +28,8 @@ export type BrowseListProps = {
   onActiveChange: (key: string | undefined) => void;
   /** A row was double-clicked. Undefined where the section declared no row action. */
   onRowActivate?: (key: string) => void;
+  /** Rows can be ticked. */
+  selectable?: boolean;
   status: BrowseListStatus;
   emptyLabel?: string;
   /** Paging is the entity store's job; the list only reports it hit the end. */
@@ -46,6 +48,7 @@ export function BrowseList({
   onSelectionChange,
   onActiveChange,
   onRowActivate,
+  selectable = true,
   status,
   emptyLabel,
   hasMore,
@@ -114,7 +117,12 @@ export function BrowseList({
       return;
     }
 
-    if (event.key === ' ' && cursorKey !== undefined && selectableKeys(rows).includes(cursorKey)) {
+    if (
+      event.key === ' ' &&
+      selectable &&
+      cursorKey !== undefined &&
+      selectableKeys(rows).includes(cursorKey)
+    ) {
       event.preventDefault();
       handleSelectedChange(cursorKey, !selectedKeys.has(cursorKey));
     }
@@ -164,7 +172,7 @@ export function BrowseList({
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div
         role="listbox"
-        aria-multiselectable
+        aria-multiselectable={selectable}
         aria-label={listLabel}
         onKeyDown={handleKeyDown}
         className="flex flex-col gap-y-1.5"
@@ -178,7 +186,7 @@ export function BrowseList({
             highlighted={
               selectedKeys.has(row.key) || (row.key === activeKey && selectedKeys.size === 0)
             }
-            onSelectedChange={handleSelectedChange}
+            onSelectedChange={selectable ? handleSelectedChange : undefined}
             onClick={(key) => applyRowTarget(key, rowClickTarget(key, selectedKeys, activeKey))}
             onActivate={(key) => onRowActivate?.(key)}
             onContextMenu={(key) =>

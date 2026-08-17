@@ -18,6 +18,7 @@ export type ToolConfig = {
   locale: string;
   assetsUrl: string;
   menuLoaderUrl?: string;
+  appsManagedMode?: boolean;
   phrases: Readonly<Record<string, string>>;
   apis: ApiUrls;
 };

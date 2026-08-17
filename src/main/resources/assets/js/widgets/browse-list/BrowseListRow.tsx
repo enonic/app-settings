@@ -12,7 +12,8 @@ export type BrowseListRowProps = {
   focused: boolean;
   /** Painted as selected: ticked, or active while nothing is ticked. */
   highlighted: boolean;
-  onSelectedChange: (key: string, checked: boolean) => void;
+  /** Absent leaves the row without a checkbox at all. */
+  onSelectedChange?: (key: string, checked: boolean) => void;
   onClick: (key: string) => void;
   /** Double-click runs the section's row action, if it declared one. */
   onActivate: (key: string) => void;
@@ -78,20 +79,21 @@ export function BrowseListRow({
         dimmed && !highlighted && 'opacity-50',
       )}
     >
-      {disabled ? (
-        <span className="size-4 shrink-0" aria-hidden />
-      ) : (
-        <Checkbox
-          checked={selected}
-          // Greyed in place rather than left out: the row is an item, it is just not one to act on.
-          disabled={selectable === false}
-          aria-label={title}
-          // ! Not in the tab order: the row owns focus, and Space on the row ticks it.
-          tabIndex={-1}
-          onClick={(event) => event.stopPropagation()}
-          onCheckedChange={(checked) => onSelectedChange(key, checked === true)}
-        />
-      )}
+      {onSelectedChange !== undefined &&
+        (disabled ? (
+          <span className="size-4 shrink-0" aria-hidden />
+        ) : (
+          <Checkbox
+            checked={selected}
+            // Greyed in place rather than left out: the row is an item, it is just not one to act on.
+            disabled={selectable === false}
+            aria-label={title}
+            // ! Not in the tab order: the row owns focus, and Space on the row ticks it.
+            tabIndex={-1}
+            onClick={(event) => event.stopPropagation()}
+            onCheckedChange={(checked) => onSelectedChange(key, checked === true)}
+          />
+        ))}
 
       <ItemLabel className="min-w-0 flex-1" icon={icon} primary={title} secondary={subtitle} />
 
