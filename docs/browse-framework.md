@@ -792,15 +792,15 @@ Still open, needs design or product input:
    be deliberate. The other half of this question is closed: `ApplicationsListToolbar`'s "show system
    applications" toggle came back as the section's one filter entry, off by default as it was (§ 3.6).
 9. ~~**Where "available version" comes from.**~~ Answered and built (#39): `marketApplications` reads
-   Enonic Market server-side and hands back `latest`, `installedVersion` and `updateAvailable` per
-   application, `entities/market/` caches it for the session, and the row's version cell reads the
-   installed version with a bell beside it wherever the market offers something newer — the version on
-   offer is named in the install dialog rather than in the row, and the bell's slot is held open on every
-   row so the numbers stay in column (#80). The
-   cell is the one consumer that makes staleness visible — `updateAvailable` is resolved server-side, so
-   an install or update leaves it wrong until the catalogue is read again. Refresh reads it again, which
-   is why the section's `reload` loads both — outside managed mode, which never reads it (§ 3.5);
-   picking it up without being asked would need a
-   `market.service.ts` on `application` server events, and that is the open follow-up.
+   Enonic Market server-side and hands back `latest`, `installedVersion`, `updateAvailable` and
+   `installedAhead` per application, `entities/market/` caches it for the session, and the row's version
+   cell reads the installed version with a bell beside it wherever the market offers something newer —
+   the version on offer is named in the install dialog rather than in the row, and the bell's slot is
+   held open on every row so the numbers stay in column (#80). The cell is the one consumer that makes
+   staleness visible — `updateAvailable` is resolved server-side, so an install or update leaves it
+   wrong until the catalogue is read again. Refresh reads it again, which is why the section's `reload`
+   loads both — outside managed mode, which never reads it (§ 3.5) — and the follow-up that leaves is
+   closed: `entities/market/model/market.service.ts` reloads the catalogue on the `application` events
+   that move an installed version, and only where something has already read it.
 10. **Where the rest of #7 lives** — service accounts, public keys and permission reports have no
     place in the mockups. Second pass of the Users section.

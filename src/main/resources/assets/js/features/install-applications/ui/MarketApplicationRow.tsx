@@ -41,7 +41,7 @@ export function MarketApplicationRow({ row, install, onInstall }: MarketApplicat
       </div>
 
       {/* Installed */}
-      <span role="cell" className={MARKET_VERSION_CELL_CLASS}>
+      <span role="cell" className={MARKET_VERSION_CELL_CLASS} title={row.installedVersion}>
         {row.installedVersion}
       </span>
 
