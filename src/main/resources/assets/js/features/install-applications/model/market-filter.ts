@@ -32,6 +32,15 @@ export function countMarketBuckets(rows: readonly MarketRow[]): MarketBucketCoun
   return counts;
 }
 
+/**
+ * The bucket to show once the catalogue no longer holds one: `all`, where there is always something to
+ * see. It takes the totals rather than the counts — a bucket the search emptied is the search's to
+ * answer for, and falling back on a keystroke would take the filter away as it is being used.
+ */
+export function fallbackBucket(bucket: MarketBucket, totals: MarketBucketCounts): MarketBucket {
+  return totals[bucket] === 0 ? 'all' : bucket;
+}
+
 // *
 // * Internal
 // *

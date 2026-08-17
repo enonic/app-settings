@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   countMarketBuckets,
+  fallbackBucket,
   filterMarketRows,
   isMarketBucket,
   type MarketBucket,
@@ -63,6 +64,23 @@ describe('countMarketBuckets', () => {
   // The counts follow a search, so a narrowed list reports narrowed numbers.
   it('reports only what it was given, not the whole catalogue', () => {
     expect(countMarketBuckets([updatable])).toEqual({ all: 1, installed: 1, update: 1 });
+  });
+});
+
+describe('fallbackBucket', () => {
+  const totals = { all: 4, installed: 3, update: 0 };
+
+  it('falls back to all where the catalogue no longer holds the bucket', () => {
+    expect(fallbackBucket('update', totals)).toBe('all');
+  });
+
+  it('leaves a bucket the catalogue still holds', () => {
+    expect(fallbackBucket('installed', totals)).toBe('installed');
+  });
+
+  // An empty catalogue has nothing to fall back to, and answering `all` is what stops a second look.
+  it('answers all for all, whatever it holds', () => {
+    expect(fallbackBucket('all', { all: 0, installed: 0, update: 0 })).toBe('all');
   });
 });
 

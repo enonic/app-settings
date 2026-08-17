@@ -1,7 +1,7 @@
 import { cn, Dialog, Tab } from '@enonic/ui';
 import { useStore } from '@nanostores/preact';
 import { Box } from 'lucide-react';
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 
 import { loadMarketApplications, useMarketApplications } from '../../../entities/market';
 import { useI18n } from '../../../shared/i18n';
@@ -9,7 +9,7 @@ import { DropZone } from '../../../shared/ui/DropZone';
 import { marketInstallIntent, runMarketInstall } from '../model/install-market-application';
 import { $marketInstalls } from '../model/install.store';
 import { JAR_ACCEPT } from '../model/jar-files';
-import type { MarketBucket } from '../model/market-filter';
+import { fallbackBucket, type MarketBucket } from '../model/market-filter';
 import type { MarketRow } from '../model/market-rows';
 import { marketView } from '../model/market-view';
 import { runJarUpload } from '../model/upload-applications';
@@ -39,6 +39,10 @@ export function InstallApplicationsDialogContent() {
     () => marketView(items, query, bucket),
     [items, query, bucket],
   );
+
+  useEffect(() => {
+    setBucket((current) => fallbackBucket(current, totals));
+  }, [items]);
 
   const handleInstall = (row: MarketRow): void => {
     const intent = marketInstallIntent(row);
