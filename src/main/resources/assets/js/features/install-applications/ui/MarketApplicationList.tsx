@@ -4,6 +4,11 @@ import type { MarketApplicationsState } from '../../../entities/market';
 import { useI18n } from '../../../shared/i18n';
 import type { MarketInstall } from '../model/install.store';
 import type { MarketRow } from '../model/market-rows';
+import {
+  MARKET_ACTION_CELL_CLASS,
+  MARKET_GRID_CLASS,
+  MARKET_VERSION_CELL_CLASS,
+} from './market-grid';
 import { MarketApplicationListHeader } from './MarketApplicationListHeader';
 import { MarketApplicationRow } from './MarketApplicationRow';
 
@@ -19,19 +24,6 @@ export type MarketApplicationListProps = {
 };
 
 const SKELETON_ROWS = 8;
-
-/**
- * The one grid the header, the rows and the skeleton are laid out on. Widths are fixed rather than
- * content-sized: `auto` columns are measured per grid, so every row would find its own widths and the
- * header would stand over none of them. Safe here because the dialog is a fixed `max-w-5xl`.
- */
-export const MARKET_GRID_CLASS =
-  'grid grid-cols-[minmax(0,1fr)_7.5rem_7rem_7rem] items-center gap-2.5 px-2.5';
-
-/** Wide enough for `6.1.0.SNAPSHOT`, which is what a dev build puts in the installed column. */
-export const MARKET_VERSION_CELL_CLASS = 'text-subtle justify-self-end text-sm whitespace-nowrap';
-
-export const MARKET_ACTION_CELL_CLASS = 'flex justify-center';
 
 /** What Enonic Market offers, or why there is nothing to offer. */
 export function MarketApplicationList({
@@ -83,16 +75,19 @@ export function MarketApplicationList({
       </div>
     );
   }
-
-  if (rows.length === 0 && narrowed) {
-    return <p className="text-subtle px-2.5 py-10 text-center text-sm">{noMatchesLabel}</p>;
-  }
-
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 py-10">
-        <p className="text-subtle text-sm">{emptyLabel}</p>
-        <Button variant="outline" label={retryLabel} onClick={onRetry} />
+      <div role="table">
+        <MarketApplicationListHeader />
+
+        {narrowed ? (
+          <p className="text-subtle px-2.5 py-10 text-center text-sm">{noMatchesLabel}</p>
+        ) : (
+          <div className="flex flex-col items-center gap-4 py-10">
+            <p className="text-subtle text-sm">{emptyLabel}</p>
+            <Button variant="outline" label={retryLabel} onClick={onRetry} />
+          </div>
+        )}
       </div>
     );
   }

@@ -1,7 +1,7 @@
 import { cn } from '@enonic/ui';
 
 import { useI18n } from '../../../shared/i18n';
-import { MARKET_GRID_CLASS } from './MarketApplicationList';
+import { MARKET_GRID_CLASS } from './market-grid';
 
 /**
  * The column titles. Sticky inside the dialog's scroll container rather than fixed above it: a header
@@ -21,9 +21,7 @@ export function MarketApplicationListHeader() {
         'bg-surface-neutral border-bdr-soft text-subtle sticky top-0 z-10 border-b py-2 text-sm font-semibold',
       )}
     >
-      <span role="columnheader" className="justify-self-center">
-        {appLabel}
-      </span>
+      <span role="columnheader">{appLabel}</span>
       <span role="columnheader" className="justify-self-end">
         {installedLabel}
       </span>
