@@ -5,7 +5,7 @@
 export const DEFAULT_MARKET_API_URL = 'https://market.enonic.com/api/graphql';
 
 export function marketApiUrl(): string {
-  const configured = app.config['marketApiUrl'];
+  const configured = app.config['marketApiUrl']?.trim();
   return configured != null && configured.length > 0 ? configured : DEFAULT_MARKET_API_URL;
 }
 

@@ -28,6 +28,18 @@ describe('marketApiUrl', () => {
 
     expect(marketApiUrl()).toBe(DEFAULT_MARKET_API_URL);
   });
+
+  it('drops the whitespace a cfg value keeps around the url', () => {
+    withConfig({ marketApiUrl: ' https://market.example.com/api/graphql ' });
+
+    expect(marketApiUrl()).toBe('https://market.example.com/api/graphql');
+  });
+
+  it('treats a setting of nothing but whitespace as unset', () => {
+    withConfig({ marketApiUrl: '   ' });
+
+    expect(marketApiUrl()).toBe(DEFAULT_MARKET_API_URL);
+  });
 });
 
 describe('marketOrigin', () => {

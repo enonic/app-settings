@@ -34,7 +34,7 @@ export function getConfig(locales: string[]): ToolConfig {
     locale: locales[0],
     assetsUrl: assetUrl({ path: '' }),
     menuLoaderUrl: extensionUrl({ application: ADMIN_APP, extension: 'menu-loader' }),
-    appsManagedMode: app.config['applications.managedMode'] === 'true',
+    appsManagedMode: app.config['applications.managedMode']?.trim() === 'true',
     phrases: getAllPhrases(locales),
     apis: {
       events: apiUrl({ api: 'admin:event', type: 'websocket' }),

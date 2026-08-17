@@ -102,7 +102,7 @@ widgets/browse-layout/browse-layout.ts      column minimums, clampDetailsWidth, 
 widgets/browse-layout/useActiveKey.ts       the item route's $id, for `activeKey`
 widgets/browse-toolbar/actions.ts           SectionAction<T>, LabelledAction<T>, ActionContext<T>
 widgets/browse-toolbar/BrowseToolbar.tsx    the full-width action toolbar
-widgets/browse-toolbar/ReadonlyBanner.tsx   the strip that states managed mode, in its place
+widgets/browse-toolbar/ManagedModeBanner.tsx  the strip that states managed mode, in its place
 widgets/browse-list/browse-list.ts          BrowseRow and the pure list logic: selectableKeys,
                                             selectAllState, toggledSelection, contextMenuTarget,
                                             tabbableRowKey, nextRowKey
@@ -227,11 +227,12 @@ Rules:
   A disabled action stays visible and greyed — the mockups show `Option 5` / `Slett` that way.
 - A refusal is expressed **inside `enabled`**, never re-checked in `run`, and it names the rule it
   comes from — `isReservedRole` for Delete, not a global flag (§ 3.5).
-- **Managed mode is the one case where actions are hidden rather than greyed.** `readonlyMode` on
-  `BrowseScreen` puts `ReadonlyBanner` where the action row would be, empties the row menu and drops
-  row activation — a row of greyed buttons under a banner saying nothing here can be changed would
-  only restate it. The section passes the flag, since no widget may know which sections it applies
-  to (§ 3.5).
+- **Managed mode is the one case where actions are hidden rather than greyed.** `managedMode` on
+  `BrowseScreen` empties the row menu, drops row activation and puts the `notice` — a
+  `ManagedModeBanner` — where the action row would be; a row of greyed buttons under a banner saying
+  nothing here can be changed would only restate it. Two props rather than one: the flag is the
+  behaviour and the notice is the copy, which has to be the **section's**, since a widget may not know
+  which sections exist or what is managed about them (§ 3.5).
 - `run` calls a command from `entities/` or opens a `features/` dialog. No fetch in the widget.
 - **An action that needs confirming opens the dialog through a store, not through component state.**
   The action list is a module constant, so `run` cannot reach a `useState` in the page: the feature slice
@@ -291,6 +292,8 @@ export type BrowseListProps = {
   onActiveChange: (key: string | undefined) => void;
   /** A row was double-clicked. Undefined where the section declared no row action — § 3.2. */
   onRowActivate?: (key: string) => void;
+  /** Rows can be ticked. False in managed mode: no checkboxes, and `Space` does nothing. */
+  selectable?: boolean;
   status: 'loading' | 'ready' | 'error';
   emptyLabel?: string;
   /** Paging is the entity store's job; the list only reports it hit the end. */
@@ -299,8 +302,9 @@ export type BrowseListProps = {
 };
 
 export type BrowseListHeaderProps = {
-  allSelected: boolean | 'indeterminate';
-  onSelectAllChange: (checked: boolean) => void;
+  allSelected?: boolean | 'indeterminate';
+  /** Absent leaves the header without a select-all, as managed mode does. */
+  onSelectAllChange?: (checked: boolean) => void;
   onRefresh: () => void;
   /** Section-specific control. Undefined renders the button inert — see § 3.6. */
   filter?: ReactNode;
@@ -423,6 +427,13 @@ text-subtle` subtitle — and it lives in `shared/ui/` because the details panel
   it; the condition is therefore `highlighted`, the flag that paints that background, rather than
   `selected`, which would leave the active row faded on dark. A section states the rule in its `toRow`
   — `dimmed: application.state === 'STOPPED'` — and nothing about behaviour follows from it.
+- **`selectable: false` on the whole list is different again: there is no selection at all.** Managed
+  mode is the case (§ 3.5), and it is the list that says so rather than every row: no checkbox and no
+  spacer, so a row starts at its icon, `Space` inert, `aria-multiselectable` off, and the header
+  without its `Select all`. The row checkbox and the select-all follow their handlers — no
+  `onSelectedChange`, no checkbox — the way the `filter` and `sort` slots already work, so a list that
+  offers no selection cannot report one either. Everything that reads is untouched: the arrows, the
+  roving focus, the tab stop and the click that moves the details column.
 
 ### 3.6 Header controls
 
@@ -434,7 +445,7 @@ supplied them, and render as an inert button where it has not:
 | `Type to search` field  | working in every section that loads whole           |
 | `Filter list` button    | working in all five sections; `disabled` where none |
 | `Sort by` button        | working in all five sections; `disabled` where none |
-| `Select all`, `Refresh` | fully working                                       |
+| `Select all`, `Refresh` | fully working; no `Select all` in managed mode      |
 
 A section supplies both through the slots in `BrowseListHeaderProps`, and the widgets behind them —
 `BrowseFilter` and `BrowseSort` — stay section-agnostic: an entry is `{ id, label, count }` and an
@@ -634,19 +645,23 @@ refused, the refusal belongs in that action's `enabled` next to the rule that mo
 `isReservedRole` keeps Delete off the platform's own roles and off every project's five — and anything
 the server must guarantee is guarded server-side, not by a UI flag.
 
-**Managed mode is a different thing, and it is set by the install.** `readonlyMode` in
-`com.enonic.xp.app.settings.cfg` reaches the client through the tool config and is read as
-`isReadonlyMode()`: a deployment fact — Enonic Cloud sets it where applications arrive through a
+**Managed mode is a different thing, and it is set by the install.** `applications.managedMode` in
+`com.enonic.xp.app.settings.cfg` reaches the client as `appsManagedMode` on the tool config and is read
+as `isAppsManagedMode()`: a deployment fact — Enonic Cloud sets it where applications arrive through a
 deploy pipeline — rather than a judgement about the operator, so it is stated once per section instead
-of per action, through `readonlyMode` on `BrowseScreen` (§ 3.2). Applications is the only section that
-passes it, and the **page** passes it, because the framework cannot know which sections it applies to.
-Beyond the actions it removes everything that offers to change an application — the details state
-dropdown becomes a plain label — and the market catalogue with it, since nothing can act on what it
-offers: no update bell, no update field, no link out. The list header stays whole: refresh, search,
-filter and sort read rather than act. It is **not a security boundary**. `server:app` is core's api and
-stays `role:system.admin` and callable, this app's own GraphQL mutations are untouched, and principal
-editing is deliberately left alone — an operator whose applications are managed still administers
-users.
+of per action, through `managedMode` on `BrowseScreen` (§ 3.2). **Each of those three names says exactly
+what it knows**: the cfg key names the section because the file is the whole app's, the tool config
+field does too because the config is the whole app's, and the widget prop does not, because a widget
+may not know which sections exist. Applications is the only section that passes it, and the **page**
+passes it, for the same reason.
+
+What it removes is everything that offers to change an application: the actions, the selection nothing
+would consume (§ 3.3), the details state dropdown, which becomes a plain label — and the market
+catalogue, since nothing can act on what it offers, which takes the update bell, the update field and
+every link out with it. What stays is everything that reads: search, filter, sort, refresh, the details
+panel and its fields. It is **not a security boundary**. `server:app` is core's api and stays
+`role:system.admin` and callable, this app's own GraphQL mutations are untouched, and principal editing
+is deliberately left alone — an operator whose applications are managed still administers users.
 
 ## 4. Data contract
 
@@ -760,8 +775,10 @@ Decided:
    (§ 3.6). The last row meta cell is provenance; the undefined `Info` / `More info` cells are left out
    until they mean something.
 5. No ID-provider tree — ID Providers is a flat section like the others.
-6. Managed mode is per section and set by the install, not derived from the user, and it hides the
-   actions rather than greying them (§ 3.5). Applications is the only section that honours it so far.
+6. Managed mode is per section and set by the install, not derived from the user; it hides the actions
+   rather than greying them and offers no selection at all (§ 3.5). Applications is the only section
+   that honours it so far, and the config key, the tool config field and the widget prop are named for
+   how much each of them knows — `applications.managedMode`, `appsManagedMode`, `managedMode`.
 
 Still open, needs design or product input:
 

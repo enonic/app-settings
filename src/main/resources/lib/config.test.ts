@@ -91,6 +91,12 @@ describe('getConfig', () => {
     expect(getConfig(['en']).appsManagedMode).toBe(false);
   });
 
+  it('reads managed mode through the whitespace a cfg value keeps', () => {
+    withAppConfig({ 'applications.managedMode': ' true ' });
+
+    expect(getConfig(['en']).appsManagedMode).toBe(true);
+  });
+
   it('takes only the exact string true as managed mode', () => {
     for (const value of ['True', 'TRUE', '1', 'yes', '']) {
       withAppConfig({ 'applications.managedMode': value });
