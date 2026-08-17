@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/preact';
-import { UserPen } from 'lucide-react';
+import { UserShield } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 
 import { createRole, updateRole } from '../../entities/principal';
@@ -166,7 +166,7 @@ export function RoleEditorDialog({ onSaved }: RoleEditorDialogProps) {
       header={
         values === undefined ? undefined : (
           <DialogIdentityHeader
-            icon={<UserPen size={40} strokeWidth={1.5} aria-hidden />}
+            icon={<UserShield size={40} strokeWidth={1.5} aria-hidden />}
             label={displayNameLabel}
             placeholder={displayNamePlaceholder}
             value={values.displayName}

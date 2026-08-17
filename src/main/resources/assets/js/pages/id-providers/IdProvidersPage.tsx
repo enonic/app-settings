@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/preact';
 import { Outlet, useNavigate } from '@tanstack/react-router';
-import { UserShield } from 'lucide-react';
+import { ShieldLock } from 'lucide-react';
 import { useMemo } from 'preact/hooks';
 
 import {
@@ -82,7 +82,7 @@ export function IdProvidersPage() {
     visible,
     // A fresh icon element per row: Preact writes into a vnode as it renders it.
     toRow: (provider) =>
-      toIdProviderRow(provider, <UserShield size={24} strokeWidth={1.5} aria-hidden />),
+      toIdProviderRow(provider, <ShieldLock size={24} strokeWidth={1.5} aria-hidden />),
     reload: () => {
       // The panel's users and groups are a request of their own, so `Refresh` has to reach them too.
       reloadIdProviderPrincipalRows();

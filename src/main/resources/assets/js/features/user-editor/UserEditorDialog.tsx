@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/preact';
-import { CircleUserRound } from 'lucide-react';
+import { UserIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 
 import {
@@ -234,7 +234,7 @@ export function UserEditorDialog({ onSaved }: UserEditorDialogProps) {
       header={
         values === undefined ? undefined : (
           <DialogIdentityHeader
-            icon={<CircleUserRound size={40} strokeWidth={1.5} aria-hidden />}
+            icon={<UserIcon size={40} strokeWidth={1.5} aria-hidden />}
             label={displayNameLabel}
             placeholder={displayNamePlaceholder}
             value={values.displayName}

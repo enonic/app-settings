@@ -1,6 +1,5 @@
 import { useStore } from '@nanostores/preact';
 import { Outlet, useNavigate } from '@tanstack/react-router';
-import { CircleUserRound } from 'lucide-react';
 import { useMemo } from 'preact/hooks';
 
 import {
@@ -10,6 +9,7 @@ import {
   useIdProviderName,
   useUsers,
 } from '../../entities/principal';
+import { PrincipalIcon } from '../../entities/principal/ui/PrincipalIcon';
 import { UserEditorDialog } from '../../features/user-editor/UserEditorDialog';
 import { useI18n } from '../../shared/i18n';
 import { visibleEntries } from '../../widgets/browse-list/browse-filter';
@@ -78,8 +78,7 @@ export function UsersPage() {
     // The server narrowed and ordered this page; the client adds nothing.
     visible: items,
     // A fresh icon element per row: Preact writes into a vnode as it renders it.
-    toRow: (user) =>
-      toUserRow(user, <CircleUserRound size={24} strokeWidth={1.5} aria-hidden />, providerName),
+    toRow: (user) => toUserRow(user, <PrincipalIcon principal={user} />, providerName),
     reload: () => void reloadUsersScreen(),
   });
 

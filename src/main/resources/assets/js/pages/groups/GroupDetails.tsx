@@ -1,5 +1,4 @@
 import { Avatar, Button, Checkbox } from '@enonic/ui';
-import { UserPen, Users } from 'lucide-react';
 import { useState } from 'preact/hooks';
 
 import {
@@ -9,6 +8,7 @@ import {
   type GroupDetail,
   type PrincipalRef,
 } from '../../entities/principal';
+import { PrincipalIcon } from '../../entities/principal/ui/PrincipalIcon';
 import { openGroupEditor } from '../../features/group-editor';
 import { getInitials } from '../../shared/format';
 import { useI18n } from '../../shared/i18n';
@@ -39,8 +39,8 @@ export function GroupDetails({ group }: GroupDetailsProps) {
   const groups: readonly PrincipalRef[] = showInherited ? inherited.groups : group.groups;
 
   const memberships = filledSections([
-    { labelKey: 'groups.details.memberOf', icon: Users, items: groups },
-    { labelKey: 'groups.details.roles', icon: UserPen, items: roles },
+    { labelKey: 'groups.details.memberOf', items: groups },
+    { labelKey: 'groups.details.roles', items: roles },
   ]);
 
   // Users first, groups last, both flat: a group inside a group is a row, not a branch.
@@ -58,7 +58,7 @@ export function GroupDetails({ group }: GroupDetailsProps) {
   return (
     <DetailsPanel>
       <DetailsPanel.Header
-        icon={<Users size={48} strokeWidth={1.5} aria-hidden />}
+        icon={<PrincipalIcon principal={group} size="lg" />}
         title={displayName}
         subtitle={principalName(key)}
       />
@@ -97,13 +97,13 @@ export function GroupDetails({ group }: GroupDetailsProps) {
         </DetailsPanel.Section>
       )}
 
-      {memberships.map(({ labelKey, icon: Icon, items }) => (
+      {memberships.map(({ labelKey, items }) => (
         <DetailsPanel.Section key={labelKey} labelKey={labelKey} count={items.length}>
           <DetailsPanel.List>
             {items.map((principal) => (
               <DetailsPanel.ListItem
                 key={principal.key}
-                icon={<Icon size={24} strokeWidth={1.5} aria-hidden />}
+                icon={<PrincipalIcon principal={principal} />}
                 title={principal.displayName}
                 subtitle={principalName(principal.key)}
                 meta={providerName(principal.key)}

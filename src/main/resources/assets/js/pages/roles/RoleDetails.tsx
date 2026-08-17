@@ -1,7 +1,7 @@
 import { Avatar, Button } from '@enonic/ui';
-import { UserPen } from 'lucide-react';
 
 import { principalName, useIdProviderName, type RoleDetail } from '../../entities/principal';
+import { PrincipalIcon } from '../../entities/principal/ui/PrincipalIcon';
 import { openRoleEditor } from '../../features/role-editor';
 import { formatDateTime, getInitials } from '../../shared/format';
 import { useI18n } from '../../shared/i18n';
@@ -29,7 +29,7 @@ export function RoleDetails({ role }: RoleDetailsProps) {
   return (
     <DetailsPanel>
       <DetailsPanel.Header
-        icon={<UserPen size={48} strokeWidth={1.5} aria-hidden />}
+        icon={<PrincipalIcon principal={role} size="lg" />}
         title={displayName}
         subtitle={principalName(key)}
       />
