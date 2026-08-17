@@ -9,3 +9,8 @@ export const $config = atom<ToolConfig | undefined>(undefined);
 export function setConfig(config: ToolConfig): void {
   $config.set(config);
 }
+
+/** Managed mode, where the tool shows what is installed and offers nothing that changes it */
+export function isReadonlyMode(): boolean {
+  return $config.get()?.readonlyMode === true;
+}

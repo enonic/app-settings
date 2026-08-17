@@ -14,6 +14,7 @@ import { loadMarketApplications, useMarketApplications } from '../../entities/ma
 import { ConfirmMajorUpdateDialog } from '../../features/install-applications/ui/ConfirmMajorUpdateDialog';
 import { InstallApplicationsDialog } from '../../features/install-applications/ui/InstallApplicationsDialog';
 import { UninstallApplicationsDialog } from '../../features/uninstall-applications/ui/UninstallApplicationsDialog';
+import { isReadonlyMode } from '../../shared/config';
 import { i18n, useI18n } from '../../shared/i18n';
 import { ProgressBar } from '../../shared/ui/ProgressBar';
 import { sortByDisplayName, type SortDirection } from '../../widgets/browse-list/browse-sort';
@@ -48,6 +49,7 @@ export function ApplicationsPage() {
   const sort = useStore($applicationsSort);
   const { items: marketItems } = useMarketApplications();
   const uploads = useStore($applicationUploads);
+  const readonlyMode = isReadonlyMode();
 
   const emptyLabel = useI18n('applications.list.empty');
   const uploadingLabel = useI18n('applications.list.uploading');
@@ -127,7 +129,9 @@ export function ApplicationsPage() {
     leadingRows: uploadRows,
     reload: () => {
       void loadApplications();
-      void loadMarketApplications();
+      if (!readonlyMode) {
+        void loadMarketApplications();
+      }
     },
   });
 
@@ -136,6 +140,7 @@ export function ApplicationsPage() {
       <BrowseScreen
         {...section}
         actions={APPLICATION_ACTIONS}
+        readonlyMode={readonlyMode}
         emptyLabel={emptyLabel}
         details={<Outlet />}
         filter={
@@ -148,10 +153,13 @@ export function ApplicationsPage() {
         sort={<BrowseSort options={sortOptions} value={sort} onChange={setApplicationsSort} />}
       />
 
-      <InstallApplicationsDialog />
-      <UninstallApplicationsDialog />
-      {/* Opened from the details panel */}
-      <ConfirmMajorUpdateDialog />
+      {!readonlyMode && (
+        <>
+          <InstallApplicationsDialog />
+          <UninstallApplicationsDialog />
+          <ConfirmMajorUpdateDialog />
+        </>
+      )}
     </>
   );
 }

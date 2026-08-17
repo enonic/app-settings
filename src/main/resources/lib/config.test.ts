@@ -11,6 +11,7 @@ const config: ToolConfig = {
   locale: 'en',
   assetsUrl: '/admin/tool/_/asset/com.enonic.xp.app.settings',
   menuLoaderUrl: '/admin/tool/_/admin:extension/com.enonic.xp.app.main:menu-loader',
+  readonlyMode: false,
   phrases: { 'nav.users': 'Users' },
   apis: {
     events: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:events',
@@ -25,9 +26,17 @@ const config: ToolConfig = {
   },
 };
 
+function withAppConfig(appConfig: Record<string, string>): void {
+  vi.stubGlobal('app', {
+    name: 'com.enonic.xp.app.settings',
+    version: '1.0.0',
+    config: appConfig,
+  });
+}
+
 describe('getConfig', () => {
   beforeEach(() => {
-    vi.stubGlobal('app', { name: 'com.enonic.xp.app.settings', version: '1.0.0' });
+    withAppConfig({});
     vi.mocked(getPhrases).mockReturnValue({ 'nav.users': 'Users' });
     vi.mocked(assetUrl).mockReturnValue('/assets');
     vi.mocked(extensionUrl).mockImplementation(
@@ -70,6 +79,24 @@ describe('getConfig', () => {
   it('addresses the app-owned graphql api by its qualified key', () => {
     expect(getConfig(['en']).apis.graphql).toBe('/_/com.enonic.xp.app.settings:graphql');
     expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'com.enonic.xp.app.settings:graphql' });
+  });
+
+  it('reports managed mode where the install configured it', () => {
+    withAppConfig({ readonlyMode: 'true' });
+
+    expect(getConfig(['en']).readonlyMode).toBe(true);
+  });
+
+  it('leaves managed mode off where nothing is configured', () => {
+    expect(getConfig(['en']).readonlyMode).toBe(false);
+  });
+
+  it('takes only the exact string true as managed mode', () => {
+    for (const value of ['True', 'TRUE', '1', 'yes', '']) {
+      withAppConfig({ readonlyMode: value });
+
+      expect(getConfig(['en']).readonlyMode).toBe(false);
+    }
   });
 
   it('points at the lifecycle endpoints of the built-in server:app api', () => {

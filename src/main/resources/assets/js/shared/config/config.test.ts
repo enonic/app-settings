@@ -100,6 +100,21 @@ describe('readConfig', () => {
     expect(() => readConfig(doc)).toThrow(/does not describe a tool config/);
   });
 
+  it('keeps managed mode as the island reported it', () => {
+    const doc = stubDocument({
+      scriptId: 'config-json',
+      content: JSON.stringify({ ...config, readonlyMode: true }),
+    });
+
+    expect(readConfig(doc).readonlyMode).toBe(true);
+  });
+
+  it('still starts the app when managed mode is absent', () => {
+    const doc = stubDocument({ scriptId: 'config-json', content: JSON.stringify(config) });
+
+    expect(readConfig(doc).readonlyMode).toBeUndefined();
+  });
+
   it('still starts the app when the menu loader url is absent', () => {
     const { menuLoaderUrl: _, ...withoutMenu } = config;
     const doc = stubDocument({ scriptId: 'config-json', content: JSON.stringify(withoutMenu) });

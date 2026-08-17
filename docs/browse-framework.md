@@ -102,6 +102,7 @@ widgets/browse-layout/browse-layout.ts      column minimums, clampDetailsWidth, 
 widgets/browse-layout/useActiveKey.ts       the item route's $id, for `activeKey`
 widgets/browse-toolbar/actions.ts           SectionAction<T>, LabelledAction<T>, ActionContext<T>
 widgets/browse-toolbar/BrowseToolbar.tsx    the full-width action toolbar
+widgets/browse-toolbar/ReadonlyBanner.tsx   the strip that states managed mode, in its place
 widgets/browse-list/browse-list.ts          BrowseRow and the pure list logic: selectableKeys,
                                             selectAllState, toggledSelection, contextMenuTarget,
                                             tabbableRowKey, nextRowKey
@@ -226,6 +227,11 @@ Rules:
   A disabled action stays visible and greyed — the mockups show `Option 5` / `Slett` that way.
 - A refusal is expressed **inside `enabled`**, never re-checked in `run`, and it names the rule it
   comes from — `isReservedRole` for Delete, not a global flag (§ 3.5).
+- **Managed mode is the one case where actions are hidden rather than greyed.** `readonlyMode` on
+  `BrowseScreen` puts `ReadonlyBanner` where the action row would be, empties the row menu and drops
+  row activation — a row of greyed buttons under a banner saying nothing here can be changed would
+  only restate it. The section passes the flag, since no widget may know which sections it applies
+  to (§ 3.5).
 - `run` calls a command from `entities/` or opens a `features/` dialog. No fetch in the widget.
 - **An action that needs confirming opens the dialog through a store, not through component state.**
   The action list is a module constant, so `run` cannot reach a `useState` in the page: the feature slice
@@ -621,11 +627,26 @@ search box. Both are cleared on leaving the section, along with anything passed 
 belongs there — and the selection on refresh as well. A section writes none of it by hand:
 `useBrowseSection` takes the stores and does the clearing.
 
-**There is no app-wide read-only flag.** The tool is already gated on `role:system.admin`, so whoever
-is inside may act; a `$readOnly` atom would only be a second, weaker gate that every section has to
-remember to thread through. Where an action must be refused, the refusal belongs in that action's
-`enabled` next to the rule that motivates it — `isReservedRole` keeps Delete off the platform's own
-roles and off every project's five — and anything the server must guarantee is guarded server-side, not by a UI flag.
+**There is no read-only flag derived from the user.** The tool is already gated on
+`role:system.admin`, so whoever is inside may act; a `$readOnly` atom computed from them would only be
+a second, weaker gate that every section has to remember to thread through. Where an action must be
+refused, the refusal belongs in that action's `enabled` next to the rule that motivates it —
+`isReservedRole` keeps Delete off the platform's own roles and off every project's five — and anything
+the server must guarantee is guarded server-side, not by a UI flag.
+
+**Managed mode is a different thing, and it is set by the install.** `readonlyMode` in
+`com.enonic.xp.app.settings.cfg` reaches the client through the tool config and is read as
+`isReadonlyMode()`: a deployment fact — Enonic Cloud sets it where applications arrive through a
+deploy pipeline — rather than a judgement about the operator, so it is stated once per section instead
+of per action, through `readonlyMode` on `BrowseScreen` (§ 3.2). Applications is the only section that
+passes it, and the **page** passes it, because the framework cannot know which sections it applies to.
+Beyond the actions it removes everything that offers to change an application — the details state
+dropdown becomes a plain label — and the market catalogue with it, since nothing can act on what it
+offers: no update bell, no update field, no link out. The list header stays whole: refresh, search,
+filter and sort read rather than act. It is **not a security boundary**. `server:app` is core's api and
+stays `role:system.admin` and callable, this app's own GraphQL mutations are untouched, and principal
+editing is deliberately left alone — an operator whose applications are managed still administers
+users.
 
 ## 4. Data contract
 
@@ -739,19 +760,21 @@ Decided:
    (§ 3.6). The last row meta cell is provenance; the undefined `Info` / `More info` cells are left out
    until they mean something.
 5. No ID-provider tree — ID Providers is a flat section like the others.
+6. Managed mode is per section and set by the install, not derived from the user, and it hides the
+   actions rather than greying them (§ 3.5). Applications is the only section that honours it so far.
 
 Still open, needs design or product input:
 
-6. **Active / Inactive on an ID provider.** The rows and the details `Status` field show it, but the
+7. **Active / Inactive on an ID provider.** The rows and the details `Status` field show it, but the
    platform has no such flag. Candidate readings: bound to an application _and_ that application is
    started; has an `idProviderConfig`; mounted on a vhost (`lib/xp/vhost.list()` exposes
    `idProviderKeys`).
-7. **Functionality present today that the mockups drop** — in Applications only: the "show only
+8. **Functionality present today that the mockups drop** — in Applications only: the "show only
    selected" toggle, inherited from lib-admin-ui's `ListBoxToolbar` (app-users extends the plain
    `Toolbar` and has none). Issue #3 promises to rebuild all of app-applications, so dropping it has to
    be deliberate. The other half of this question is closed: `ApplicationsListToolbar`'s "show system
    applications" toggle came back as the section's one filter entry, off by default as it was (§ 3.6).
-8. ~~**Where "available version" comes from.**~~ Answered and built (#39): `marketApplications` reads
+9. ~~**Where "available version" comes from.**~~ Answered and built (#39): `marketApplications` reads
    Enonic Market server-side and hands back `latest`, `installedVersion` and `updateAvailable` per
    application, `entities/market/` caches it for the session, and the row's version cell reads the
    installed version with a bell beside it wherever the market offers something newer — the version on
@@ -759,7 +782,8 @@ Still open, needs design or product input:
    row so the numbers stay in column (#80). The
    cell is the one consumer that makes staleness visible — `updateAvailable` is resolved server-side, so
    an install or update leaves it wrong until the catalogue is read again. Refresh reads it again, which
-   is why the section's `reload` loads both; picking it up without being asked would need a
+   is why the section's `reload` loads both — outside managed mode, which never reads it (§ 3.5);
+   picking it up without being asked would need a
    `market.service.ts` on `application` server events, and that is the open follow-up.
-9. **Where the rest of #7 lives** — service accounts, public keys and permission reports have no
-   place in the mockups. Second pass of the Users section.
+10. **Where the rest of #7 lives** — service accounts, public keys and permission reports have no
+    place in the mockups. Second pass of the Users section.

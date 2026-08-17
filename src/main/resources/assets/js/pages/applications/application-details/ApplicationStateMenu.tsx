@@ -6,6 +6,7 @@ import {
   startApplications,
   stopApplications,
 } from '../../../entities/application';
+import { isReadonlyMode } from '../../../shared/config';
 import { useI18n } from '../../../shared/i18n';
 import { isStartable, isStoppable } from '../model/application-lifecycle';
 import { applicationStateLabelKey } from '../model/applications.rows';
@@ -16,7 +17,8 @@ export type ApplicationStateMenuProps = {
 
 /**
  * The application's state as a dropdown offering the opposite state. An application this tool must
- * not stop — a platform one, or the tool's own — gets a plain label instead.
+ * not stop — a platform one, or the tool's own — gets a plain label instead, as does every
+ * application in managed mode.
  */
 export function ApplicationStateMenu({ application }: ApplicationStateMenuProps) {
   const stateLabel = useI18n(applicationStateLabelKey(application.state));
@@ -24,7 +26,7 @@ export function ApplicationStateMenu({ application }: ApplicationStateMenuProps)
   const stoppable = isStoppable(application);
   const actionLabel = useI18n(stoppable ? 'applications.action.stop' : 'applications.action.start');
 
-  if (!stoppable && !isStartable(application)) {
+  if (isReadonlyMode() || (!stoppable && !isStartable(application))) {
     return <span className="text-subtle text-sm whitespace-nowrap">{stateLabel}</span>;
   }
 
