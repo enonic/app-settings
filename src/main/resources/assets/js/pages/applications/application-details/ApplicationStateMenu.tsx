@@ -6,7 +6,7 @@ import {
   startApplications,
   stopApplications,
 } from '../../../entities/application';
-import { isReadonlyMode } from '../../../shared/config';
+import { isAppsManagedMode } from '../../../shared/config';
 import { useI18n } from '../../../shared/i18n';
 import { isStartable, isStoppable } from '../model/application-lifecycle';
 import { applicationStateLabelKey } from '../model/applications.rows';
@@ -26,7 +26,7 @@ export function ApplicationStateMenu({ application }: ApplicationStateMenuProps)
   const stoppable = isStoppable(application);
   const actionLabel = useI18n(stoppable ? 'applications.action.stop' : 'applications.action.start');
 
-  if (isReadonlyMode() || (!stoppable && !isStartable(application))) {
+  if (isAppsManagedMode() || (!stoppable && !isStartable(application))) {
     return <span className="text-subtle text-sm whitespace-nowrap">{stateLabel}</span>;
   }
 

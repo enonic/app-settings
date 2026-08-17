@@ -18,7 +18,6 @@ import {
   type SectionAction,
 } from '../browse-toolbar/actions';
 import { BrowseToolbar } from '../browse-toolbar/BrowseToolbar';
-import { ReadonlyBanner } from '../browse-toolbar/ReadonlyBanner';
 
 export type BrowseScreenProps<T> = {
   actions: readonly SectionAction<T>[];
@@ -33,8 +32,10 @@ export type BrowseScreenProps<T> = {
   emptyLabel: string;
   /** The details column, normally the section's `<Outlet />`. */
   details: ReactNode;
-  /** Managed mode: the banner takes the action row's place and no row action is offered. */
-  readonlyMode?: boolean;
+  /** Managed mode: no action is offered anywhere — toolbar, row menu or double click. */
+  managedMode?: boolean;
+  /** What stands in the action row's place, normally `ManagedModeBanner` with the section's copy. */
+  notice?: ReactNode;
   onQueryChange: (query: string) => void;
   onSelectionChange: (keys: ReadonlySet<string>) => void;
   onActiveChange: (key: string | undefined) => void;
@@ -64,7 +65,8 @@ export function BrowseScreen<T>({
   query,
   emptyLabel,
   details,
-  readonlyMode,
+  managedMode,
+  notice,
   onQueryChange,
   onSelectionChange,
   onActiveChange,
@@ -86,7 +88,7 @@ export function BrowseScreen<T>({
    */
   const handleRowActivate = (key: string): void => {
     const active = itemAt(key);
-    if (readonlyMode || active === undefined) {
+    if (managedMode || active === undefined) {
       return;
     }
 
@@ -106,13 +108,7 @@ export function BrowseScreen<T>({
 
   return (
     <BrowseLayout
-      toolbar={
-        readonlyMode ? (
-          <ReadonlyBanner />
-        ) : (
-          <BrowseToolbar actions={labelledActions} context={context} />
-        )
-      }
+      toolbar={managedMode ? notice : <BrowseToolbar actions={labelledActions} context={context} />}
       list={
         <>
           <BrowseSearch value={query} onChange={onQueryChange} />
@@ -126,7 +122,7 @@ export function BrowseScreen<T>({
           />
 
           {/* The row menu is the toolbar's list, so managed mode empties it and it renders nothing. */}
-          <BrowseListContextMenu actions={readonlyMode ? [] : labelledActions} context={context}>
+          <BrowseListContextMenu actions={managedMode ? [] : labelledActions} context={context}>
             <BrowseList
               rows={rows}
               activeKey={activeKey}

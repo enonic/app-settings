@@ -11,6 +11,6 @@ export function setConfig(config: ToolConfig): void {
 }
 
 /** Managed mode, where the tool shows what is installed and offers nothing that changes it */
-export function isReadonlyMode(): boolean {
-  return $config.get()?.readonlyMode === true;
+export function isAppsManagedMode(): boolean {
+  return $config.get()?.appsManagedMode === true;
 }

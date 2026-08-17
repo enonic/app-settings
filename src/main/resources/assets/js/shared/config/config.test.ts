@@ -103,16 +103,16 @@ describe('readConfig', () => {
   it('keeps managed mode as the island reported it', () => {
     const doc = stubDocument({
       scriptId: 'config-json',
-      content: JSON.stringify({ ...config, readonlyMode: true }),
+      content: JSON.stringify({ ...config, appsManagedMode: true }),
     });
 
-    expect(readConfig(doc).readonlyMode).toBe(true);
+    expect(readConfig(doc).appsManagedMode).toBe(true);
   });
 
   it('still starts the app when managed mode is absent', () => {
     const doc = stubDocument({ scriptId: 'config-json', content: JSON.stringify(config) });
 
-    expect(readConfig(doc).readonlyMode).toBeUndefined();
+    expect(readConfig(doc).appsManagedMode).toBeUndefined();
   });
 
   it('still starts the app when the menu loader url is absent', () => {

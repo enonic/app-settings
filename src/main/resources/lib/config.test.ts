@@ -11,7 +11,7 @@ const config: ToolConfig = {
   locale: 'en',
   assetsUrl: '/admin/tool/_/asset/com.enonic.xp.app.settings',
   menuLoaderUrl: '/admin/tool/_/admin:extension/com.enonic.xp.app.main:menu-loader',
-  readonlyMode: false,
+  appsManagedMode: false,
   phrases: { 'nav.users': 'Users' },
   apis: {
     events: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:events',
@@ -82,20 +82,20 @@ describe('getConfig', () => {
   });
 
   it('reports managed mode where the install configured it', () => {
-    withAppConfig({ readonlyMode: 'true' });
+    withAppConfig({ 'applications.managedMode': 'true' });
 
-    expect(getConfig(['en']).readonlyMode).toBe(true);
+    expect(getConfig(['en']).appsManagedMode).toBe(true);
   });
 
   it('leaves managed mode off where nothing is configured', () => {
-    expect(getConfig(['en']).readonlyMode).toBe(false);
+    expect(getConfig(['en']).appsManagedMode).toBe(false);
   });
 
   it('takes only the exact string true as managed mode', () => {
     for (const value of ['True', 'TRUE', '1', 'yes', '']) {
-      withAppConfig({ readonlyMode: value });
+      withAppConfig({ 'applications.managedMode': value });
 
-      expect(getConfig(['en']).readonlyMode).toBe(false);
+      expect(getConfig(['en']).appsManagedMode).toBe(false);
     }
   });
 

@@ -3,7 +3,7 @@ import { ExternalLink } from 'lucide-react';
 
 import { type Application, ApplicationIcon } from '../../../entities/application';
 import { useMarketApplication } from '../../../entities/market';
-import { isReadonlyMode } from '../../../shared/config';
+import { isAppsManagedMode } from '../../../shared/config';
 import { useI18n } from '../../../shared/i18n';
 import { DetailsPanel } from '../../../widgets/details-panel/DetailsPanel';
 import { ApplicationStateMenu } from './ApplicationStateMenu';
@@ -21,7 +21,7 @@ export function ApplicationDetailsHeader({ application }: ApplicationDetailsHead
   const marketLinkLabel = useI18n('applications.details.marketLink');
 
   // Managed mode shows no links out, and never reads the catalogue this one comes from.
-  const pageUrl = isReadonlyMode() ? undefined : marketApplication?.pageUrl;
+  const pageUrl = isAppsManagedMode() ? undefined : marketApplication?.pageUrl;
 
   return (
     <DetailsPanel.Header
