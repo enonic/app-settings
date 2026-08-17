@@ -35,7 +35,10 @@ export function InstallApplicationsDialogContent() {
   const [bucket, setBucket] = useState<MarketBucket>('all');
   const [confirming, setConfirming] = useState<MarketRow | undefined>(undefined);
 
-  const { counts, rows } = useMemo(() => marketView(items, query, bucket), [items, query, bucket]);
+  const { counts, totals, rows } = useMemo(
+    () => marketView(items, query, bucket),
+    [items, query, bucket],
+  );
 
   const handleInstall = (row: MarketRow): void => {
     const intent = marketInstallIntent(row);
@@ -87,6 +90,7 @@ export function InstallApplicationsDialogContent() {
               <MarketFilterBar
                 bucket={bucket}
                 counts={counts}
+                totals={totals}
                 query={query}
                 onBucketChange={setBucket}
                 onQueryChange={setQuery}

@@ -10,6 +10,8 @@ import { type MarketRow, searchMarketRows, sortMarketRows, toMarketRow } from '.
 export type MarketView = {
   /** What each button reports: counted over the search result, whatever bucket is on. */
   counts: MarketBucketCounts;
+  /** The same counts over the whole catalogue — the widest number each button will ever hold. */
+  totals: MarketBucketCounts;
   rows: MarketRow[];
 };
 
@@ -26,10 +28,12 @@ export function marketView(
   query: string,
   bucket: MarketBucket,
 ): MarketView {
-  const searched = searchMarketRows(sortMarketRows(applications.map(toMarketRow)), query);
+  const sorted = sortMarketRows(applications.map(toMarketRow));
+  const searched = searchMarketRows(sorted, query);
 
   return {
     counts: countMarketBuckets(searched),
+    totals: countMarketBuckets(sorted),
     rows: filterMarketRows(searched, bucket),
   };
 }

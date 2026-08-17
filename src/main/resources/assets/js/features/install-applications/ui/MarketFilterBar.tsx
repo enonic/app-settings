@@ -6,6 +6,7 @@ import { isMarketBucket, type MarketBucket, type MarketBucketCounts } from '../m
 export type MarketFilterBarProps = {
   bucket: MarketBucket;
   counts: MarketBucketCounts;
+  totals: MarketBucketCounts;
   query: string;
   onBucketChange: (bucket: MarketBucket) => void;
   onQueryChange: (query: string) => void;
@@ -18,14 +19,12 @@ export type MarketFilterBarProps = {
 export function MarketFilterBar({
   bucket,
   counts,
+  totals,
   query,
   onBucketChange,
   onQueryChange,
 }: MarketFilterBarProps) {
   const filterLabel = useI18n('applications.dialog.install.filter');
-  const allLabel = useI18n('applications.dialog.install.filterAll', counts.all);
-  const installedLabel = useI18n('applications.dialog.install.filterInstalled', counts.installed);
-  const updateLabel = useI18n('applications.dialog.install.filterUpdate', counts.update);
   const searchPlaceholder = useI18n('applications.dialog.install.search');
   const clearLabel = useI18n('applications.dialog.install.searchClear');
 
@@ -45,9 +44,24 @@ export function MarketFilterBar({
           }
         }}
       >
-        <ToggleGroup.Item value="all" variant="filled" size="sm" label={allLabel} />
-        <ToggleGroup.Item value="installed" variant="filled" size="sm" label={installedLabel} />
-        <ToggleGroup.Item value="update" variant="filled" size="sm" label={updateLabel} />
+        <MarketFilterButton
+          value="all"
+          labelKey="applications.dialog.install.filterAll"
+          count={counts.all}
+          total={totals.all}
+        />
+        <MarketFilterButton
+          value="installed"
+          labelKey="applications.dialog.install.filterInstalled"
+          count={counts.installed}
+          total={totals.installed}
+        />
+        <MarketFilterButton
+          value="update"
+          labelKey="applications.dialog.install.filterUpdate"
+          count={counts.update}
+          total={totals.update}
+        />
       </ToggleGroup.Root>
 
       <SearchField
@@ -62,5 +76,40 @@ export function MarketFilterBar({
         <SearchField.Clear />
       </SearchField>
     </div>
+  );
+}
+
+// *
+// * Internal
+// *
+
+/**
+ * One bucket, with its count of the moment centred over an invisible copy of itself at the bucket's
+ * total. The copy holds the button at its widest, so narrowing the count cannot resize the group as the
+ * operator types; `tabular-nums` holds it still between counts of equal length.
+ */
+function MarketFilterButton({
+  value,
+  labelKey,
+  count,
+  total,
+}: {
+  value: MarketBucket;
+  labelKey: string;
+  count: number;
+  total: number;
+}) {
+  const label = useI18n(labelKey, count);
+  const widest = useI18n(labelKey, total);
+
+  return (
+    <ToggleGroup.Item value={value} variant="filled" size="sm">
+      <span className="grid tabular-nums">
+        <span className="invisible col-start-1 row-start-1" aria-hidden>
+          {widest}
+        </span>
+        <span className="col-start-1 row-start-1 justify-self-center">{label}</span>
+      </span>
+    </ToggleGroup.Item>
   );
 }

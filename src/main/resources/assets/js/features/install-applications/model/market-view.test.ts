@@ -65,6 +65,14 @@ describe('marketView', () => {
     expect(keys(rows)).toEqual(['a', 'd']);
   });
 
+  // The totals are what the buttons reserve room for, so a search must leave them alone — otherwise the
+  // buttons resize under the pointer as the operator types.
+  it('totals every bucket over the whole catalogue, whatever is typed', () => {
+    const { totals } = marketView(applications, 'ada', 'update');
+
+    expect(totals).toEqual({ all: 4, installed: 3, update: 1 });
+  });
+
   it('answers an empty view where the search and the bucket cannot both be met', () => {
     const { counts, rows } = marketView(applications, 'ada', 'update');
 
