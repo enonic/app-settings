@@ -1,7 +1,7 @@
 import type { MarketApplication } from '../../../entities/market';
 
 /** What this instance can do with a market entry: install it, update it, or nothing. */
-export type MarketRowStatus = 'install' | 'update' | 'installed';
+export type MarketRowStatus = 'install' | 'update' | 'installed' | 'ahead';
 
 export type MarketRow = {
   key: string;
@@ -15,16 +15,6 @@ export type MarketRow = {
   sha512?: string;
   status: MarketRowStatus;
 };
-
-const STATUS_LABEL_KEYS: Record<MarketRowStatus, string> = {
-  install: 'applications.dialog.install.install',
-  update: 'applications.dialog.install.update',
-  installed: 'applications.dialog.install.installed',
-};
-
-export function marketStatusLabelKey(status: MarketRowStatus): string {
-  return STATUS_LABEL_KEYS[status];
-}
 
 export function toMarketRow(application: MarketApplication): MarketRow {
   return {
@@ -41,9 +31,12 @@ export function toMarketRow(application: MarketApplication): MarketRow {
   };
 }
 
-/** Whether the row's button does anything: an application on the latest version has nothing to do. */
+/**
+ * Whether the row has a button at all: an application on the latest version has nothing to do, and one
+ * ahead of the market would be downgraded by the only thing on offer.
+ */
 export function canInstall({ status }: MarketRow): boolean {
-  return status !== 'installed';
+  return status === 'install' || status === 'update';
 }
 
 /**
@@ -91,14 +84,17 @@ export function searchMarketRows(rows: readonly MarketRow[], query: string): Mar
 // * Internal
 // *
 
-// `updateAvailable` is resolved server-side against the installed applications, so no version
-// comparison happens here — see the market notes in `docs/unified-api.md`.
+// `updateAvailable` and `installedAhead` are resolved server-side against the installed applications,
+// so no version comparison happens here — see the market notes in `docs/unified-api.md`.
 function rowStatus(application: MarketApplication): MarketRowStatus {
   if (application.installedVersion == null) {
     return 'install';
   }
+  if (application.updateAvailable) {
+    return 'update';
+  }
 
-  return application.updateAvailable ? 'update' : 'installed';
+  return application.installedAhead ? 'ahead' : 'installed';
 }
 
 function updateRank({ status }: MarketRow): number {

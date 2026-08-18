@@ -50,5 +50,8 @@ export const MarketApplicationType: GraphQLType = generator.createObjectType({
     updateAvailable: {
       type: nonNull(GraphQLBoolean),
     },
+    installedAhead: {
+      type: nonNull(GraphQLBoolean),
+    },
   },
 });

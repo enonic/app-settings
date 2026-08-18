@@ -36,6 +36,7 @@ const guillotine = {
   },
   installedVersion: '7.3.4',
   updateAvailable: true,
+  installedAhead: false,
 };
 
 function respondWith(body: unknown): void {
@@ -73,6 +74,7 @@ describe('fetchMarketApplications', () => {
         },
         installedVersion: '7.3.4',
         updateAvailable: true,
+        installedAhead: false,
       },
     ]);
   });

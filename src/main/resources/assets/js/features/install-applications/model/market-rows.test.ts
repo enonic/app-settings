@@ -4,7 +4,6 @@ import type { MarketApplication } from '../../../entities/market';
 import {
   canInstall,
   isMajorUpdate,
-  marketStatusLabelKey,
   type MarketRow,
   searchMarketRows,
   sortMarketRows,
@@ -24,6 +23,7 @@ function marketApplication(overrides: Partial<MarketApplication> = {}): MarketAp
       sha512: 'abc',
     },
     updateAvailable: false,
+    installedAhead: false,
     ...overrides,
   };
 }
@@ -76,13 +76,17 @@ describe('toMarketRow', () => {
 
     expect(status).toBe('installed');
   });
-});
 
-describe('marketStatusLabelKey', () => {
-  it('names one phrase per status', () => {
-    expect(marketStatusLabelKey('install')).toBe('applications.dialog.install.install');
-    expect(marketStatusLabelKey('update')).toBe('applications.dialog.install.update');
-    expect(marketStatusLabelKey('installed')).toBe('applications.dialog.install.installed');
+  it('reads an installed version newer than the market offers as a dev build', () => {
+    const { status } = toMarketRow(
+      marketApplication({
+        installedVersion: '3.1.0-SNAPSHOT',
+        updateAvailable: false,
+        installedAhead: true,
+      }),
+    );
+
+    expect(status).toBe('ahead');
   });
 });
 
@@ -94,6 +98,10 @@ describe('canInstall', () => {
 
   it('answers no for an application on the latest version', () => {
     expect(canInstall(row({ status: 'installed' }))).toBe(false);
+  });
+
+  it('answers no for a dev build, which the market could only downgrade', () => {
+    expect(canInstall(row({ status: 'ahead' }))).toBe(false);
   });
 });
 

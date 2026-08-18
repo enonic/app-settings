@@ -17,6 +17,7 @@ const MARKET_APPLICATIONS_SELECTION = `{
   }
   installedVersion
   updateAvailable
+  installedAhead
 }`;
 
 export const MARKET_APPLICATIONS_ROOT: GraphQlRoot = {
@@ -40,6 +41,7 @@ type MarketApplicationDto = {
   latest: MarketApplicationVersionDto;
   installedVersion: string | null;
   updateAvailable: boolean;
+  installedAhead: boolean;
 };
 
 type MarketApplicationsResult = { marketApplications: MarketApplicationDto[] };
@@ -71,6 +73,7 @@ function toMarketApplication(dto: MarketApplicationDto): MarketApplication {
     latest: toVersion(dto.latest),
     installedVersion: dto.installedVersion ?? undefined,
     updateAvailable: dto.updateAvailable,
+    installedAhead: dto.installedAhead,
   };
 }
 

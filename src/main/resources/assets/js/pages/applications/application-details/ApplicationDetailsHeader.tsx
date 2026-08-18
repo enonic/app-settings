@@ -1,5 +1,4 @@
-import { Tooltip } from '@enonic/ui';
-import { ExternalLink } from 'lucide-react';
+import { Link, Tooltip } from '@enonic/ui';
 
 import { type Application, ApplicationIcon } from '../../../entities/application';
 import { useMarketApplication } from '../../../entities/market';
@@ -37,15 +36,13 @@ export function ApplicationDetailsHeader({ application }: ApplicationDetailsHead
       titleAction={
         pageUrl != null && (
           <Tooltip value={marketLinkLabel} side="top" delay={TOOLTIP_DELAY} asChild>
-            <a
+            <Link
               href={pageUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              newTab
+              rightIcon
               aria-label={marketLinkLabel}
-              className="text-subtle hover:text-main-hover shrink-0"
-            >
-              <ExternalLink className="size-4.5" strokeWidth={1.5} aria-hidden />
-            </a>
+              className="focus-visible:ring-ring text-subtle visited:text-subtle focus-visible:text-subtle shrink-0 rounded-sm focus-visible:bg-transparent focus-visible:ring-2"
+            />
           </Tooltip>
         )
       }

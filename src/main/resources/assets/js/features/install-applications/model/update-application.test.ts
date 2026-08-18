@@ -17,6 +17,7 @@ function marketApplication(overrides: Partial<MarketApplication> = {}): MarketAp
     latest: { version: '2.1.0', downloadUrl: 'https://repo.enonic.com/booster.jar' },
     installedVersion: '2.0.0',
     updateAvailable: true,
+    installedAhead: false,
     ...overrides,
   };
 }

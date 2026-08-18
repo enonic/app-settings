@@ -433,11 +433,17 @@ the browser. app-applications fetches the market from the client, which costs it
 three version comparators that disagree. Behind the schema there is one comparator, no CSP for the data
 path, and the market url stays server-side.
 
-- **`MarketApplication` carries `installedVersion` and `updateAvailable`**, resolved against
-  `lib-app`'s `list()`. Mixing an installed-side fact into a market type is deliberate: it is the
+- **`MarketApplication` carries `installedVersion`, `updateAvailable` and `installedAhead`**, resolved
+  against `lib-app`'s `list()`. Mixing an installed-side fact into a market type is deliberate: it is the
   question both consumers ask — the row's available-version cell and the install dialog's
   install-versus-update state — and answering it here is what keeps the comparator single. A client
-  computing it would be a second implementation the day the cell is written.
+  computing it would be a second implementation the day the cell is written. The two booleans are one
+  `compareVersions(latest.version, installedVersion)` split by sign, which is what the argument extends
+  to: a client deriving them separately could report an update and an instance ahead of the market at
+  once, while a single sign cannot. `installedAhead` is what the install dialog reads to leave a dev
+  build alone (#82) — the only thing on offer would downgrade it, so the row gets no button, and it
+  still counts as installed in the dialog's filter buckets. It compares against `latest`, the newest
+  release this XP can run, so it means "ahead of what is installable here".
 - **`latest` is an object, not a version string**, because the install dialog needs the `downloadUrl`
   and `sha512` that go to `server:app/installUrl`. `versions` holds every supported release, newest
   first; an application with no supported version is dropped, which is what keeps `latest` non-null.
