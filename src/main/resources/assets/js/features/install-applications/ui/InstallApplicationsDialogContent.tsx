@@ -66,7 +66,7 @@ export function InstallApplicationsDialogContent() {
     <Dialog.Content
       // A fixed height while browsing: the drop zone fills what it is given, and the dialog must
       // not resize as the tabs switch.
-      className={cn('gap-6', confirming ? 'max-w-160' : 'h-176 max-w-5xl')}
+      className={cn('gap-6 max-lg:p-5', confirming ? 'max-w-160' : 'h-176 max-w-5xl')}
       onEscapeKeyDown={(event) => {
         if (confirming) {
           event.preventDefault();

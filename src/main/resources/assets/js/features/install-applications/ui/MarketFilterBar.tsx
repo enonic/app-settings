@@ -29,47 +29,50 @@ export function MarketFilterBar({
   const clearLabel = useI18n('applications.dialog.install.searchClear');
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2.5">
-      <ToggleGroup.Root
-        type="single"
-        value={bucket}
-        aria-label={filterLabel}
-        // ! An empty value is the group deselecting the pressed button, which would leave the list
-        // ! narrowed by nothing at all — the guard is what keeps one bucket always on.
-        // The prop type is a union over the group's two selection modes, which leaves the parameter
-        // uninferred — annotated rather than cast.
-        onValueChange={(next: string) => {
-          if (isMarketBucket(next)) {
-            onBucketChange(next);
-          }
-        }}
-      >
-        <MarketFilterButton
-          value="all"
-          labelKey="applications.dialog.install.filterAll"
-          count={counts.all}
-          total={totals.all}
-        />
-        <MarketFilterButton
-          value="installed"
-          labelKey="applications.dialog.install.filterInstalled"
-          count={counts.installed}
-          total={totals.installed}
-        />
-        <MarketFilterButton
-          value="update"
-          labelKey="applications.dialog.install.filterUpdate"
-          count={counts.update}
-          total={totals.update}
-        />
-      </ToggleGroup.Root>
+    <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="max-lg:-mx-5 max-lg:flex max-lg:justify-center-safe max-lg:overflow-x-auto max-lg:px-5 max-lg:py-2">
+        <ToggleGroup.Root
+          className="w-max"
+          type="single"
+          value={bucket}
+          aria-label={filterLabel}
+          // ! An empty value is the group deselecting the pressed button, which would leave the list
+          // ! narrowed by nothing at all — the guard is what keeps one bucket always on.
+          // The prop type is a union over the group's two selection modes, which leaves the parameter
+          // uninferred — annotated rather than cast.
+          onValueChange={(next: string) => {
+            if (isMarketBucket(next)) {
+              onBucketChange(next);
+            }
+          }}
+        >
+          <MarketFilterButton
+            value="all"
+            labelKey="applications.dialog.install.filterAll"
+            count={counts.all}
+            total={totals.all}
+          />
+          <MarketFilterButton
+            value="installed"
+            labelKey="applications.dialog.install.filterInstalled"
+            count={counts.installed}
+            total={totals.installed}
+          />
+          <MarketFilterButton
+            value="update"
+            labelKey="applications.dialog.install.filterUpdate"
+            count={counts.update}
+            total={totals.update}
+          />
+        </ToggleGroup.Root>
+      </div>
 
       <SearchField
         value={query}
         onChange={onQueryChange}
         placeholder={searchPlaceholder}
         clearLabel={clearLabel}
-        className="h-9 w-80"
+        className="h-9 w-full lg:max-w-80 lg:min-w-0 lg:flex-1"
       >
         <SearchField.Icon />
         <SearchField.Input aria-label={searchPlaceholder} />
@@ -103,7 +106,12 @@ function MarketFilterButton({
   const widest = useI18n(labelKey, total);
 
   return (
-    <ToggleGroup.Item value={value} variant="filled" size="sm">
+    <ToggleGroup.Item
+      value={value}
+      variant="filled"
+      size="sm"
+      className="shrink-0 max-lg:h-8 max-lg:px-2.5 max-lg:text-xs"
+    >
       <span className="grid tabular-nums">
         <span className="invisible col-start-1 row-start-1" aria-hidden>
           {widest}
