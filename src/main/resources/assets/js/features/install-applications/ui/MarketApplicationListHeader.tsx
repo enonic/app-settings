@@ -22,10 +22,10 @@ export function MarketApplicationListHeader() {
       )}
     >
       <span role="columnheader">{appLabel}</span>
-      <span role="columnheader" className="justify-self-end">
+      <span role="columnheader" className="justify-self-end px-1">
         {installedLabel}
       </span>
-      <span role="columnheader" className="justify-self-end">
+      <span role="columnheader" className="justify-self-end px-1">
         {latestLabel}
       </span>
       <span role="columnheader" className="justify-self-center">

@@ -1,4 +1,4 @@
-import { cn, Tooltip } from '@enonic/ui';
+import { cn, Link, Tooltip } from '@enonic/ui';
 
 import { ApplicationIcon } from '../../../entities/application';
 import { useI18n } from '../../../shared/i18n';
@@ -51,15 +51,15 @@ export function MarketApplicationRow({ row, install, onInstall }: MarketApplicat
           row.availableVersion
         ) : (
           <Tooltip value={marketLinkLabel} side="top" delay={TOOLTIP_DELAY} asChild>
-            <a
+            <Link
               href={row.pageUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-main-hover hover:underline"
+              newTab
+              rightIcon={false}
               aria-label={marketLinkLabel}
+              className="focus-visible:ring-ring max-w-full rounded-sm visited:text-inherit focus-visible:bg-transparent focus-visible:text-inherit focus-visible:ring-2"
             >
-              {row.availableVersion}
-            </a>
+              <span className="min-w-0 truncate">{row.availableVersion}</span>
+            </Link>
           </Tooltip>
         )}
       </span>

@@ -1,4 +1,4 @@
-import { Button, Dialog } from '@enonic/ui';
+import { Button, Dialog, Link } from '@enonic/ui';
 
 import { useI18n } from '../../../shared/i18n';
 import type { MarketRow } from '../model/market-rows';
@@ -35,14 +35,9 @@ export function ConfirmMajorUpdate({ row, onConfirm, onCancel }: ConfirmMajorUpd
           <>
             {question}{' '}
             {row.pageUrl != null && (
-              <a
-                href={row.pageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-2"
-              >
+              <Link href={row.pageUrl} newTab>
                 {releaseNotesLabel}
-              </a>
+              </Link>
             )}
           </>
         }

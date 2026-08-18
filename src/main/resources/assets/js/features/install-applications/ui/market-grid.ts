@@ -7,8 +7,8 @@
  * qualifier has no length limit, so anything longer clips — see `MARKET_VERSION_CELL_CLASS`.
  */
 export const MARKET_GRID_CLASS =
-  'grid grid-cols-[minmax(0,1fr)_7.5rem_7rem_7rem] items-center gap-2.5 px-2.5';
+  'grid grid-cols-[minmax(0,1fr)_8rem_7.5rem_7rem] items-center gap-2.5 px-2.5';
 
-export const MARKET_VERSION_CELL_CLASS = 'text-subtle justify-self-end truncate text-sm';
+export const MARKET_VERSION_CELL_CLASS = 'text-subtle justify-self-end truncate p-1 text-sm';
 
 export const MARKET_ACTION_CELL_CLASS = 'flex justify-center';
