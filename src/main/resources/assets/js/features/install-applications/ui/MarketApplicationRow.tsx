@@ -8,8 +8,10 @@ import type { MarketInstall } from '../model/install.store';
 import { canInstall, type MarketRow } from '../model/market-rows';
 import {
   MARKET_ACTION_CELL_CLASS,
+  MARKET_APP_CELL_CLASS,
   MARKET_GRID_CLASS,
   MARKET_VERSION_CELL_CLASS,
+  MARKET_VERSIONS_CLASS,
 } from './market-grid';
 
 export type MarketApplicationRowProps = {
@@ -32,7 +34,7 @@ export function MarketApplicationRow({ row, install, onInstall }: MarketApplicat
   return (
     <div role="row" className={cn(MARKET_GRID_CLASS, 'min-h-12 py-2')}>
       {/* App info */}
-      <div role="cell" className="min-w-0">
+      <div role="cell" className={MARKET_APP_CELL_CLASS}>
         <ItemLabel
           icon={<ApplicationIcon icon={row.iconUrl} />}
           primary={row.displayName}
@@ -40,34 +42,46 @@ export function MarketApplicationRow({ row, install, onInstall }: MarketApplicat
         />
       </div>
 
-      {/* Installed */}
-      <span role="cell" className={MARKET_VERSION_CELL_CLASS} title={row.installedVersion}>
-        {row.installedVersion}
-      </span>
+      <div role="presentation" className={MARKET_VERSIONS_CLASS}>
+        {/* Installed */}
+        <span
+          role="cell"
+          className={cn(MARKET_VERSION_CELL_CLASS, 'max-lg:empty:hidden')}
+          title={row.installedVersion}
+        >
+          {row.installedVersion}
+        </span>
 
-      {/* Available */}
-      <span role="cell" className={MARKET_VERSION_CELL_CLASS}>
-        {row.pageUrl == null ? (
-          row.availableVersion
-        ) : (
-          <Tooltip value={marketLinkLabel} side="top" delay={TOOLTIP_DELAY} asChild>
-            <Link
-              href={row.pageUrl}
-              newTab
-              rightIcon={false}
-              aria-label={marketLinkLabel}
-              className="focus-visible:ring-ring max-w-full rounded-sm visited:text-inherit focus-visible:bg-transparent focus-visible:text-inherit focus-visible:ring-2"
-            >
-              <span className="min-w-0 truncate">{row.availableVersion}</span>
-            </Link>
-          </Tooltip>
+        {row.installedVersion != null && (
+          <span aria-hidden className="text-subtle text-xs lg:hidden">
+            |
+          </span>
         )}
-      </span>
+
+        {/* Available */}
+        <span role="cell" className={MARKET_VERSION_CELL_CLASS}>
+          {row.pageUrl == null ? (
+            row.availableVersion
+          ) : (
+            <Tooltip value={marketLinkLabel} side="top" delay={TOOLTIP_DELAY} asChild>
+              <Link
+                href={row.pageUrl}
+                newTab
+                rightIcon={false}
+                aria-label={marketLinkLabel}
+                className="focus-visible:ring-ring max-w-full rounded-sm visited:text-inherit focus-visible:bg-transparent focus-visible:text-inherit focus-visible:ring-2 max-lg:text-xs"
+              >
+                <span className="min-w-0 truncate">{row.availableVersion}</span>
+              </Link>
+            </Tooltip>
+          )}
+        </span>
+      </div>
 
       {/* Action */}
       <div role="cell" className={MARKET_ACTION_CELL_CLASS}>
         {row.status === 'installed' && !installing && (
-          <span className="text-sm opacity-30">{installedLabel}</span>
+          <span className="text-sm opacity-30 max-lg:text-xs">{installedLabel}</span>
         )}
         {(canInstall(row) || installing) && (
           <ProgressButton
@@ -76,7 +90,7 @@ export function MarketApplicationRow({ row, install, onInstall }: MarketApplicat
             label={row.status === 'update' ? updateLabel : installLabel}
             progress={installing ? (install.percent ?? 0) : undefined}
             onClick={() => onInstall(row)}
-            className="min-w-24"
+            className="min-w-24 max-lg:h-8 max-lg:min-w-20 max-lg:px-2.5 max-lg:text-xs"
           />
         )}
       </div>

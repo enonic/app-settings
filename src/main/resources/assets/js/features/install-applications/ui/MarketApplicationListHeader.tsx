@@ -19,6 +19,7 @@ export function MarketApplicationListHeader() {
       className={cn(
         MARKET_GRID_CLASS,
         'bg-surface-neutral border-bdr-soft text-subtle sticky top-0 z-10 border-b py-2 text-sm font-semibold',
+        'max-lg:sr-only',
       )}
     >
       <span role="columnheader">{appLabel}</span>
