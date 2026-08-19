@@ -4,6 +4,7 @@ import {
   ID_PROVIDER_USER_COUNTS_ROOT,
   USERS_ROOT,
   type IdProviderUserCountsData,
+  type PrincipalSort,
   type UsersData,
 } from '../../../entities/principal';
 import {
@@ -27,7 +28,7 @@ export type UsersPageQuery = {
   count: number;
   search?: string;
   idProviders: readonly string[];
-  sort: 'displayNameAsc' | 'displayNameDesc';
+  sort: PrincipalSort;
 };
 
 export function fetchUsersScreen(

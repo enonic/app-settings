@@ -69,6 +69,8 @@ export {
   principalName,
   projectRoleIdOf,
 } from './model/principal.keys';
+export { DEFAULT_PRINCIPAL_SORT } from './model/principal.sort';
+export type { PrincipalSort } from './model/principal.sort';
 export { addPublicKey, createUser, removePublicKey, updateUser } from './model/user-commands';
 export type { UserDraft, UserEdit } from './model/user-commands';
 export { forgetUserDetails, forgetUsers } from './model/user-detail.load';

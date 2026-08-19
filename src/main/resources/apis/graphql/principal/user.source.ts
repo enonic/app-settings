@@ -45,7 +45,7 @@ export type UserPage = {
 };
 
 /** The orders the list offers. An id, never a raw expression: `sort` is parsed, so it is injectable. */
-export type UserSort = 'displayNameAsc' | 'displayNameDesc';
+export type UserSort = 'displayNameAsc' | 'displayNameDesc' | 'idProviderAsc' | 'idProviderDesc';
 
 export type UserQuery = {
   start?: number;
@@ -104,6 +104,8 @@ const SEARCH_FIELDS = '_allText,displayName';
 const SORT_EXPRESSIONS: Record<UserSort, string> = {
   displayNameAsc: 'displayName ASC, _path ASC',
   displayNameDesc: 'displayName DESC, _path ASC',
+  idProviderAsc: 'userStoreKey ASC, displayName ASC, _path ASC',
+  idProviderDesc: 'userStoreKey DESC, displayName ASC, _path ASC',
 };
 
 export function listUsers({ start, count, search, idProviders, sort }: UserQuery): UserPage {

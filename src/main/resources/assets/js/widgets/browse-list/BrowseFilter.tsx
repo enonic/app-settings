@@ -36,10 +36,14 @@ export function BrowseFilter({
   notice,
 }: BrowseFilterProps) {
   const filterLabel = useI18n('browse.filter');
+  const activeLabel = useI18n('browse.filter.active', selected.size);
 
   if (entries.length === 0 && notice === undefined) {
     return <InertHeaderControl icon={Filter} label={filterLabel} />;
   }
+
+  const active = selected.size > 0;
+  const triggerLabel = active ? activeLabel : filterLabel;
 
   return (
     <Menu>
@@ -47,10 +51,11 @@ export function BrowseFilter({
         <Button
           variant="text"
           startIcon={Filter}
-          title={filterLabel}
+          title={triggerLabel}
           className={HEADER_CONTROL_CLASS}
+          {...(active ? { 'data-active': 'true' } : {})}
         >
-          <span className={HEADER_CONTROL_LABEL_CLASS}>{filterLabel}</span>
+          <span className={HEADER_CONTROL_LABEL_CLASS}>{triggerLabel}</span>
         </Button>
       </Menu.Trigger>
       <Menu.Portal>

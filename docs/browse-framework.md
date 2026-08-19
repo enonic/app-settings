@@ -440,12 +440,12 @@ text-subtle` subtitle — and it lives in `shared/ui/` because the details panel
 The two controls the mockups show beside `Select all` and `Refresh` are wired where a section has
 supplied them, and render as an inert button where it has not:
 
-| Control                 | v1 state                                            |
-| ----------------------- | --------------------------------------------------- |
-| `Type to search` field  | working in every section that loads whole           |
-| `Filter list` button    | working in all five sections; `disabled` where none |
-| `Sort by` button        | working in all five sections; `disabled` where none |
-| `Select all`, `Refresh` | fully working; no `Select all` in managed mode      |
+| Control                 | v1 state                                                                 |
+| ----------------------- | ------------------------------------------------------------------------ |
+| `Type to search` field  | working in every section that loads whole                                |
+| `Filter list` button    | working in all five sections; `disabled` where none; lit while narrowing |
+| `Sort by` button        | working in all five sections; `disabled` where none                      |
+| `Select all`, `Refresh` | fully working; no `Select all` in managed mode                           |
 
 A section supplies both through the slots in `BrowseListHeaderProps`, and the widgets behind them —
 `BrowseFilter` and `BrowseSort` — stay section-agnostic: an entry is `{ id, label, count }` and an
@@ -512,10 +512,32 @@ dropping of empty entries: the entry is offered whatever its count and never pas
 reveal them — the same failure the rule above prevents, arriving from the other direction — and a
 checkbox appearing and vanishing as the user types is worse than one reading zero.
 
-Sorting offers display name ascending and descending and nothing else. `modifiedTime` would be the
-candidate for Roles and Groups and never arrives:
-`PrincipalNodeTranslator` does not copy it off the node, which is a defect on the XP side rather than a
-shape to design around — see `docs/platform-facts.md`.
+**A ticked filter is visible on the closed control.** The `Filter list` button carries `data-active` —
+the same attribute `Menu.Trigger` marks its own open state with, so the toggled look is the library's own
+— and its label and tooltip take the number of ticked entries (`browse.filter.active`). Without it a
+narrowing survives in a closed menu and the list is short for no reason on screen. The state is "you
+ticked something", not "rows are hidden": Applications inverts the two, and a control lit on every visit
+because the default narrows would say nothing at all. Passing the attribute unconditionally is the one
+mistake to avoid — `Slot` lets the child's value win, so a `data-active` that is always present drops the
+open-menu state.
+
+Sorting offers display name ascending and descending everywhere, and Users and Groups add the ID provider
+in both directions — the `PrincipalSort` union in `entities/principal`, whose four ids are the values of
+the GraphQL `UserSort` enum so that Users can pass what the dropdown reports straight to the server. An
+order named after one field is a **grouping** by it: only that field flips with the direction, and display
+name orders the rows inside each group. `modifiedTime` would be the next candidate for Roles and Groups
+and never arrives: `PrincipalNodeTranslator` does not copy it off the node, which is a defect on the XP
+side rather than a shape to design around — see `docs/platform-facts.md`.
+
+**Both sections group by the provider's name, not by the display name their rows show, and Users is why.**
+It orders on the server, where a node carries only the name (`userStoreKey`); the display name lives on the
+provider's own node, and a sort expression is a list of fields — it cannot reach it, and a client-side
+reorder is not available to a section that shows one page of fifty. Groups loads whole and could order by
+either, so it follows Users: an option with one name that grouped the same instance in opposite orders in
+two neighbouring sections is the worse defect. The cost is a provider whose display name sorts differently
+from its name — the visible column then reads as unordered — and it is the trade that was chosen
+deliberately. It also keeps Groups off a separately loaded list, the dependency that has already broken
+this section's filter entries once.
 
 The ticked buckets are per-section state like the selection and the query, and they are cleared on
 leaving the section through `resetOnLeave` on `useBrowseSection`.
@@ -527,8 +549,11 @@ either run it twice or be handed a function ignoring both of its arguments.
 
 Sorting also has a backend constraint. `findPrincipals` has no server-side sort — its translator
 builds the node query with no order at all — so a section that pages cannot sort through it.
-`findUsers` is the exception and takes both a query and a sort expression, which is what Users will
-use; Applications, Roles, Groups and ID Providers load whole and sort client-side.
+`findUsers` is the exception and takes both a query and a sort expression, which is what Users uses;
+Applications, Roles, Groups and ID Providers load whole and sort client-side. The two shared comparators
+are `sortByDisplayName` and `sortByValue` in `browse-list/browse-sort.ts`, both of which break ties on the
+display name and the key so the order is total — a partial order lets two rows swap places between
+renders.
 
 ### 3.4 Details panel
 
