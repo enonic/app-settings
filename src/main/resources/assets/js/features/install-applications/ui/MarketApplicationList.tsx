@@ -63,7 +63,7 @@ export function MarketApplicationList({
                 />
                 <Skeleton
                   shape="rectangle"
-                  className={cn(MARKET_VERSION_CELL_CLASS, 'h-4 w-12 max-lg:hidden')}
+                  className={cn(MARKET_VERSION_CELL_CLASS, 'h-4 w-12 max-lg:my-1 max-lg:w-32')}
                 />
               </div>
               <div className={MARKET_ACTION_CELL_CLASS}>

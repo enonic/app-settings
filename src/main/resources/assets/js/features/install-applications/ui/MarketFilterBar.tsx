@@ -30,7 +30,7 @@ export function MarketFilterBar({
 
   return (
     <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-      <div className="max-lg:-mx-5 max-lg:flex max-lg:justify-center-safe max-lg:overflow-x-auto max-lg:px-5 max-lg:py-2">
+      <div className="max-lg:-mx-5 max-lg:flex max-lg:overflow-x-auto max-lg:px-5 max-lg:py-2">
         <ToggleGroup.Root
           className="w-max"
           type="single"
