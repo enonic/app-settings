@@ -6,10 +6,7 @@ import type { Host, MountOptions, SectionModule, Unmount } from '../../shared/se
 export type SectionHostProps = {
   /** The section module's url: the extension prefix plus the contract-fixed entry path. */
   url: string;
-  /**
-   * The host object handed to `mount`. Stable per mount — a new object remounts the section, which
-   * is what the caller's registry exists to prevent.
-   */
+  /** Handed to `mount`, and stable per mount: a new object remounts the section. */
   host: Host;
 };
 
@@ -60,10 +57,7 @@ export function SectionHost({ url, host }: SectionHostProps) {
       }
     })();
 
-    /**
-     * One phrase on screen, the stage in the console: a mount crosses two applications and four
-     * server-side gates, and which of them failed is a developer's question, not the operator's.
-     */
+    /** One phrase on screen, the stage in the console: which gate failed is a developer's question. */
     function report(stage: string, cause?: unknown): void {
       console.error(`Section ${url} ${stage}:`, cause);
 

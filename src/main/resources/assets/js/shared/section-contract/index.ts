@@ -1,18 +1,14 @@
 /**
- * The whole client-side contract between this shell and a section another application provides.
+ * The client-side contract between this shell and a section another application provides. The rules
+ * these names cannot express are in `docs/extensions.md` § 2.
  *
- * ! Duplicated verbatim in every provider repo until `@enonic/toolkit/section` publishes it
- * ! (`docs/extensions.md`, Phase 2). Change one copy and a provider compiles against a contract the
- * ! host does not implement, which nothing but a broken mount reports.
- *
- * The types are deliberately dumb — names and one-line docs. The rules they cannot express are in
- * `docs/extensions.md` § 2, and the host owns them.
+ * ! Duplicated verbatim in every provider until `@enonic/toolkit/section` publishes it — change
+ * ! every copy, or a provider compiles against a contract the host does not implement.
  */
 
 /**
- * Anything mutable the host hands over. A nanostores atom satisfies this structurally, which is why
- * the contract never names one — and why `subscribe` may call back straight away with the current
- * value. A guest's callback has to tolerate that.
+ * ? Anything mutable the host hands over. A nanostores atom satisfies it structurally, which is why
+ * ? the contract names none — and why `subscribe` may call back straight away with the current value.
  */
 export type Readable<T> = { get(): T; subscribe(cb: (v: T) => void): () => void };
 
