@@ -11,6 +11,7 @@ const config: ToolConfig = {
   phrases: {},
   apis: {
     events: '/_/app:events',
+    extensions: '/_/admin:extension',
     graphql: '/_/app:graphql',
     serverApp: {
       start: '/_/server:app/start',

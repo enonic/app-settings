@@ -2,6 +2,7 @@ import { AppError } from '../api';
 
 export type ApiUrls = {
   events: string;
+  extensions: string;
   graphql: string;
   serverApp: {
     start: string;
@@ -35,6 +36,7 @@ function isToolConfig(value: unknown): value is ToolConfig {
     typeof phrases === 'object' &&
     apis != null &&
     typeof apis.events === 'string' &&
+    typeof apis.extensions === 'string' &&
     typeof apis.graphql === 'string' &&
     apis.serverApp != null &&
     typeof apis.serverApp.start === 'string' &&

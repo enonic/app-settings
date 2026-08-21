@@ -16,6 +16,7 @@ export type ToolConfig = {
   phrases: Record<string, string>;
   apis: {
     events: string;
+    extensions: string;
     graphql: string;
     serverApp: {
       start: string;
@@ -38,6 +39,7 @@ export function getConfig(locales: string[]): ToolConfig {
     phrases: getAllPhrases(locales),
     apis: {
       events: apiUrl({ api: 'admin:event', type: 'websocket' }),
+      extensions: apiUrl({ api: 'admin:extension' }),
       graphql: apiUrl({ api: `${app.name}:graphql` }),
       serverApp: {
         start: apiUrl({ api: 'server:app', path: 'start' }),

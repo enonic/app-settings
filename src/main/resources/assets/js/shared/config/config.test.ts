@@ -15,6 +15,7 @@ const config: ToolConfig = {
   phrases: { 'nav.users': 'Users' },
   apis: {
     events: '/_/app:events',
+    extensions: '/_/admin:extension',
     graphql: '/_/app:graphql',
     serverApp: {
       start: '/_/server:app/start',

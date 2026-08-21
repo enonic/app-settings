@@ -15,6 +15,7 @@ const config: ToolConfig = {
   phrases: { 'nav.users': 'Users' },
   apis: {
     events: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:events',
+    extensions: '/admin/tool/com.enonic.xp.app.settings/main/_/admin:extension',
     graphql: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:graphql',
     serverApp: {
       start: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/start',
@@ -74,6 +75,11 @@ describe('getConfig', () => {
   it('points at the built-in admin:event api as a websocket url', () => {
     expect(getConfig(['en']).apis.events).toBe('ws:/_/admin:event');
     expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'admin:event', type: 'websocket' });
+  });
+
+  it('points at the built-in admin:extension api, which serves the section extensions', () => {
+    expect(getConfig(['en']).apis.extensions).toBe('/_/admin:extension');
+    expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'admin:extension' });
   });
 
   it('addresses the app-owned graphql api by its qualified key', () => {
