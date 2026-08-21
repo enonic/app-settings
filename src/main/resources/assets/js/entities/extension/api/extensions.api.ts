@@ -8,7 +8,7 @@ import { assignSlugs } from '../model/section-slugs';
 /** The interface `admin/tools/main/main.yaml` publishes. An extension must declare it to mount here. */
 const SECTION_INTERFACE = 'settings.section';
 
-/** Fixed by the contract, so the host needs no lookup — see `docs/extensions.md` § 2. */
+/** Fixed by the contract, so the host needs no lookup — see `docs/extensions/docs.md` § 2. */
 const MODULE_PATH = '_static/main.js';
 
 // The discovery row, already localized and already filtered by the caller's principals.

@@ -1,6 +1,6 @@
 /**
  * The client-side contract between this shell and a section another application provides. The rules
- * these names cannot express are in `docs/extensions.md` § 2.
+ * these names cannot express are in `docs/extensions/docs.md` § 2.
  *
  * ! Duplicated verbatim in every provider until `@enonic/toolkit/section` publishes it — change
  * ! every copy, or a provider compiles against a contract the host does not implement.
