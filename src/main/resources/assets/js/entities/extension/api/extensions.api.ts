@@ -8,6 +8,9 @@ import { assignSlugs } from '../model/section-slugs';
 /** The interface `admin/tools/main/main.yaml` publishes. An extension must declare it to mount here. */
 const SECTION_INTERFACE = 'settings.section';
 
+/** Fixed by the contract, so the host needs no lookup — see `docs/extensions.md` § 2. */
+const MODULE_PATH = '_static/main.js';
+
 // The discovery row, already localized and already filtered by the caller's principals.
 type ExtensionDto = {
   key: string;
@@ -45,11 +48,16 @@ function toSectionRow(dto: ExtensionDto, base: string): Omit<SectionExtension, '
   const order = Number(dto.config?.order);
   const path = dto.config?.path;
 
+  // ! `url` is a descriptor key and `iconUrl` a bare query string (`?icon&app=…`), so the first
+  // ! takes a separator and the second must not — see `docs/platform-facts.md`.
+  const prefix = `${base}/${dto.url}`;
+
   return {
     key: dto.key,
     title: dto.title,
     description: dto.description,
-    url: `${base}/${dto.url}`,
+    url: prefix,
+    moduleUrl: `${prefix}/${MODULE_PATH}`,
     iconUrl: `${base}${dto.iconUrl ?? ''}`,
     order: Number.isFinite(order) ? order : DEFAULT_ORDER,
     path: typeof path === 'string' ? path : undefined,

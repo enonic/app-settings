@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router';
 
 import { AppShell } from './AppShell';
+import { SectionRoute } from './SectionRoute';
 
 // TODO: [extensions] The five sections move to app-applications and app-users as `settings.section`
 // extensions; commented out rather than deleted until that path is proven.
@@ -60,6 +61,7 @@ const indexRoute = createRoute({
 const sectionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '$slug',
+  component: SectionRoute,
 });
 
 // The section's own sub-path. Opaque to the shell: it routes it, stores it, and hands it over.

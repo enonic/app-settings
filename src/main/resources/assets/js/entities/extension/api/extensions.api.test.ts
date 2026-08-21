@@ -72,6 +72,16 @@ describe('fetchSectionExtensions', () => {
     expect(result._unsafeUnwrap()[0].url).toBe(`${BASE}/com.enonic.xp.app.applications:section`);
   });
 
+  it('points the module url at the entry path the contract fixes', async () => {
+    respondWith([row()]);
+
+    const result = await fetchSectionExtensions();
+
+    expect(result._unsafeUnwrap()[0].moduleUrl).toBe(
+      `${BASE}/com.enonic.xp.app.applications:section/_static/main.js`,
+    );
+  });
+
   it('appends the icon query string without one, since it carries its own', async () => {
     respondWith([row()]);
 

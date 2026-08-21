@@ -4,7 +4,16 @@ import type { SectionExtension } from './extension.types';
 import { assignSlugs } from './section-slugs';
 
 function row(key: string, path?: string): Omit<SectionExtension, 'slug'> {
-  return { key, title: key, url: `/_/admin:extension/${key}`, iconUrl: '/icon', order: 10, path };
+  const url = `/_/admin:extension/${key}`;
+  return {
+    key,
+    title: key,
+    url,
+    moduleUrl: `${url}/_static/main.js`,
+    iconUrl: '/icon',
+    order: 10,
+    path,
+  };
 }
 
 describe('assignSlugs', () => {

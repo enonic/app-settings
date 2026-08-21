@@ -7,6 +7,8 @@ export type SectionExtension = {
   description?: string;
   /** Absolute url of the extension endpoint — the prefix the provider owns. */
   url: string;
+  /** The ES module the host imports: the prefix plus the contract's fixed entry path. */
+  moduleUrl: string;
   /** Always answers an image: the descriptor's icon, else the application's, else XP's own. */
   iconUrl: string;
   /** `config.order`, or `DEFAULT_ORDER` where the descriptor names none. */

@@ -13,6 +13,7 @@ const section: SectionExtension = {
   key: 'app:section',
   title: 'Applications',
   url: '/_/admin:extension/app:section',
+  moduleUrl: '/_/admin:extension/app:section/_static/main.js',
   iconUrl: '/_/admin:extension?icon&app=app&extension=section',
   order: 10,
   slug: 'applications',
