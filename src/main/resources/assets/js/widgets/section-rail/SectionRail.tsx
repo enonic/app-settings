@@ -1,15 +1,14 @@
 import { Tooltip } from '@enonic/ui';
-import { Link, type LinkProps } from '@tanstack/react-router';
-import { Settings, type LucideIcon } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
-import { useI18n, useLabelled } from '../../shared/i18n';
+import { useI18n } from '../../shared/i18n';
 import { ServerEventsIndicator } from '../server-events-indicator/ServerEventsIndicator';
 
+/** One discovered section. The title arrives localized, so the rail resolves no phrase for it. */
 export type SectionRailItem = {
-  id: string;
-  path: LinkProps['to'];
-  icon: LucideIcon;
-  labelKey: string;
+  key: string;
+  title: string;
+  iconUrl: string;
 };
 
 export type SectionRailProps = {
@@ -24,7 +23,6 @@ const ITEM_CLASS =
 export function SectionRail({ sections }: SectionRailProps) {
   const railLabel = useI18n('nav.sections');
   const appName = useI18n('app.displayName');
-  const items = useLabelled(sections);
 
   return (
     <nav
@@ -37,12 +35,23 @@ export function SectionRail({ sections }: SectionRailProps) {
 
       <div className="flex h-full flex-col justify-between">
         <ul className="flex flex-col items-center gap-2">
-          {items.map(({ id, path, icon: Icon, label }) => (
-            <li key={id}>
-              <Tooltip value={label} side="right" delay={300}>
-                <Link to={path} aria-label={label} className={ITEM_CLASS}>
-                  <Icon size={24} strokeWidth={1.5} aria-hidden />
-                </Link>
+          {sections.map(({ key, title, iconUrl }) => (
+            // TODO: [extensions] Inert until 1.3 gives every section a route; then this is a `Link`.
+            <li key={key}>
+              <Tooltip value={title} side="right" delay={300}>
+                <span aria-label={title} className={ITEM_CLASS}>
+                  {/* Tinted, not inlined: the platform serves the icon as an image, and an svg
+                      drawn in `currentColor` resolves that to black inside an `img`. */}
+                  <span
+                    className="size-6 bg-current"
+                    style={{
+                      maskImage: `url("${iconUrl}")`,
+                      maskSize: 'contain',
+                      maskRepeat: 'no-repeat',
+                      maskPosition: 'center',
+                    }}
+                  />
+                </span>
               </Tooltip>
             </li>
           ))}
