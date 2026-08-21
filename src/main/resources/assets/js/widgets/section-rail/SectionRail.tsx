@@ -1,4 +1,5 @@
 import { Tooltip } from '@enonic/ui';
+import { Link } from '@tanstack/react-router';
 import { Settings } from 'lucide-react';
 
 import { useI18n } from '../../shared/i18n';
@@ -9,6 +10,7 @@ export type SectionRailItem = {
   key: string;
   title: string;
   iconUrl: string;
+  slug: string;
 };
 
 export type SectionRailProps = {
@@ -35,11 +37,10 @@ export function SectionRail({ sections }: SectionRailProps) {
 
       <div className="flex h-full flex-col justify-between">
         <ul className="flex flex-col items-center gap-2">
-          {sections.map(({ key, title, iconUrl }) => (
-            // TODO: [extensions] Inert until 1.3 gives every section a route; then this is a `Link`.
+          {sections.map(({ key, title, iconUrl, slug }) => (
             <li key={key}>
               <Tooltip value={title} side="right" delay={300}>
-                <span aria-label={title} className={ITEM_CLASS}>
+                <Link to="/$slug" params={{ slug }} aria-label={title} className={ITEM_CLASS}>
                   {/* Tinted, not inlined: the platform serves the icon as an image, and an svg
                       drawn in `currentColor` resolves that to black inside an `img`. */}
                   <span
@@ -51,7 +52,7 @@ export function SectionRail({ sections }: SectionRailProps) {
                       maskPosition: 'center',
                     }}
                   />
-                </span>
+                </Link>
               </Tooltip>
             </li>
           ))}

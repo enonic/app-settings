@@ -1,15 +1,10 @@
-import { useRouterState } from '@tanstack/react-router';
-
 import { ThemeSwitcher } from '../features/theme-switcher/ThemeSwitcher';
-import { i18n } from '../shared/i18n';
-import { SECTIONS } from './navigation';
+import { useActiveSection } from './useActiveSection';
 import { useDocumentTitle } from './useDocumentTitle';
 
 export function AppBar() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const section = SECTIONS.find(({ path }) => pathname.startsWith(path));
-  // No section at all on a path outside them, so the title is resolved rather than hooked.
-  const title = section === undefined ? '' : i18n(section.titleKey);
+  const { section } = useActiveSection();
+  const title = section?.title ?? '';
 
   useDocumentTitle(title);
 

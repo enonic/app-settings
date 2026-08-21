@@ -3,6 +3,7 @@ import { errAsync, type ResultAsync } from 'neverthrow';
 import { AppError, requestJson } from '../../../shared/api';
 import { $config } from '../../../shared/config';
 import { DEFAULT_ORDER, type SectionExtension } from '../model/extension.types';
+import { assignSlugs } from '../model/section-slugs';
 
 /** The interface `admin/tools/main/main.yaml` publishes. An extension must declare it to mount here. */
 const SECTION_INTERFACE = 'settings.section';
@@ -32,7 +33,7 @@ export function fetchSectionExtensions(
   const url = `${base}?interface=${encodeURIComponent(SECTION_INTERFACE)}`;
 
   return requestJson<ExtensionDto[]>(url, { signal }).map((dtos) =>
-    dtos.map((dto) => toSectionExtension(dto, base)).sort(byOrderThenKey),
+    assignSlugs(dtos.map((dto) => toSectionRow(dto, base)).sort(byOrderThenKey)),
   );
 }
 
@@ -40,7 +41,7 @@ export function fetchSectionExtensions(
 // * Internal
 //
 
-function toSectionExtension(dto: ExtensionDto, base: string): SectionExtension {
+function toSectionRow(dto: ExtensionDto, base: string): Omit<SectionExtension, 'slug'> {
   const order = Number(dto.config?.order);
   const path = dto.config?.path;
 
@@ -48,8 +49,6 @@ function toSectionExtension(dto: ExtensionDto, base: string): SectionExtension {
     key: dto.key,
     title: dto.title,
     description: dto.description,
-    // ! `url` is a descriptor key and `iconUrl` a bare query string (`?icon&app=…`), so the first
-    // ! takes a separator and the second must not — see `docs/platform-facts.md`.
     url: `${base}/${dto.url}`,
     iconUrl: `${base}${dto.iconUrl ?? ''}`,
     order: Number.isFinite(order) ? order : DEFAULT_ORDER,
@@ -58,6 +57,9 @@ function toSectionExtension(dto: ExtensionDto, base: string): SectionExtension {
 }
 
 /** The key breaks a tie because it is the identity; a localized title is neither stable nor unique. */
-function byOrderThenKey(a: SectionExtension, b: SectionExtension): number {
+function byOrderThenKey(
+  a: Omit<SectionExtension, 'slug'>,
+  b: Omit<SectionExtension, 'slug'>,
+): number {
   return a.order - b.order || a.key.localeCompare(b.key);
 }

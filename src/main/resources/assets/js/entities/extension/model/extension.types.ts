@@ -11,8 +11,10 @@ export type SectionExtension = {
   iconUrl: string;
   /** `config.order`, or `DEFAULT_ORDER` where the descriptor names none. */
   order: number;
-  /** `config.path` — the url segment the section asks for. Nothing routes on it yet. */
+  /** `config.path` — the url segment the section asks for; `slug` is what it got. */
   path?: string;
+  /** The url segment the shell routes on: the asked-for path, or the key where that was taken. */
+  slug: string;
 };
 
 /** Where a section with no `config.order` sorts: after the first-party ones, which space theirs. */

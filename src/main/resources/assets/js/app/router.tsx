@@ -27,7 +27,7 @@ const rootRoute = createRootRoute({
   component: AppShell,
 });
 
-// TODO: [extensions] Redirects to the first discovered section once discovery lands (1.3).
+// Matches `/` so the router has something while discovery runs; `AppShell` redirects once it lands.
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
@@ -57,8 +57,20 @@ const indexRoute = createRoute({
 //   return sectionRoute.addChildren([itemRoute]);
 // }
 
+const sectionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '$slug',
+});
+
+// The section's own sub-path. Opaque to the shell: it routes it, stores it, and hands it over.
+const sectionSubPathRoute = createRoute({
+  getParentRoute: () => sectionRoute,
+  path: '$',
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  sectionRoute.addChildren([sectionSubPathRoute]),
   // sectionRoutes('/applications', ApplicationsPage, ApplicationsItemPage),
   // sectionRoutes('/users', UsersPage, UsersItemPage),
   // sectionRoutes('/groups', GroupsPage, GroupsItemPage),

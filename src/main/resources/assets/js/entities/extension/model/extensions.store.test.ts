@@ -15,6 +15,7 @@ const section: SectionExtension = {
   url: '/_/admin:extension/app:section',
   iconUrl: '/_/admin:extension?icon&app=app&extension=section',
   order: 10,
+  slug: 'applications',
 };
 
 afterEach(() => {
