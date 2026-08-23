@@ -26,7 +26,7 @@
     "check-password-strength": "^3.0.0",
     "focus-trap-react": "^12.0.3",
     "lucide-react": "^1.31.0",
-    "nanostores": "^1.4.2",
+    "nanostores": "^1.5.1",
     "neverthrow": "^8.2.0",
     "preact": "^10.29.8"
   },
