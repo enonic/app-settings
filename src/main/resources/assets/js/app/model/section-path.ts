@@ -3,7 +3,7 @@
  * opaque string: only its segments are routed, and its search params travel through untouched.
  */
 
-import type { Readable } from './contract';
+import type { Readable } from '../../shared/sections';
 
 /** Whether the url is inside this section, rather than merely starting like its slug. */
 export function isInSection(pathname: string, slug: string): boolean {
@@ -44,7 +44,7 @@ export function createSectionPath({
   read,
   isActive,
   onUrlChange,
-}: SectionPathOptions): Readable<string> {
+}: SectionPathOptions): Readable<string> & { dispose(): void } {
   let current = isActive() ? read() : '';
   let stop: (() => void) | undefined;
   const listeners = new Set<(value: string) => void>();
@@ -64,6 +64,12 @@ export function createSectionPath({
   };
 
   return {
+    /** Beyond the contract: the shell drops the whole signal when it revokes the mount. */
+    dispose: () => {
+      listeners.clear();
+      stop?.();
+      stop = undefined;
+    },
     get: () => {
       if (isActive()) {
         current = read();

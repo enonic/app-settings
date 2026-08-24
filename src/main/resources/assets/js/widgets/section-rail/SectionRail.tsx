@@ -1,5 +1,4 @@
 import { Tooltip } from '@enonic/ui';
-import { Link } from '@tanstack/react-router';
 import { Settings } from 'lucide-react';
 
 import { useI18n } from '../../shared/i18n';
@@ -10,7 +9,8 @@ export type SectionRailItem = {
   key: string;
   title: string;
   iconUrl: string;
-  slug: string;
+  href: string;
+  active: boolean;
 };
 
 export type SectionRailProps = {
@@ -37,13 +37,16 @@ export function SectionRail({ sections }: SectionRailProps) {
 
       <div className="flex h-full flex-col justify-between">
         <ul className="flex flex-col items-center gap-2">
-          {sections.map(({ key, title, iconUrl, slug }) => (
+          {sections.map(({ key, title, iconUrl, href, active }) => (
             <li key={key}>
               <Tooltip value={title} side="right" delay={300}>
-                <Link
-                  to="/$slug/$"
-                  params={{ slug, _splat: '' }}
+                {/* A plain anchor: hash history routes it, and a remembered sub-path carries search
+                    params, which a splat param cannot. */}
+                <a
+                  href={href}
                   aria-label={title}
+                  aria-current={active ? 'page' : undefined}
+                  data-status={active ? 'active' : undefined}
                   className={ITEM_CLASS}
                 >
                   {/* Tinted, not inlined: the platform serves the icon as an image, and an svg
@@ -57,7 +60,7 @@ export function SectionRail({ sections }: SectionRailProps) {
                       maskPosition: 'center',
                     }}
                   />
-                </Link>
+                </a>
               </Tooltip>
             </li>
           ))}

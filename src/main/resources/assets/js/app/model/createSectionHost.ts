@@ -1,23 +1,22 @@
 import { sectionExtensionByKey, type SectionExtension } from '../../entities/extension';
 import { $resolvedTheme } from '../../shared/app-state';
 import { $config } from '../../shared/config';
-import { dismissNotification, notify } from '../../shared/notifications';
-import {
-  createSectionPath,
-  isInSection,
-  readSubPath,
-  sectionPath,
-  type Host,
-  type Notification,
-} from '../../shared/sections';
+import { dismissNotification, dismissNotifications, notify } from '../../shared/notifications';
+import type { Host, Notification } from '../../shared/sections';
 import { onServerEvent } from '../../shared/server-events';
 import { router } from './router';
+import { createSectionPath, isInSection, readSubPath, sectionPath } from './section-path';
 
-/**
- * Everything a section cannot answer for itself, for one mount. Revocation at unmount is still to
- * come — `docs/extensions/progress.md`.
- */
-export function createSectionHost(section: SectionExtension): Host {
+export type SectionHost = {
+  host: Host;
+  /** Run at unmount: the mount is gone, and nothing it kept a reference to may still act. */
+  revoke: () => void;
+};
+
+/** Everything a section cannot answer for itself, for one mount. */
+export function createSectionHost(section: SectionExtension): SectionHost {
+  let revoked = false;
+  const eventSubscriptions = new Set<() => void>();
   // A collision resolved differently after an install moves the slug, so it is read per call.
   const slug = (): string => sectionExtensionByKey(section.key)?.slug ?? section.slug;
 
@@ -28,18 +27,24 @@ export function createSectionHost(section: SectionExtension): Host {
 
   const isActive = (): boolean => isInSection(router.state.location.pathname, slug());
 
-  return {
+  const path = createSectionPath({
+    read: subPath,
+    isActive,
+    onUrlChange: (cb) => router.subscribe('onResolved', () => cb()),
+  });
+
+  const host: Host = {
     baseUrl: section.url,
     locale: $config.get()?.locale ?? 'en',
     theme: $resolvedTheme,
-    path: createSectionPath({
-      read: subPath,
-      isActive,
-      onUrlChange: (cb) => router.subscribe('onResolved', () => cb()),
-    }),
+    path,
     // ! Through history, not `router.navigate`: the router would re-serialize the search params, and
     // ! they are the guest's own string.
     navigate: (to, opts) => {
+      if (revoked) {
+        return;
+      }
+
       // ! Hidden, so this came from a subscription rather than user intent: navigating would move
       // ! the url under the section actually showing.
       if (!isActive()) {
@@ -57,10 +62,38 @@ export function createSectionHost(section: SectionExtension): Host {
     },
     // Hash history, so an anchor's href carries the fragment the router reads.
     url: (to) => `#${sectionPath(slug(), to)}`,
-    subscribeEvents: (cb) => onServerEvent(cb),
+    subscribeEvents: (cb) => {
+      if (revoked) {
+        return () => {};
+      }
+
+      const unsubscribe = onServerEvent(cb);
+      eventSubscriptions.add(unsubscribe);
+
+      return () => {
+        eventSubscriptions.delete(unsubscribe);
+        unsubscribe();
+      };
+    },
     notify: (n) => {
-      const id = notify(toNotificationOptions(n));
+      if (revoked) {
+        return () => {};
+      }
+
+      const id = notify({ ...toNotificationOptions(n), owner: section.key });
+
       return () => dismissNotification(id);
+    },
+  };
+
+  return {
+    host,
+    revoke: () => {
+      revoked = true;
+      eventSubscriptions.forEach((unsubscribe) => unsubscribe());
+      eventSubscriptions.clear();
+      path.dispose();
+      dismissNotifications(section.key);
     },
   };
 }

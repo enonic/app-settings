@@ -1,4 +1,4 @@
-import { useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 
 import { useSectionExtensions, type SectionExtension } from '../../entities/extension';
 import { SectionMount } from '../../widgets/section-mount/SectionMount';
@@ -52,7 +52,9 @@ function sectionSlots(
 /** One section's place in the shell. Its host object lives exactly as long as this slot does. */
 function SectionSlot({ section, hidden }: SectionSlotState) {
   // ! `useState`, not `useMemo`: a discarded memo would hand the guest a new host and remount it.
-  const [host] = useState(() => createSectionHost(section));
+  const [{ host, revoke }] = useState(() => createSectionHost(section));
+
+  useEffect(() => revoke, [revoke]);
 
   return <SectionMount moduleUrl={section.moduleUrl} host={host} hidden={hidden} />;
 }
