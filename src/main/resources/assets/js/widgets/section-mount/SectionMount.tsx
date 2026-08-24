@@ -8,9 +8,11 @@ export type SectionMountProps = {
   moduleUrl: string;
   /** Handed to `mount`, and stable per mount: a new object remounts the section. */
   host: Host;
+  /** Hidden, not unmounted: the DOM and the state inside it are what keep-alive is for. */
+  hidden?: boolean;
 };
 
-export function SectionMount({ moduleUrl, host }: SectionMountProps) {
+export function SectionMount({ moduleUrl, host, hidden = false }: SectionMountProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
 
@@ -35,7 +37,7 @@ export function SectionMount({ moduleUrl, host }: SectionMountProps) {
   // ! The shadow host stays mounted whatever the state: rendering a message instead of it would drop
   // ! the ref, and nothing could mount afterwards.
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className={hidden ? 'hidden' : 'flex min-h-0 flex-1 flex-col'}>
       {failed && (
         <div className="text-subtle p-10" role="alert">
           {failedLabel}

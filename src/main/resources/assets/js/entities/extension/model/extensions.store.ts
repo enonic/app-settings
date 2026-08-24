@@ -19,6 +19,11 @@ export function beginSectionExtensionsLoad(): void {
   }
 }
 
+/** The row discovery holds for that key — `undefined` once the section has left the rail. */
+export function sectionExtensionByKey(key: string): SectionExtension | undefined {
+  return $sectionExtensions.get().items.find((section) => section.key === key);
+}
+
 export function receiveSectionExtensions(result: Result<SectionExtension[], AppError>): void {
   result.match(
     (items) => $sectionExtensions.set({ status: 'ready', items }),

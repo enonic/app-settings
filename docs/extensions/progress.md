@@ -72,22 +72,28 @@ socket now fans out everything it can parse. No consumer changed: all three alre
 themselves (`toApplicationChange`, `affectsMarket`, `toInstallProgress`), and
 `isRelevantServerEvent`/`isPrincipalNode` stay as the idiom `@enonic/toolkit` will own in Phase 2.
 
-### D — 1.7: keep-alive, and the identity the rest depends on
+### D — 1.7: keep-alive and lifecycle
 
-- **Mount identity is the `SectionExtension` object today**, not its key: `SectionRoute` memoizes the
-  host on `[section]` and `SectionMount` re-runs its effect when `host` changes, so a rediscovery —
-  which allocates new row objects — remounts every section. Fix this before anything keyed on a mount
-  is written, or rediscovery destroys the state keep-alive exists to protect.
-- One mount per section key, hidden with `display: none` on a switch, mounted on first visit only.
-  Rendering the discovered sections as a keyed list gives "unmount when the key leaves discovery" for
-  free — no manual registry to keep in step.
-- `path` freezes while hidden and `navigate` becomes a no-op; the current value is emitted on show.
-  Both are answerable inside `createSectionHost` from the router's active slug, so neither needs a new
-  contract member.
-- Re-run discovery on `application` server events — nothing subscribes today, so the rail is whatever
-  discovery returned at startup.
-- Needs `systemApp = false` in the provider: with it true the app cannot be uninstalled, and uninstall
-  is the only path that reaches unmount.
+**D1 — one mount per section, one visible. Done.** `AppShell` renders a slot per visited section
+(`SectionMounts` → `SectionSlot` → `SectionMount`) and hides the inactive ones; mounting waits for a
+section's first activation, so no provider's bundle is fetched before it is opened. Identity comes
+from the slot's own lifetime — the host object is created once per slot with `useState`, not memoized
+on the row object as `SectionRoute` did, so a rediscovery no longer remounts everything. `slug` is
+read per call through `sectionExtensionByKey`, because a collision resolved differently after an
+install moves it. Unmount is keyed reconciliation dropping a section that left discovery; the
+`$slug` route lost its component and now only parses the url.
+
+**D2 — hidden mounts stop steering.** `path.get()` freezes at its last active value, `subscribe` goes
+quiet while hidden and emits once on show, `navigate` no-ops. Otherwise a hidden section reports the
+active section's sub-path and its stale `navigate` moves the url under whoever is looking. Decided
+from the router's active slug inside `createSectionHost`; `visible` stays parked.
+
+**D3 — make uninstall reachable.** `systemApp = false` in the provider. With it true the app cannot be
+uninstalled, so D1's disposal path and all of D4 cannot be exercised.
+
+**D4 — the rail follows the server.** An `extensions.service.ts` with `start`/`stop` subscribing to
+`application` events, terminal types only and debounced — `PROGRESS` fires per percent. Rediscover on
+reconnect too: events missed while the socket was down leave the rail stale.
 
 ### E — 1.5c + 1.3 leftovers: revocation and sub-path memory
 
@@ -129,7 +135,8 @@ acceptable per provider. A failed discovery saying nothing is **5.2**.
 ## Known gaps
 
 - Host object not revoked at unmount — E.
-- No keep-alive, so `path` is never frozen and a rediscovery remounts everything — D.
+- A hidden mount's `path` still tracks the active section and its `navigate` still works — D2.
+- The rail never changes after startup; nothing re-runs discovery — D4.
 - A failed discovery says nothing; the rail just stays empty — 5.2.
 - No `:host` reset in the guest; inheritable properties leak in from the host's `body` — 1.8.
 - No `Cache-Control` on `_static/*`; every visit re-downloads module and stylesheet in full.

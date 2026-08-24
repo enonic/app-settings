@@ -5,23 +5,22 @@ import {
   createRouter,
 } from '@tanstack/react-router';
 
-import { AppShell } from './AppShell';
-import { SectionRoute } from './SectionRoute';
+import { AppShell } from '../ui/AppShell';
 
 // TODO: [extensions] The five sections move to app-applications and app-users as `settings.section`
 // extensions; commented out rather than deleted until that path is proven.
 // import { redirect } from '@tanstack/react-router';
 // import type { JSX } from 'preact';
-// import { ApplicationsItemPage } from '../pages/applications/ApplicationsItemPage';
-// import { ApplicationsPage } from '../pages/applications/ApplicationsPage';
-// import { GroupsItemPage } from '../pages/groups/GroupsItemPage';
-// import { GroupsPage } from '../pages/groups/GroupsPage';
-// import { IdProvidersItemPage } from '../pages/id-providers/IdProvidersItemPage';
-// import { IdProvidersPage } from '../pages/id-providers/IdProvidersPage';
-// import { RolesItemPage } from '../pages/roles/RolesItemPage';
-// import { RolesPage } from '../pages/roles/RolesPage';
-// import { UsersItemPage } from '../pages/users/UsersItemPage';
-// import { UsersPage } from '../pages/users/UsersPage';
+// import { ApplicationsItemPage } from '../../pages/applications/ApplicationsItemPage';
+// import { ApplicationsPage } from '../../pages/applications/ApplicationsPage';
+// import { GroupsItemPage } from '../../pages/groups/GroupsItemPage';
+// import { GroupsPage } from '../../pages/groups/GroupsPage';
+// import { IdProvidersItemPage } from '../../pages/id-providers/IdProvidersItemPage';
+// import { IdProvidersPage } from '../../pages/id-providers/IdProvidersPage';
+// import { RolesItemPage } from '../../pages/roles/RolesItemPage';
+// import { RolesPage } from '../../pages/roles/RolesPage';
+// import { UsersItemPage } from '../../pages/users/UsersItemPage';
+// import { UsersPage } from '../../pages/users/UsersPage';
 // import { DEFAULT_SECTION } from './navigation';
 
 const rootRoute = createRootRoute({
@@ -58,10 +57,11 @@ const indexRoute = createRoute({
 //   return sectionRoute.addChildren([itemRoute]);
 // }
 
+// Parses the url and nothing more: `AppShell` renders the sections, so that switching between them
+// does not rest on whether the router remounts a component when only its param changes.
 const sectionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '$slug',
-  component: SectionRoute,
 });
 
 // The section's own sub-path. Opaque to the shell: it routes it, stores it, and hands it over.

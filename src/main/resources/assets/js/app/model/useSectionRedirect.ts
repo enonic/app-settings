@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'preact/hooks';
 
-import { useSectionExtensions } from '../entities/extension';
+import { useSectionExtensions } from '../../entities/extension';
 import { useActiveSection } from './useActiveSection';
 
 /**

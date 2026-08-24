@@ -5,7 +5,7 @@ sections. Single Gradle project — TypeScript, Preact (React compat layer), Tai
 nanostores, TanStack Router. The admin tool is restricted to `role:system.admin`.
 
 The app replaces `app-users` and `app-applications`, and further XP admin applications are expected to
-move here later — the five current sections are not the final set. `app/navigation.ts` is the only
+move here later — the five current sections are not the final set. `app/model/navigation.ts` is the only
 place that knows which sections exist; nothing below `app/` enumerates them.
 
 Every section is the same browse screen with different data: full-width action toolbar, list column

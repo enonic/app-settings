@@ -1,9 +1,9 @@
-import type { SectionExtension } from '../entities/extension';
-import { $resolvedTheme } from '../shared/app-state';
-import { $config } from '../shared/config';
-import { dismissNotification, notify } from '../shared/notifications';
-import { readSubPath, sectionPath, type Host, type Notification } from '../shared/sections';
-import { onServerEvent } from '../shared/server-events';
+import { sectionExtensionByKey, type SectionExtension } from '../../entities/extension';
+import { $resolvedTheme } from '../../shared/app-state';
+import { $config } from '../../shared/config';
+import { dismissNotification, notify } from '../../shared/notifications';
+import { readSubPath, sectionPath, type Host, type Notification } from '../../shared/sections';
+import { onServerEvent } from '../../shared/server-events';
 import { router } from './router';
 
 /**
@@ -11,9 +11,12 @@ import { router } from './router';
  * that freezes while the section is hidden are still to come — `docs/extensions/progress.md`.
  */
 export function createSectionHost(section: SectionExtension): Host {
+  // A collision resolved differently after an install moves the slug, so it is read per call.
+  const slug = (): string => sectionExtensionByKey(section.key)?.slug ?? section.slug;
+
   const subPath = (): string => {
     const { pathname, searchStr } = router.state.location;
-    return readSubPath(pathname, searchStr, section.slug);
+    return readSubPath(pathname, searchStr, slug());
   };
 
   return {
@@ -27,7 +30,7 @@ export function createSectionHost(section: SectionExtension): Host {
     // ! Through history, not `router.navigate`: the router would re-serialize the search params, and
     // ! they are the guest's own string.
     navigate: (to, opts) => {
-      const path = sectionPath(section.slug, to);
+      const path = sectionPath(slug(), to);
 
       if (opts?.replace === true) {
         router.history.replace(path);
@@ -36,7 +39,7 @@ export function createSectionHost(section: SectionExtension): Host {
       }
     },
     // Hash history, so an anchor's href carries the fragment the router reads.
-    url: (to) => `#${sectionPath(section.slug, to)}`,
+    url: (to) => `#${sectionPath(slug(), to)}`,
     subscribeEvents: (cb) => onServerEvent(cb),
     notify: (n) => {
       const id = notify(toNotificationOptions(n));

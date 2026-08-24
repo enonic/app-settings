@@ -9,19 +9,19 @@ against a second provider, an extracted component kit, or a real section moving 
 
 ## What the host owns
 
-| Path                         | What it is                                                              |
-| ---------------------------- | ----------------------------------------------------------------------- |
-| `admin/tools/main/main.yaml` | publishes `interfaces: [settings.section]` and mounts `admin:extension` |
-| `lib/config.ts`              | `apis.extensions` — the discovery endpoint                              |
-| `entities/extension/`        | discovery: fetch, map, sort, slugs                                      |
-| `app/SectionRoute.tsx`       | what the `$slug` route renders                                          |
-| `app/createSectionHost.ts`   | the `Host` object, one per section                                      |
-| `app/useSectionRedirect.ts`  | an unanswered path goes to the first section                            |
-| `widgets/section-mount/`     | the shadow host element and the failure phrase                          |
-| `shared/sections/`           | the contract, `mountSection` and its DOM helpers, the sub-path helpers  |
+| Path                              | What it is                                                              |
+| --------------------------------- | ----------------------------------------------------------------------- |
+| `admin/tools/main/main.yaml`      | publishes `interfaces: [settings.section]` and mounts `admin:extension` |
+| `lib/config.ts`                   | `apis.extensions` — the discovery endpoint                              |
+| `entities/extension/`             | discovery: fetch, map, sort, slugs                                      |
+| `app/ui/SectionMounts.tsx`        | a slot per visited section, only the active one shown                   |
+| `app/model/createSectionHost.ts`  | the `Host` object, one per section                                      |
+| `app/model/useSectionRedirect.ts` | an unanswered path goes to the first section                            |
+| `widgets/section-mount/`          | the shadow host element and the failure phrase                          |
+| `shared/sections/`                | the contract, `mountSection` and its DOM helpers, the sub-path helpers  |
 
-The five built-in sections are **commented out, not deleted**: `app/router.tsx`, `app/App.tsx` and
-`app/AppShell.tsx` each carry a `// TODO: [extensions]` marker, and `pages/**` is excluded from lint
+The five built-in sections are **commented out, not deleted**: `app/model/router.ts`, `app/ui/App.tsx`
+and `app/ui/AppShell.tsx` each carry a `// TODO: [extensions]` marker, and `pages/**` is excluded from lint
 while it is dormant — it no longer type-checks, because the router registers none of its routes.
 
 ## The contract
@@ -64,6 +64,10 @@ while it is dormant — it no longer type-checks, because the router registers n
   reused by the guest's `fetch`, and it gave the host knowledge of a guest file name for no gain.
 - **The section host element stays mounted in every state.** Rendering a message instead of it drops
   the ref, and nothing can mount afterwards.
+- **The mounts are not rendered through an `Outlet`.** `AppShell` renders a slot per visited section
+  and hides the inactive ones, so keep-alive rests on keyed reconciliation rather than on whether the
+  router remounts a route component when only its param changes. The `$slug` route parses the url and
+  carries no component. A key leaving discovery is what disposes its mount.
 
 ## Routing
 

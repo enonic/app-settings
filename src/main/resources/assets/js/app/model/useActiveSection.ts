@@ -1,6 +1,6 @@
 import { useRouterState } from '@tanstack/react-router';
 
-import { type SectionExtension, useSectionExtensions } from '../entities/extension';
+import { type SectionExtension, useSectionExtensions } from '../../entities/extension';
 
 export type ActiveSection = {
   /** The first path segment, whether or not a section answers to it. */

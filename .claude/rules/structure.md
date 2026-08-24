@@ -14,7 +14,7 @@ app  →  pages  →  widgets / features  →  entities  →  shared
 
 No exceptions. A widget that needs app-level data takes it as a prop and declares its own view model
 for it — `SectionRail` owns `SectionRailItem` and `AppShell` passes `SECTIONS` in, rather than the
-widget reaching up into `app/navigation`. Same rule for domain data: pass a view model, never import
+widget reaching up into `app/model/navigation`. Same rule for domain data: pass a view model, never import
 from `entities/`.
 
 | Layer                | Holds                                                                                    | Never                                 |
@@ -25,6 +25,9 @@ from `entities/`.
 | `features/<action>/` | one user action: dialog, wizard, command                                                 | any import to or from `widgets/`      |
 | `entities/<domain>/` | one domain slice: `api/`, `model/`, sometimes `ui/`                                      | UI beyond a domain-specific row/badge |
 | `shared/`            | api client, config, i18n, server events, notifications, selection, detail, format, `ui/` | importing anything above              |
+
+`app/` is split into two segments: `ui/` for its components, `model/` for everything else — the
+router, the section host object, the shell's hooks.
 
 **`widgets/` and `features/` never import each other**, in either direction. They sit on one level here,
 and canonical FSD puts `widgets` above `features` — so an import between them is either a same-layer
@@ -146,11 +149,11 @@ from a section id.
 
 ## Sections
 
-A section needs an entry in `app/navigation.ts`, a folder in `pages/`, and one `sectionRoutes(...)`
-line plus its two component imports in `app/router.tsx` — the helper is generic, the registration is
+A section needs an entry in `app/model/navigation.ts`, a folder in `pages/`, and one
+`sectionRoutes(...)` line plus its two component imports in `app/model/router.ts` — the helper is generic, the registration is
 not. The section screen itself is a contract: see `docs/browse-framework.md`.
 
 The set of sections is open-ended: further admin applications are expected to move into this app.
-`app/navigation.ts` is the only place that knows which sections exist — nothing in `widgets/`,
+`app/model/navigation.ts` is the only place that knows which sections exist — nothing in `widgets/`,
 `features/`, `entities/` or `shared/` may enumerate them, switch on a section id, or assume how many
 there are.

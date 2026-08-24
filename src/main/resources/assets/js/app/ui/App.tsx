@@ -1,12 +1,12 @@
 import { RouterProvider } from '@tanstack/react-router';
 import { useEffect } from 'preact/hooks';
 
-import { loadSectionExtensions } from '../entities/extension';
-import { useTheme } from '../shared/app-state';
-import type { ToolConfig } from '../shared/config';
-import { useMenuPanel } from '../shared/menu';
-import { connectToServerEvents } from '../shared/server-events';
-import { router } from './router';
+import { loadSectionExtensions } from '../../entities/extension';
+import { useTheme } from '../../shared/app-state';
+import type { ToolConfig } from '../../shared/config';
+import { useMenuPanel } from '../../shared/menu';
+import { connectToServerEvents } from '../../shared/server-events';
+import { router } from '../model/router';
 
 // TODO: [extensions] Both services belong to sections that move to app-applications and app-users;
 // commented out rather than deleted until that path is proven.

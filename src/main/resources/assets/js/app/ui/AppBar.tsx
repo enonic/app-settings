@@ -1,6 +1,6 @@
-import { ThemeSwitcher } from '../features/theme-switcher/ThemeSwitcher';
-import { useActiveSection } from './useActiveSection';
-import { useDocumentTitle } from './useDocumentTitle';
+import { ThemeSwitcher } from '../../features/theme-switcher/ThemeSwitcher';
+import { useActiveSection } from '../model/useActiveSection';
+import { useDocumentTitle } from '../model/useDocumentTitle';
 
 export function AppBar() {
   const { section } = useActiveSection();
