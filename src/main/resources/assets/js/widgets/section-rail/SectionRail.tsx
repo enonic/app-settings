@@ -40,7 +40,12 @@ export function SectionRail({ sections }: SectionRailProps) {
           {sections.map(({ key, title, iconUrl, slug }) => (
             <li key={key}>
               <Tooltip value={title} side="right" delay={300}>
-                <Link to="/$slug" params={{ slug }} aria-label={title} className={ITEM_CLASS}>
+                <Link
+                  to="/$slug/$"
+                  params={{ slug, _splat: '' }}
+                  aria-label={title}
+                  className={ITEM_CLASS}
+                >
                   {/* Tinted, not inlined: the platform serves the icon as an image, and an svg
                       drawn in `currentColor` resolves that to black inside an `img`. */}
                   <span

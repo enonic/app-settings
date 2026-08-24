@@ -18,7 +18,7 @@ this file is status and open work, nothing else.
 | 1.4 — mount inside a shadow root        | **done**                                    |
 | 1.5 — host object v1                    | **1.5a and 1.5b done**; revocation left     |
 | 1.6 — the provider's own GraphQL        | **done** — exit check verified on a live XP |
-| 1.7 — keep-alive and lifecycle          | not started                                 |
+| 1.7 — keep-alive and lifecycle          | **D1 and D2 done**; D3–D4 left              |
 | 1.8 — `@enonic/ui` overlays in the root | npm-enonic-ui#533/#534, owned elsewhere     |
 | 1.9 — dev override for the module url   | not started                                 |
 
@@ -83,10 +83,20 @@ read per call through `sectionExtensionByKey`, because a collision resolved diff
 install moves it. Unmount is keyed reconciliation dropping a section that left discovery; the
 `$slug` route lost its component and now only parses the url.
 
-**D2 — hidden mounts stop steering.** `path.get()` freezes at its last active value, `subscribe` goes
-quiet while hidden and emits once on show, `navigate` no-ops. Otherwise a hidden section reports the
-active section's sub-path and its stale `navigate` moves the url under whoever is looking. Decided
-from the router's active slug inside `createSectionHost`; `visible` stays parked.
+**D2 — hidden mounts stop steering. Done.** `createSectionPath` in `shared/sections/section-path.ts`
+holds a section's `path`: `get()` freezes at the last value read while showing, `subscribe` is quiet
+while hidden and speaks again only when the sub-path moved, and the url subscription is dropped once
+the last listener leaves. `navigate` returns early while hidden and warns — the contract says it comes
+from user intent, so a hidden call means the guest called it from a subscription. `url` keeps working,
+and `theme`, `subscribeEvents` and `notify` stay live, because a hidden section is meant to stay fresh
+and to be able to toast. `isInSection` is now the single activity test, which also stopped
+`readSubPath` handing over another section's search string. `visible` stays parked.
+
+The provider grew a **second section** (`playground`, order 20, same module, hello-world screen) —
+with one section in the rail there was nothing to switch between, so neither keep-alive nor the freeze
+could be seen. Both controllers now delegate to `lib/section-endpoint.ts`. It also puts the
+module-identity question on screen: the two descriptors have different prefixes, so the browser loads
+and executes `main.js` twice and each instance bootstraps separately.
 
 **D3 — make uninstall reachable.** `systemApp = false` in the provider. With it true the app cannot be
 uninstalled, so D1's disposal path and all of D4 cannot be exercised.
@@ -135,7 +145,6 @@ acceptable per provider. A failed discovery saying nothing is **5.2**.
 ## Known gaps
 
 - Host object not revoked at unmount — E.
-- A hidden mount's `path` still tracks the active section and its `navigate` still works — D2.
 - The rail never changes after startup; nothing re-runs discovery — D4.
 - A failed discovery says nothing; the rail just stays empty — 5.2.
 - No `:host` reset in the guest; inheritable properties leak in from the host's `body` — 1.8.

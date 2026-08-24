@@ -58,21 +58,19 @@ const indexRoute = createRoute({
 // }
 
 // Parses the url and nothing more: `AppShell` renders the sections, so that switching between them
-// does not rest on whether the router remounts a component when only its param changes.
+// does not rest on whether the router remounts a component when only its param changes. The sub-path
+// is the section's own and opaque here — the shell routes it, stores it, and hands it over.
+//
+// ! One template, splat included: a separate `$slug` parent would match every section root as well,
+// ! and the router warns on every navigation that two templates resolve to the same url.
 const sectionRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '$slug',
-});
-
-// The section's own sub-path. Opaque to the shell: it routes it, stores it, and hands it over.
-const sectionSubPathRoute = createRoute({
-  getParentRoute: () => sectionRoute,
-  path: '$',
+  path: '$slug/$',
 });
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  sectionRoute.addChildren([sectionSubPathRoute]),
+  sectionRoute,
   // sectionRoutes('/applications', ApplicationsPage, ApplicationsItemPage),
   // sectionRoutes('/users', UsersPage, UsersItemPage),
   // sectionRoutes('/groups', GroupsPage, GroupsItemPage),

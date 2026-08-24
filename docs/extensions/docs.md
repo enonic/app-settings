@@ -385,7 +385,9 @@ knows itself or asks its own server.
   `href={host.url(...)}`; the host intercepts composed left-clicks on anchors under its base path
   and routes them SPA-style, modified clicks (middle, ctrl/cmd) fall through to the browser.
 - While a mount is hidden (keep-alive), its `path` is frozen — it never emits another section's
-  subPath — and its `navigate` is a no-op; the current value is emitted on show.
+  subPath — and its `navigate` is a no-op. On being shown again it emits only if the sub-path moved
+  while it was away: coming back to where the user left needs no emit, because the guest is already
+  rendering it.
 
 **Normative rules the types cannot express:**
 

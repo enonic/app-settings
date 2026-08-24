@@ -75,6 +75,11 @@ The router uses `createHashHistory()`, as an XP admin tool should — `docs.md` 
 "real history". One consequence: **anchor-click interception is unnecessary**, because
 `href="#/applications/x"` routes itself.
 
+**One route template carries a section, `$slug/$`, splat included.** A `$slug` parent with a `$` child
+is the natural reading, but a splat matches empty, so both templates resolve a section root and the
+router warns on every rail click that it matched the other one. Links and redirects therefore target
+`/$slug/$` with `_splat: ''`, which `trailingSlash: 'never'` renders as `/applications`.
+
 ## Data and events
 
 - **A section's data plane is its own endpoint, not a `kind: API`.** Under an admin tool path a

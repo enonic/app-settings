@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { readSubPath, sectionPath } from './section-path';
+import { createSectionPath, isInSection, readSubPath, sectionPath } from './section-path';
 
 describe('readSubPath', () => {
   it('is what follows the section slug', () => {
@@ -21,6 +21,10 @@ describe('readSubPath', () => {
 
   it('is empty while another section is the one showing', () => {
     expect(readSubPath('/roles/r1', '', 'users')).toBe('');
+  });
+
+  it("does not hand over another section's search string", () => {
+    expect(readSubPath('/roles/r1', '?q=a', 'users')).toBe('');
   });
 
   it('does not answer for a slug its own merely begins', () => {
@@ -59,5 +63,128 @@ describe('sectionPath', () => {
 
   it('drops a trailing slash', () => {
     expect(sectionPath('users', '/u1/')).toBe('/users/u1');
+  });
+});
+
+describe('isInSection', () => {
+  it('accepts the section root and anything below it', () => {
+    expect(isInSection('/users', 'users')).toBe(true);
+    expect(isInSection('/users/u1/edit', 'users')).toBe(true);
+  });
+
+  it('rejects another section, and a slug its own merely begins', () => {
+    expect(isInSection('/roles', 'users')).toBe(false);
+    expect(isInSection('/users-admin/x', 'users')).toBe(false);
+    expect(isInSection('/', 'users')).toBe(false);
+  });
+});
+
+describe('createSectionPath', () => {
+  function harness(initial: string, active = true) {
+    let url = initial;
+    let showing = active;
+    const listeners = new Set<() => void>();
+
+    const path = createSectionPath({
+      read: () => url,
+      isActive: () => showing,
+      onUrlChange: (cb) => {
+        listeners.add(cb);
+        return () => listeners.delete(cb);
+      },
+    });
+
+    return {
+      path,
+      listenerCount: () => listeners.size,
+      go: (next: string, stillShowing = showing): void => {
+        url = next;
+        showing = stillShowing;
+        listeners.forEach((listener) => listener());
+      },
+    };
+  }
+
+  it('reads the sub-path while the section is showing', () => {
+    const { path, go } = harness('/u1');
+
+    expect(path.get()).toBe('/u1');
+
+    go('/u1/edit');
+    expect(path.get()).toBe('/u1/edit');
+  });
+
+  it('freezes at the last value it saw while showing', () => {
+    const { path, go } = harness('/u1');
+    path.get();
+
+    go('/r1', false);
+
+    expect(path.get()).toBe('/u1');
+  });
+
+  it('starts empty when the section is created hidden', () => {
+    const { path } = harness('/u1', false);
+
+    expect(path.get()).toBe('');
+  });
+
+  it('says nothing while the section is hidden', () => {
+    const seen: string[] = [];
+    const { path, go } = harness('/u1');
+    path.subscribe((value) => seen.push(value));
+
+    go('/r1', false);
+    go('/r1/edit', false);
+
+    expect(seen).toEqual([]);
+  });
+
+  it('speaks up again when the section is shown with a different sub-path', () => {
+    const seen: string[] = [];
+    const { path, go } = harness('/u1');
+    path.subscribe((value) => seen.push(value));
+
+    go('/r1', false);
+    go('/u2', true);
+
+    expect(seen).toEqual(['/u2']);
+  });
+
+  it('stays quiet when the section comes back to where it was left', () => {
+    const seen: string[] = [];
+    const { path, go } = harness('/u1');
+    path.subscribe((value) => seen.push(value));
+
+    go('/r1', false);
+    go('/u1', true);
+
+    expect(seen).toEqual([]);
+  });
+
+  it('emits only what changed while the section is showing', () => {
+    const seen: string[] = [];
+    const { path, go } = harness('/u1');
+    path.subscribe((value) => seen.push(value));
+
+    go('/u2');
+    go('/u2');
+    go('/u3');
+
+    expect(seen).toEqual(['/u2', '/u3']);
+  });
+
+  it('lets go of the url once its last listener has', () => {
+    const { path, listenerCount } = harness('/u1');
+    const first = path.subscribe(() => {});
+    const second = path.subscribe(() => {});
+
+    expect(listenerCount()).toBe(1);
+
+    first();
+    expect(listenerCount()).toBe(1);
+
+    second();
+    expect(listenerCount()).toBe(0);
   });
 });

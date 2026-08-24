@@ -21,6 +21,6 @@ export function useSectionRedirect(): void {
       return;
     }
 
-    void navigate({ to: '/$slug', params: { slug: items[0].slug }, replace: true });
+    void navigate({ to: '/$slug/$', params: { slug: items[0].slug, _splat: '' }, replace: true });
   }, [status, items, slug, navigate]);
 }

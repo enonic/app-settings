@@ -2,13 +2,20 @@ import { sectionExtensionByKey, type SectionExtension } from '../../entities/ext
 import { $resolvedTheme } from '../../shared/app-state';
 import { $config } from '../../shared/config';
 import { dismissNotification, notify } from '../../shared/notifications';
-import { readSubPath, sectionPath, type Host, type Notification } from '../../shared/sections';
+import {
+  createSectionPath,
+  isInSection,
+  readSubPath,
+  sectionPath,
+  type Host,
+  type Notification,
+} from '../../shared/sections';
 import { onServerEvent } from '../../shared/server-events';
 import { router } from './router';
 
 /**
- * Everything a section cannot answer for itself, for one mount. Revocation at unmount and a `path`
- * that freezes while the section is hidden are still to come — `docs/extensions/progress.md`.
+ * Everything a section cannot answer for itself, for one mount. Revocation at unmount is still to
+ * come — `docs/extensions/progress.md`.
  */
 export function createSectionHost(section: SectionExtension): Host {
   // A collision resolved differently after an install moves the slug, so it is read per call.
@@ -19,17 +26,27 @@ export function createSectionHost(section: SectionExtension): Host {
     return readSubPath(pathname, searchStr, slug());
   };
 
+  const isActive = (): boolean => isInSection(router.state.location.pathname, slug());
+
   return {
     baseUrl: section.url,
     locale: $config.get()?.locale ?? 'en',
     theme: $resolvedTheme,
-    path: {
-      get: subPath,
-      subscribe: (cb) => router.subscribe('onResolved', () => cb(subPath())),
-    },
+    path: createSectionPath({
+      read: subPath,
+      isActive,
+      onUrlChange: (cb) => router.subscribe('onResolved', () => cb()),
+    }),
     // ! Through history, not `router.navigate`: the router would re-serialize the search params, and
     // ! they are the guest's own string.
     navigate: (to, opts) => {
+      // ! Hidden, so this came from a subscription rather than user intent: navigating would move
+      // ! the url under the section actually showing.
+      if (!isActive()) {
+        console.warn(`Section ${section.key} tried to navigate while hidden; ignored.`);
+        return;
+      }
+
       const path = sectionPath(slug(), to);
 
       if (opts?.replace === true) {
