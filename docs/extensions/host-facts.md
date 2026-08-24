@@ -18,7 +18,7 @@ against a second provider, an extracted component kit, or a real section moving 
 | `app/createSectionHost.ts`   | the `Host` object, one per section                                      |
 | `app/useSectionRedirect.ts`  | an unanswered path goes to the first section                            |
 | `widgets/section-mount/`     | the shadow host element and the failure phrase                          |
-| `shared/sections/`           | the contract, plus `mountSection` and its two DOM helpers               |
+| `shared/sections/`           | the contract, `mountSection` and its DOM helpers, the sub-path helpers  |
 
 The five built-in sections are **commented out, not deleted**: `app/router.tsx`, `app/App.tsx` and
 `app/AppShell.tsx` each carry a `// TODO: [extensions]` marker, and `pages/**` is excluded from lint

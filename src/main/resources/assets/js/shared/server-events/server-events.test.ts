@@ -175,7 +175,7 @@ describe('connectToServerEvents', () => {
     disconnect();
   });
 
-  it('delivers a relevant event to every subscriber', () => {
+  it('delivers an event to every subscriber', () => {
     const first = vi.fn();
     const second = vi.fn();
     const unsubscribeFirst = onServerEvent(first);
@@ -192,20 +192,29 @@ describe('connectToServerEvents', () => {
     disconnect();
   });
 
-  it('drops irrelevant events before they reach subscribers', () => {
+  it('delivers events this app itself has no use for, because a section may', () => {
     const listener = vi.fn();
     const unsubscribe = onServerEvent(listener);
 
     const disconnect = connectToServerEvents('ws://host/events');
     FakeWebSocket.last?.message(nodeEvent('com.enonic.cms.default'));
-    FakeWebSocket.last?.message(nodeEvent('system-repo', '/repository/com.enonic.cms.foo'));
     FakeWebSocket.last?.message({ type: 'task.updated' });
+
+    expect(listener).toHaveBeenCalledTimes(2);
+
+    unsubscribe();
+    disconnect();
+  });
+
+  it('drops what it cannot read as an event', () => {
+    const listener = vi.fn();
+    const unsubscribe = onServerEvent(listener);
+
+    const disconnect = connectToServerEvents('ws://host/events');
     FakeWebSocket.last?.message('{not json');
+    FakeWebSocket.last?.emit('message', { data: JSON.stringify({ timestamp: 1 }) });
 
     expect(listener).not.toHaveBeenCalled();
-
-    FakeWebSocket.last?.message(nodeEvent('system-repo'));
-    expect(listener).toHaveBeenCalledTimes(1);
 
     unsubscribe();
     disconnect();

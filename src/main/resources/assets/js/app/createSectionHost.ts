@@ -2,23 +2,19 @@ import type { SectionExtension } from '../entities/extension';
 import { $resolvedTheme } from '../shared/app-state';
 import { $config } from '../shared/config';
 import { dismissNotification, notify } from '../shared/notifications';
-import type { Host, Notification } from '../shared/sections';
+import { readSubPath, sectionPath, type Host, type Notification } from '../shared/sections';
 import { onServerEvent } from '../shared/server-events';
 import { router } from './router';
 
 /**
- * Everything a section cannot answer for itself, for one mount. Hardened in 1.5: revocation at
- * unmount, the unfiltered event stream, and a `path` that freezes while the section is hidden.
+ * Everything a section cannot answer for itself, for one mount. Revocation at unmount and a `path`
+ * that freezes while the section is hidden are still to come — `docs/extensions/progress.md`.
  */
 export function createSectionHost(section: SectionExtension): Host {
-  const prefix = `/${section.slug}`;
-
   const subPath = (): string => {
     const { pathname, searchStr } = router.state.location;
-    return `${pathname.startsWith(prefix) ? pathname.slice(prefix.length) : ''}${searchStr}`;
+    return readSubPath(pathname, searchStr, section.slug);
   };
-
-  const splat = (subPath: string): string => subPath.replace(/^\/+/, '').split('?')[0];
 
   return {
     baseUrl: section.url,
@@ -28,15 +24,19 @@ export function createSectionHost(section: SectionExtension): Host {
       get: subPath,
       subscribe: (cb) => router.subscribe('onResolved', () => cb(subPath())),
     },
+    // ! Through history, not `router.navigate`: the router would re-serialize the search params, and
+    // ! they are the guest's own string.
     navigate: (to, opts) => {
-      void router.navigate({
-        to: '/$slug/$',
-        params: { slug: section.slug, _splat: splat(to) },
-        replace: opts?.replace,
-      });
+      const path = sectionPath(section.slug, to);
+
+      if (opts?.replace === true) {
+        router.history.replace(path);
+      } else {
+        router.history.push(path);
+      }
     },
     // Hash history, so an anchor's href carries the fragment the router reads.
-    url: (to) => `#${prefix}/${splat(to)}`,
+    url: (to) => `#${sectionPath(section.slug, to)}`,
     subscribeEvents: (cb) => onServerEvent(cb),
     notify: (n) => {
       const id = notify(toNotificationOptions(n));
