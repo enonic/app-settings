@@ -18,7 +18,7 @@ this file is status and open work, nothing else.
 | 1.4 — mount inside a shadow root        | **done**                                    |
 | 1.5 — host object v1                    | **1.5a and 1.5b done**; revocation left     |
 | 1.6 — the provider's own GraphQL        | **done** — exit check verified on a live XP |
-| 1.7 — keep-alive and lifecycle          | **D1 and D2 done**; D3–D4 left              |
+| 1.7 — keep-alive and lifecycle          | **done**                                    |
 | 1.8 — `@enonic/ui` overlays in the root | npm-enonic-ui#533/#534, owned elsewhere     |
 | 1.9 — dev override for the module url   | not started                                 |
 
@@ -98,12 +98,18 @@ could be seen. Both controllers now delegate to `lib/section-endpoint.ts`. It al
 module-identity question on screen: the two descriptors have different prefixes, so the browser loads
 and executes `main.js` twice and each instance bootstraps separately.
 
-**D3 — make uninstall reachable.** `systemApp = false` in the provider. With it true the app cannot be
-uninstalled, so D1's disposal path and all of D4 cannot be exercised.
+**D3 — make uninstall reachable. Done.** `systemApp = false` in the provider. Note that this is only
+half the guard: `isUninstallable` refuses on `local` and on `system` **separately**, and an app
+deployed through `$XP_HOME/deploy` is local whatever its bundle header says. So a `./gradlew deploy`d
+provider still cannot be uninstalled from the UI — **Stop** is the reachable way to make a section
+leave the rail, and deleting the jar from the deploy directory is the other.
 
-**D4 — the rail follows the server.** An `extensions.service.ts` with `start`/`stop` subscribing to
-`application` events, terminal types only and debounced — `PROGRESS` fires per percent. Rediscover on
-reconnect too: events missed while the socket was down leave the rail stale.
+**D4 — the rail follows the server. Done.** `extensions.service.ts` with `start`/`stop`, started from
+`App`, subscribing to `application` events. Only the five terminal types count — `PROGRESS` fires per
+percent while an app downloads — and a burst is debounced to one rediscovery 300 ms later. A
+reconnect rediscovers as well, since events missed while the socket was down are gone for good; the
+first connect is not a reconnect. `beginSectionExtensionsLoad` already keeps the rail populated across
+a reload, so nothing flickers.
 
 ### E — 1.5c + 1.3 leftovers: revocation and sub-path memory
 
@@ -145,11 +151,11 @@ acceptable per provider. A failed discovery saying nothing is **5.2**.
 ## Known gaps
 
 - Host object not revoked at unmount — E.
-- The rail never changes after startup; nothing re-runs discovery — D4.
 - A failed discovery says nothing; the rail just stays empty — 5.2.
 - No `:host` reset in the guest; inheritable properties leak in from the host's `body` — 1.8.
 - No `Cache-Control` on `_static/*`; every visit re-downloads module and stylesheet in full.
-- `systemApp = true` in the provider blocks the uninstall path D needs.
+- A provider deployed through `$XP_HOME/deploy` is a `local` app, so it cannot be uninstalled from
+  the UI; stopping it is what proves a section leaving the rail.
 - Bundle bytes: ~87 kB gz JS + ~12.5 kB gz CSS per section, per provider.
 
 ## Drift to fix in `docs.md`

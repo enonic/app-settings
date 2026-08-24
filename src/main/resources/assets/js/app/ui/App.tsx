@@ -1,7 +1,11 @@
 import { RouterProvider } from '@tanstack/react-router';
 import { useEffect } from 'preact/hooks';
 
-import { loadSectionExtensions } from '../../entities/extension';
+import {
+  loadSectionExtensions,
+  startSectionExtensionsService,
+  stopSectionExtensionsService,
+} from '../../entities/extension';
 import { useTheme } from '../../shared/app-state';
 import type { ToolConfig } from '../../shared/config';
 import { useMenuPanel } from '../../shared/menu';
@@ -26,6 +30,11 @@ export function App({ config }: AppProps) {
 
   useEffect(() => {
     void loadSectionExtensions();
+    startSectionExtensionsService();
+
+    return () => {
+      stopSectionExtensionsService();
+    };
   }, []);
 
   // useEffect(() => {
