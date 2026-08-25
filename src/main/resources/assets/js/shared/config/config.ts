@@ -17,6 +17,7 @@ export type ToolConfig = {
   appId: string;
   appVersion: string;
   locale: string;
+  isAdmin?: boolean;
   assetsUrl: string;
   menuLoaderUrl?: string;
   appsManagedMode?: boolean;

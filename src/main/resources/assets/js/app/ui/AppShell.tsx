@@ -1,6 +1,8 @@
-import { useSectionExtensions } from '../../entities/extension';
+import { useSectionExtensions, type SectionExtensionsState } from '../../entities/extension';
+import { isSystemAdmin } from '../../shared/config';
 import { NotificationList } from '../../widgets/notifications/NotificationList';
 import { SectionRail, type SectionRailItem } from '../../widgets/section-rail/SectionRail';
+import { SectionsEmpty } from '../../widgets/sections-empty/SectionsEmpty';
 import { sectionPath } from '../model/section-path';
 import { lastSubPath, rememberSubPath } from '../model/section-paths';
 import { useActiveSection } from '../model/useActiveSection';
@@ -11,10 +13,11 @@ import { SectionMounts } from './SectionMounts';
 export function AppShell() {
   useSectionRedirect();
 
-  // TODO: [extensions] A failed discovery leaves the rail empty and says nothing; the shell's own
-  // states are 5.2.
-  const { items } = useSectionExtensions();
+  const discovery = useSectionExtensions();
+  const { items } = discovery;
   const { section: active, subPath } = useActiveSection();
+
+  const empty = emptyReason(discovery);
 
   // Recorded during render, like the visited set: the rail is built from it in this same pass.
   if (active != null) {
@@ -39,11 +42,23 @@ export function AppShell() {
 
         {/* Not an `Outlet`: the sections outlive the route that reveals them. */}
         <main className="flex min-h-0 flex-1 flex-col">
-          <SectionMounts />
+          {empty ? <SectionsEmpty reason={empty} hint={!isSystemAdmin()} /> : <SectionMounts />}
         </main>
       </div>
 
       <NotificationList />
     </div>
   );
+}
+
+//
+// * Internal
+//
+
+function emptyReason({ status, items }: SectionExtensionsState): 'none' | 'failed' | undefined {
+  if (status === 'error') {
+    return 'failed';
+  }
+
+  return status === 'ready' && items.length === 0 ? 'none' : undefined;
 }

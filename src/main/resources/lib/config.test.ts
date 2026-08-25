@@ -1,4 +1,5 @@
 import { extensionUrl } from '/lib/xp/admin';
+import { hasRole } from '/lib/xp/auth';
 import { getPhrases } from '/lib/xp/i18n';
 import { apiUrl, assetUrl } from '/lib/xp/portal';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +10,7 @@ const config: ToolConfig = {
   appId: 'com.enonic.xp.app.settings',
   appVersion: '1.0.0',
   locale: 'en',
+  isAdmin: true,
   assetsUrl: '/admin/tool/_/asset/com.enonic.xp.app.settings',
   menuLoaderUrl: '/admin/tool/_/admin:extension/com.enonic.xp.app.main:menu-loader',
   appsManagedMode: false,
@@ -39,6 +41,7 @@ describe('getConfig', () => {
   beforeEach(() => {
     withAppConfig({});
     vi.mocked(getPhrases).mockReturnValue({ 'nav.users': 'Users' });
+    vi.mocked(hasRole).mockReturnValue(true);
     vi.mocked(assetUrl).mockReturnValue('/assets');
     vi.mocked(extensionUrl).mockImplementation(
       ({ application, extension }) => `/_/admin:extension/${application}:${extension}`,
@@ -85,6 +88,13 @@ describe('getConfig', () => {
   it('addresses the app-owned graphql api by its qualified key', () => {
     expect(getConfig(['en']).apis.graphql).toBe('/_/com.enonic.xp.app.settings:graphql');
     expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'com.enonic.xp.app.settings:graphql' });
+  });
+
+  it('reports whether the visitor is a system admin', () => {
+    vi.mocked(hasRole).mockReturnValue(false);
+
+    expect(getConfig(['en']).isAdmin).toBe(false);
+    expect(vi.mocked(hasRole)).toHaveBeenCalledWith('role:system.admin');
   });
 
   it('reports managed mode where the install configured it', () => {

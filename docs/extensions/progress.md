@@ -19,6 +19,7 @@ replaces that app's UI, so it cannot merge before Phase 3.
 | 1.6       | config and phrases as schema root fields                                                  | done                                                                                           |
 | 1.7       | dev override from a local Vite dev server                                                 | not started                                                                                    |
 | —         | rail follows application events and socket reconnects                                     | done, beyond § Discovery 6                                                                     |
+| —         | tool at the `admin.login` floor; empty and failed rail states (#113)                      | done, beyond § Security and 5.2                                                                |
 
 Phase 1 exits when 1.2's overlays are verified, 1.7 is done or dropped, and the first two gaps below
 are decided.
@@ -30,8 +31,8 @@ are decided.
   they return beside the discovered ones — a mixed rail — or `docs.md` changes its sequence.
 - `pnpm check` is red in the host on `widgets/browse-layout/browse-layout.test.ts`: Node 24 has a
   `localStorage` global, so the `typeof` guard no longer holds. Unrelated to extensions.
-- A failed rediscovery empties the rail and unmounts every section; a failed first discovery shows
-  nothing at all (5.2).
+- A failed rediscovery still empties the rail and unmounts every section — it now says so
+  (`sections.failed`) rather than showing a blank panel.
 - No host-side skeleton between import and the guest's first paint; the guest's own is what shows.
 - `theme` listeners survive revocation — it is the shell's atom, handed over as-is.
 - `mount` carries no section identity; a multi-section provider parses `host.baseUrl`. An additive

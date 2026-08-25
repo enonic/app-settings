@@ -5,19 +5,22 @@ what stands. `provider-facts.md` is the other side of the boundary.
 
 ## Surface
 
-| Where                                                | What                                                                                                                                                   |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `admin/tools/main/main.yaml`                         | `interfaces: [settings.section]`; `apis: graphql, server:app, admin:event, admin:extension, com.enonic.xp.app.main:events`; `allow: role:system.admin` |
-| `lib/config.ts` → `apis.extensions`                  | the discovery endpoint: `admin:extension` under the tool                                                                                               |
-| `entities/extension/`                                | discovery, sorting, slugs, the rediscovery service                                                                                                     |
-| `app/model/createSectionHost.ts`                     | the `Host` object, one per mounted section, with its `revoke`                                                                                          |
-| `app/model/router.ts`, `section-path.ts`             | the url scheme, and the `path` signal a hidden section stops tracking                                                                                  |
-| `app/ui/SectionMounts.tsx`, `widgets/section-mount/` | one slot per visited section; the shadow host element and the failure phrase                                                                           |
-| `shared/sections/`                                   | `contract.ts`, `mountSection`, `isSectionModule`, the shadow container                                                                                 |
+| Where                                                | What                                                                                                                                                         |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `admin/tools/main/main.yaml`                         | `interfaces: [settings.section]`; `apis: graphql, server:app, admin:event, admin:extension, com.enonic.xp.app.main:events`; `allow: role:system.admin.login` |
+| `lib/config.ts` → `apis.extensions`                  | the discovery endpoint: `admin:extension` under the tool                                                                                                     |
+| `entities/extension/`                                | discovery, sorting, slugs, the rediscovery service                                                                                                           |
+| `app/model/createSectionHost.ts`                     | the `Host` object, one per mounted section, with its `revoke`                                                                                                |
+| `app/model/router.ts`, `section-path.ts`             | the url scheme, and the `path` signal a hidden section stops tracking                                                                                        |
+| `app/ui/SectionMounts.tsx`, `widgets/section-mount/` | one slot per visited section; the shadow host element and the failure phrase                                                                                 |
+| `shared/sections/`                                   | `contract.ts`, `mountSection`, `isSectionModule`, the shadow container                                                                                       |
 
 ## Discovery and the rail
 
 - `GET <extensions>?interface=settings.section`, rows already localized and filtered by principals.
+  The tool is open to everyone who can reach admin, so **which sections a visitor sees is decided
+  entirely by each extension's own `allow`**, server-side, and the shell adds no filter of its own.
+  A `system.admin` passes every one of those gates — see `../platform-facts.md`.
   Row → `url: <base>/<key>`, `moduleUrl: <url>/_static/main.js`, `iconUrl: <base><iconUrl>`,
   `order: config.order ?? 1000`, `path: config.path`.
 - Sorted by `(order, key)`. Slug = `config.path` when it matches `[a-z0-9-]+` and is unclaimed, else
@@ -28,6 +31,10 @@ what stands. `provider-facts.md` is the other side of the boundary.
 - Rediscovery on `application` events `INSTALLED | UNINSTALLED | STARTED | STOPPED | UPDATED`,
   debounced 300 ms, and on every socket reconnect. It never shows "loading"; a failure sets
   `items: []`, and every mount goes with it.
+- With nothing to mount the content area carries the state itself (`emptyReason` in `AppShell`,
+  `widgets/sections-empty/`): `sections.empty` where discovery answered with no section — plus
+  `sections.empty.hint` for a visitor who is not `system.admin` — and `sections.failed` where it could
+  not be asked. `loading` shows neither. The rail and the app bar render empty beside it.
 - Rail items are plain anchors: `#/<slug>` for the active section (reset), `#/<slug><last sub-path>`
   for the others.
 
