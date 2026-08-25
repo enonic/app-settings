@@ -36,8 +36,8 @@ export default defineConfig(({ mode }) => {
       'bin/**',
       'src/main/resources/admin/**',
       '**/*.d.ts',
-      // TODO: [extensions] Dormant while `app/router.tsx` registers no section: nothing imports
-      // `pages/`, and the router's typed route paths it navigates by no longer exist.
+      // TODO: [extensions] Dormant while `app/model/router.ts` registers no section: nothing imports
+      // `pages/`, and the typed route paths those pages navigate by no longer exist.
       'src/main/resources/assets/js/pages/**',
     ],
   };

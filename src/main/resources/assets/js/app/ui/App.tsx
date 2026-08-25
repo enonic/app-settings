@@ -12,11 +12,6 @@ import { useMenuPanel } from '../../shared/menu';
 import { connectToServerEvents } from '../../shared/server-events';
 import { router } from '../model/router';
 
-// TODO: [extensions] Both services belong to sections that move to app-applications and app-users;
-// commented out rather than deleted until that path is proven.
-// import { startApplicationsService, stopApplicationsService } from '../entities/application';
-// import { startMarketService, stopMarketService } from '../entities/market';
-
 export type AppProps = {
   config: ToolConfig;
 };
@@ -36,16 +31,6 @@ export function App({ config }: AppProps) {
       stopSectionExtensionsService();
     };
   }, []);
-
-  // useEffect(() => {
-  //   startApplicationsService();
-  //   startMarketService();
-  //
-  //   return () => {
-  //     stopApplicationsService();
-  //     stopMarketService();
-  //   };
-  // }, []);
 
   return <RouterProvider router={router} />;
 }

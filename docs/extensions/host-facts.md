@@ -1,101 +1,75 @@
-# Host facts — the shell that hosts sections
+# Host facts — app-settings as the shell
 
-What app-settings does as the **host**, and why, where `docs.md` could not know it in advance.
-Its counterpart is `provider-facts.md`, which covers the app on the other side of the boundary.
-`progress.md` tracks what is built and what is left; nothing here is a status.
+What the host provides and does, read off the code on `issue-106`. `docs.md` is the design; this is
+what stands. `provider-facts.md` is the other side of the boundary.
 
-**Collected from phases 0 and 1 only.** Phases 2–5 have not run, so nothing below has been tested
-against a second provider, an extracted component kit, or a real section moving out.
+## Surface
 
-## What the host owns
-
-| Path                              | What it is                                                              |
-| --------------------------------- | ----------------------------------------------------------------------- |
-| `admin/tools/main/main.yaml`      | publishes `interfaces: [settings.section]` and mounts `admin:extension` |
-| `lib/config.ts`                   | `apis.extensions` — the discovery endpoint                              |
-| `entities/extension/`             | discovery: fetch, map, sort, slugs                                      |
-| `app/ui/SectionMounts.tsx`        | a slot per visited section, only the active one shown                   |
-| `app/model/createSectionHost.ts`  | the `Host` object, one per section                                      |
-| `app/model/useSectionRedirect.ts` | an unanswered path goes to the first section                            |
-| `widgets/section-mount/`          | the shadow host element and the failure phrase                          |
-| `shared/sections/`                | the contract, `mountSection` and its DOM helpers, the sub-path helpers  |
-
-The five built-in sections are **commented out, not deleted**: `app/model/router.ts`, `app/ui/App.tsx`
-and `app/ui/AppShell.tsx` each carry a `// TODO: [extensions]` marker, and `pages/**` is excluded from lint
-while it is dormant — it no longer type-checks, because the router registers none of its routes.
-
-## The contract
-
-- **It lives at `shared/sections/contract.ts` in both repos** — the same path, so the two copies are
-  easy to diff. Below the header comment they are byte-identical. Its eventual home is the
-  `@enonic/toolkit/section` subpath.
-- **No version handshake.** The scratch spike exported a `contractVersion`; it is gone. A module
-  without a `mount` function is the only thing the host rejects.
-- **`baseUrl` is a convenience, not a necessity.** A guest can resolve its own endpoint from
-  `import.meta.url`, as its stylesheet already does. Handing it over keeps the data plane independent
-  of where the build puts assets — worth knowing before Phase 2 freezes the contract.
-- **There are two section failure modes, not one.** The module would not load (the host's, reported as
-  `sectionMount.failed`), and the module loaded but could not reach its own data (the guest's, in its
-  own column). `docs.md` § Lifecycle assumes only the first.
+| Where                                                | What                                                                                                                                                   |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `admin/tools/main/main.yaml`                         | `interfaces: [settings.section]`; `apis: graphql, server:app, admin:event, admin:extension, com.enonic.xp.app.main:events`; `allow: role:system.admin` |
+| `lib/config.ts` → `apis.extensions`                  | the discovery endpoint: `admin:extension` under the tool                                                                                               |
+| `entities/extension/`                                | discovery, sorting, slugs, the rediscovery service                                                                                                     |
+| `app/model/createSectionHost.ts`                     | the `Host` object, one per mounted section, with its `revoke`                                                                                          |
+| `app/model/router.ts`, `section-path.ts`             | the url scheme, and the `path` signal a hidden section stops tracking                                                                                  |
+| `app/ui/SectionMounts.tsx`, `widgets/section-mount/` | one slot per visited section; the shadow host element and the failure phrase                                                                           |
+| `shared/sections/`                                   | `contract.ts`, `mountSection`, `isSectionModule`, the shadow container                                                                                 |
 
 ## Discovery and the rail
 
-- **Slugs are assigned after sorting.** `config.path` is taken where it is a single safe segment and
-  unclaimed; otherwise the descriptor key stands in, with a warning. Sorting is `(order ?? 1000, key)`
-  — the key breaks ties because a localized title is neither stable nor unique.
-- **Titles arrive localized.** The platform resolves `title`/`description` against the owning app's own
-  bundle, so the rail resolves no phrase for a section. `config` is not localized.
-- **Rail icons are tinted, not drawn.** The platform serves them as images, and an svg drawn in
-  `currentColor` goes black inside an `img`, so the rail paints them as a CSS mask over the foreground
-  colour. A provider shipping a colour logo would be flattened.
-
-## Mounting
-
-- **The mount sequence is one tested unit.** `mountSection` owns preload-free loading: open the shadow
-  root, import with a 15 s timeout, guard the module, mount, and hand back an idempotent disposer. Its
-  browser dependencies are injectable, which is what makes ten tests possible in a `node` environment.
-- **Failure names its stage in the console, not on screen.** One phrase (`sectionMount.failed`) for the
-  operator; `Section <url> could not be imported | exports no mount function | threw while mounting`
-  for whoever is debugging across two repos.
-- **Styling is entirely the guest's.** It emits `_static/main.css`, fetches it back at module scope
-  into one `CSSStyleSheet`, and adopts it into whatever root it is handed — so the host knows exactly
-  one contract-fixed path, `_static/main.js`. A host-side `<link rel="preload">` for the stylesheet was
-  built and then removed: preload reuse is keyed on request destination, so an `as="style"` hint is not
-  reused by the guest's `fetch`, and it gave the host knowledge of a guest file name for no gain.
-- **The section host element stays mounted in every state.** Rendering a message instead of it drops
-  the ref, and nothing can mount afterwards.
-- **The mounts are not rendered through an `Outlet`.** `AppShell` renders a slot per visited section
-  and hides the inactive ones, so keep-alive rests on keyed reconciliation rather than on whether the
-  router remounts a route component when only its param changes. The `$slug` route parses the url and
-  carries no component. A key leaving discovery is what disposes its mount.
+- `GET <extensions>?interface=settings.section`, rows already localized and filtered by principals.
+  Row → `url: <base>/<key>`, `moduleUrl: <url>/_static/main.js`, `iconUrl: <base><iconUrl>`,
+  `order: config.order ?? 1000`, `path: config.path`.
+- Sorted by `(order, key)`. Slug = `config.path` when it matches `[a-z0-9-]+` and is unclaimed, else
+  the key, with a console warning; read per call, so a collision resolved differently after an
+  install moves it.
+- Icons are painted as a CSS mask in the foreground colour: the platform serves an image, and an svg
+  in `currentColor` would come out black.
+- Rediscovery on `application` events `INSTALLED | UNINSTALLED | STARTED | STOPPED | UPDATED`,
+  debounced 300 ms, and on every socket reconnect. It never shows "loading"; a failure sets
+  `items: []`, and every mount goes with it.
+- Rail items are plain anchors: `#/<slug>` for the active section (reset), `#/<slug><last sub-path>`
+  for the others.
 
 ## Routing
 
-The router uses `createHashHistory()`, as an XP admin tool should — `docs.md` § Routing says
-"real history". One consequence: **anchor-click interception is unnecessary**, because
-`href="#/applications/x"` routes itself.
+- `createHashHistory`, one route template `$slug/$`. `AppShell` renders the sections itself, not
+  through an `Outlet`, so keep-alive rests on keyed slots.
+- The sub-path is everything after the slug, search string included, verbatim; a `#` inside it
+  becomes `%23`. `/users` does not answer for `/users-admin`.
+- Remembered per slug for the session. An unknown slug — `/` included — goes to the first section
+  once discovery has landed, silently.
+- Anything in the tool url's own query string is merged into the router location by hash history
+  and would reach every guest's `path`. No host feature may use it.
 
-**One route template carries a section, `$slug/$`, splat included.** A `$slug` parent with a `$` child
-is the natural reading, but a splat matches empty, so both templates resolve a section root and the
-router warns on every rail click that it matched the other one. Links and redirects therefore target
-`/$slug/$` with `_splat: ''`, which `trailingSlash: 'never'` renders as `/applications`.
+## Mounting
 
-## Data and events
+- First visit mounts; switching away hides (`display: none`) and keeps everything; the slot goes —
+  unmount, then revoke — only when the key leaves discovery. A section that leaves and returns
+  remounts hidden.
+- `mountSection`: shadow root with a `display: contents` container → `import(moduleUrl)` under a
+  15 s timeout → `isSectionModule` → `mount({container, host})`. On failure one phrase on screen
+  (`sectionMount.failed`) and the stage in the console — could not be imported, exports no mount
+  function, threw while mounting. The host element stays mounted in every state. No host skeleton.
+- The entry url is per prefix, so a provider's module runs once per section.
 
-- **A section's data plane is its own endpoint, not a `kind: API`.** Under an admin tool path a
-  universal API resolves only when the _host tool's_ descriptor names it, so any other choice would
-  cost an app-settings release per provider. The host stays uninvolved: it hands over `baseUrl` and
-  never sees a query.
-- **Config and phrases reach a guest after mount, not before.** A section has no page of its own to
-  inline a JSON island into, and its server code runs only when its endpoint is asked. Two
-  consequences the design did not anticipate: the guest must gate its first render, and **a bootstrap
-  failure cannot be localized** — the phrases are what failed to arrive.
-- **Notification ids are shared across mounts.** `notify` dedups on tone and text and returns the
-  _existing_ id, so revoking a mount's toasts needs an owner tag first, or one section dismisses
-  another's.
+## The host object
 
-## Numbers
+| Member                     | Host-side behaviour                                                                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `baseUrl`                  | the extension prefix                                                                                                                        |
+| `locale`                   | the tool config's locale                                                                                                                    |
+| `theme`                    | `$resolvedTheme` itself: calls back on subscribe; **not revoked**                                                                           |
+| `path`                     | frozen while hidden; on return emits only if the sub-path moved; no call-back on subscribe; disposed at revoke                              |
+| `navigate(sub, {replace})` | `router.history.push/replace` of `/<slug><sub>`, search verbatim; no-op with a console warning while hidden or after revoke                 |
+| `url(sub)`                 | `#/<slug><sub>`                                                                                                                             |
+| `subscribeEvents`          | the whole `admin:event` stream, unfiltered; every handle dropped at revoke                                                                  |
+| `notify`                   | onto the shell's stack with `owner = key`; dedup on tone + text + owner; returns dismiss; a mount's toasts come down at revoke; no-op after |
 
-A section's floor, production build, measured on the first provider: **~87 kB gz JS + ~12.5 kB gz
-CSS**, duplicated per provider because neither Preact nor `@enonic/ui` is shared. The library is what
-dominates it — see `provider-facts.md` § Numbers.
+Revocation runs when the slot unmounts. `mount` is not told which section it is.
+
+## Contract
+
+`shared/sections/contract.ts` is the `docs.md` § 2 types, byte-identical below the header in both
+repos until `@enonic/toolkit/section` exists. No version handshake: a module without a `mount`
+function is the only thing refused.

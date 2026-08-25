@@ -1,171 +1,67 @@
 # Extensions — progress
 
-Where the migration `docs.md` plans has got to. **Phases 0 and 1 only**; nothing beyond has
-started. Facts and reasoning live in `host-facts.md` (host) and `provider-facts.md` (provider) —
-this file is status and open work, nothing else.
+Tracks Phases 0 and 1 of [`docs.md`](./docs.md); nothing beyond has started. Facts live in
+`host-facts.md` and `provider-facts.md` — this file is status only.
 
-**app-settings** is the host, branch `issue-106`. **app-applications** is the first provider, branch
-`issue-2295` — it deletes that app's existing UI, so it cannot merge before Phase 3.
+Host: app-settings, branch `issue-106`. First provider: app-applications, branch `issue-2295` — it
+replaces that app's UI, so it cannot merge before Phase 3.
 
 ## Status
 
-| Subphase                                | State                                       |
-| --------------------------------------- | ------------------------------------------- |
-| 0 — the contract, compiling both sides  | **done**                                    |
-| 1.1 — host in extension mode            | **done**                                    |
-| 1.2 — discovery and the rail            | **done**                                    |
-| 1.3 — routing                           | **done**, minus remembered sub-paths        |
-| 1.4 — mount inside a shadow root        | **done**                                    |
-| 1.5 — host object v1                    | **1.5a and 1.5b done**; revocation left     |
-| 1.6 — the provider's own GraphQL        | **done** — exit check verified on a live XP |
-| 1.7 — keep-alive and lifecycle          | **done**                                    |
-| 1.8 — `@enonic/ui` overlays in the root | npm-enonic-ui#533/#534, owned elsewhere     |
-| 1.9 — dev override for the module url   | not started                                 |
+| `docs.md` | What                                                                                      | State                                                                                          |
+| --------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| 0.1–0.2   | one contract file in both repos; the host's mount compiles against it                     | done                                                                                           |
+| 1.1       | `POST /graphql` on the extension prefix                                                   | done — verified on a live XP                                                                   |
+| 1.2       | shadow root, `adoptedStyleSheets`, theme tokens; dialog/select/tooltip via `AppRoot`      | root and theming done on `@enonic/ui` 1.2.0 (npm-enonic-ui#534, released); overlays unverified |
+| 1.3       | host object v1                                                                            | done                                                                                           |
+| 1.4       | routing: splat, `path`, `navigate`, deep link, back/forward, collision, unknown section   | done — an unknown section redirects silently, by decision                                      |
+| 1.5       | lifecycle: keep-alive, hidden behaviour, import timeout, error state, unmount, revocation | done                                                                                           |
+| 1.6       | config and phrases as schema root fields                                                  | done                                                                                           |
+| 1.7       | dev override from a local Vite dev server                                                 | not started                                                                                    |
+| —         | rail follows application events and socket reconnects                                     | done, beyond § Discovery 6                                                                     |
 
-Numbering diverges from `docs.md` § Phase 1 (1.1 graphql, 1.2 shadow, 1.3 host object,
-1.4 routing, 1.5 lifecycle, 1.6 config, 1.7 dev override). Where that document says "the Phase 1.2
-spike", it means **1.8** here.
-
-**1.6's exit check has run** (deployed to a local XP, both repos, 2026-08-24): the section paints its
-skeleton and then its own phrase, app key and version; the rail title comes from the provider's own
-bundle with `config.order: 10`; dark mode works inside the shadow root; a forced GraphQL failure shows
-the section's own error rather than `sectionMount.failed`. Nothing in the host↔provider path is
-unproven any more — what is left in Phase 1 is hardening, not discovery.
-
-Working today: a section from a second application discovers, routes, mounts inside its own shadow
-root, styles itself, reads the host object, and fetches its own config and phrases from its own
-endpoint.
-
-## Left in Phase 1
-
-Six pieces of work, in the order they should be done — the ordering is not `docs.md`'s and not the
-table's, because revocation and sub-path memory both belong _inside_ the mount registry 1.7 builds,
-and doing them first would mean writing them twice. **B and C are done.** Each ends deployable:
-`pnpm check` in both repos, then `./gradlew deploy -Penv=dev` in both.
-
-### A — unblock the gate
-
-`pnpm check` is **red in the host** on `widgets/browse-layout/browse-layout.test.ts`, and has nothing
-to do with extensions: the test runner now starts node with `--localstorage-file`, so
-`typeof localStorage === 'undefined'` no longer holds and the "no storage to read" case reaches a
-`localStorage` with no `getItem`. `browse-layout.ts` needs a real capability check, not a `typeof`
-guard. Every item below ends on this command, so it goes first.
-
-### B — 1.5a: the routing helpers, extracted and tested — **done**
-
-`shared/sections/section-path.ts`, tested: `readSubPath` reads a section's own sub-path out of the
-shell's location, `sectionPath` turns one back into a shell path. Three things the inline closures got wrong:
-the query string was dropped by `navigate` and `url` though the contract says a subPath carries it;
-`/users` answered for `/users-admin`; and a `#` in a sub-path ended the url, hash history being what
-it is.
-
-**`navigate` goes through `router.history`, not `router.navigate`** — the router parses a search
-string into its own object and re-serializes it, and the sub-path is the guest's string to write. A
-history push notifies the same subscriber (`router.history.subscribe(router.load)`) that
-`router.navigate` relies on, so routing, back/forward and `__TSR_index` are unaffected.
-
-### C — 1.5b: forward the whole event stream — **done**
-
-`connectToServerEvents` filtered with `isRelevantServerEvent` before `dispatch`, so a guest could
-never see an event this app had not anticipated — the one thing `docs.md` § Events rules out. The
-socket now fans out everything it can parse. No consumer changed: all three already filter for
-themselves (`toApplicationChange`, `affectsMarket`, `toInstallProgress`), and
-`isRelevantServerEvent`/`isPrincipalNode` stay as the idiom `@enonic/toolkit` will own in Phase 2.
-
-### D — 1.7: keep-alive and lifecycle
-
-**D1 — one mount per section, one visible. Done.** `AppShell` renders a slot per visited section
-(`SectionMounts` → `SectionSlot` → `SectionMount`) and hides the inactive ones; mounting waits for a
-section's first activation, so no provider's bundle is fetched before it is opened. Identity comes
-from the slot's own lifetime — the host object is created once per slot with `useState`, not memoized
-on the row object as `SectionRoute` did, so a rediscovery no longer remounts everything. `slug` is
-read per call through `sectionExtensionByKey`, because a collision resolved differently after an
-install moves it. Unmount is keyed reconciliation dropping a section that left discovery; the
-`$slug` route lost its component and now only parses the url.
-
-**D2 — hidden mounts stop steering. Done.** `createSectionPath` in `shared/sections/section-path.ts`
-holds a section's `path`: `get()` freezes at the last value read while showing, `subscribe` is quiet
-while hidden and speaks again only when the sub-path moved, and the url subscription is dropped once
-the last listener leaves. `navigate` returns early while hidden and warns — the contract says it comes
-from user intent, so a hidden call means the guest called it from a subscription. `url` keeps working,
-and `theme`, `subscribeEvents` and `notify` stay live, because a hidden section is meant to stay fresh
-and to be able to toast. `isInSection` is now the single activity test, which also stopped
-`readSubPath` handing over another section's search string. `visible` stays parked.
-
-The provider grew a **second section** (`playground`, order 20, same module, hello-world screen) —
-with one section in the rail there was nothing to switch between, so neither keep-alive nor the freeze
-could be seen. Both controllers now delegate to `lib/section-endpoint.ts`. It also puts the
-module-identity question on screen: the two descriptors have different prefixes, so the browser loads
-and executes `main.js` twice and each instance bootstraps separately.
-
-**D3 — make uninstall reachable. Done.** `systemApp = false` in the provider. Note that this is only
-half the guard: `isUninstallable` refuses on `local` and on `system` **separately**, and an app
-deployed through `$XP_HOME/deploy` is local whatever its bundle header says. So a `./gradlew deploy`d
-provider still cannot be uninstalled from the UI — **Stop** is the reachable way to make a section
-leave the rail, and deleting the jar from the deploy directory is the other.
-
-**D4 — the rail follows the server. Done.** `extensions.service.ts` with `start`/`stop`, started from
-`App`, subscribing to `application` events. Only the five terminal types count — `PROGRESS` fires per
-percent while an app downloads — and a burst is debounced to one rediscovery 300 ms later. A
-reconnect rediscovers as well, since events missed while the socket was down are gone for good; the
-first connect is not a reconnect. `beginSectionExtensionsLoad` already keeps the rail populated across
-a reload, so nothing flickers.
-
-### E — 1.5c + 1.3 leftovers: revocation and sub-path memory
-
-Both live in the structure D builds.
-
-- **Revoke a mount's host object at unmount**: drop its subscriptions, make a stale
-  `navigate`/`notify` a no-op, dismiss its toasts.
-- Dismissing its toasts needs an **owner tag** first — `notify` dedups on tone and text and hands back
-  the id of the notification already up, so without one section revokes another's toast.
-- Remember the last sub-path per section and restore it when the rail returns there; clicking the
-  **active** rail icon resets to the section root. (The reset works today only because the rail's
-  `Link` always targets `/$slug`; once the link carries the remembered sub-path, the two cases have to
-  be told apart deliberately.)
-- An unknown slug redirects silently. `docs.md` § Routing says "with a notice".
-
-### F — 1.9: dev override for the module url
-
-A url query param rather than a host config key, so toggling it needs no redeploy. Not the cheap win
-it looks like: Vite's dev server injects styles into `document.head`, which the contract forbids and
-`adoptedStyleSheets` cannot see. Two ways out — a dev-only path in the guest that mirrors Vite's
-injected `<style>` elements into its own root, or a documented **dev-only exemption** from the
-head-writing rule. The exemption is nearly free and buys the same round-trip saving.
-
-### Exit
-
-- Fix the six drift items in `docs.md` (below) and move the XP facts at the end of
-  `provider-facts.md` into `../platform-facts.md` — they are not there yet.
-- Provider chores that should not reach app-users by being copied: `Cache-Control` on `_static/*`,
-  `.DS_Store` in `.gitignore` and the `processResources` excludes, a retry on bootstrap.
-- File the test-fixture debt issue (`docs.md` § 5: 14 test files each build a `ToolConfig`; it is 15
-  now).
-
-Out of Phase 1 by decision: **1.8** is npm-enonic-ui#533/#534 and re-enters here when it lands — a
-dialog, a select and a tooltip through `AppRoot`, with the `:host` reset and the theme class moving
-into the library. Two findings to hand over: dark tokens and `dark:` variants need a class **inside**
-the root, and the library needs `sideEffects: false` plus per-component output before its bytes are
-acceptable per provider. A failed discovery saying nothing is **5.2**.
+Phase 1 exits when 1.2's overlays are verified, 1.7 is done or dropped, and the first two gaps below
+are decided.
 
 ## Known gaps
 
-- Host object not revoked at unmount — E.
-- A failed discovery says nothing; the rail just stays empty — 5.2.
-- No `:host` reset in the guest; inheritable properties leak in from the host's `body` — 1.8.
-- No `Cache-Control` on `_static/*`; every visit re-downloads module and stylesheet in full.
-- A provider deployed through `$XP_HOME/deploy` is a `local` app, so it cannot be uninstalled from
-  the UI; stopping it is what proves a section leaving the rail.
-- Bundle bytes: ~87 kB gz JS + ~12.5 kB gz CSS per section, per provider.
+- **Merge blocker.** The host's five built-in sections are commented out (`app/model/router.ts`,
+  `app/ui/App.tsx`; `pages/**` unlinted); `docs.md` 2.4 and 4.4 keep them until Phases 3–4. Either
+  they return beside the discovered ones — a mixed rail — or `docs.md` changes its sequence.
+- `pnpm check` is red in the host on `widgets/browse-layout/browse-layout.test.ts`: Node 24 has a
+  `localStorage` global, so the `typeof` guard no longer holds. Unrelated to extensions.
+- A failed rediscovery empties the rail and unmounts every section; a failed first discovery shows
+  nothing at all (5.2).
+- No host-side skeleton between import and the guest's first paint; the guest's own is what shows.
+- `theme` listeners survive revocation — it is the shell's atom, handed over as-is.
+- `mount` carries no section identity; a multi-section provider parses `host.baseUrl`. An additive
+  contract member to consider before Phase 2 freezes the types.
+- The module runs once per section, not once per app: the entry url is per prefix.
+- `@enonic/ui` is not tree-shakeable, so a section costs ~88 kB gz JS + ~15 kB gz CSS before it
+  renders anything of its own.
+- Nothing on the provider side exercises the host object: its section renders a hardcoded page, so a
+  regression in `navigate`, `path`, events or `notify` surfaces only when Phase 3's real screen uses
+  them. No test replaces it.
+- Provider: `systemApp = true` blocks uninstall (stopping is how a section leaves the rail); no
+  `Cache-Control` on `_static/*`; no bootstrap retry.
+- 16 host test files each build a `ToolConfig`; one field breaks them all. No issue filed.
+- `CLAUDE.md`, `AGENTS.md` and `README.md` carry a status banner, not a rewrite: below it they still
+  describe the app as the frame that owns the five sections. `.claude/rules/structure.md` § Sections
+  is current.
 
 ## Drift to fix in `docs.md`
 
-- § 2 calls the types-only subpath `@enonic/toolkit/mount-contract`; § 1 and Phase 2.1 call it
-  `@enonic/toolkit/section`. The code assumes `section`.
-- The endpoint table says `_static/*` serves "hashed chunks and CSS". The stylesheet is deliberately
-  unhashed and named `main.css`, because the guest resolves it relative to its own module url.
-- § Routing says "real history"; the router uses hash history — which also removes the
-  anchor-interception item.
-- § Lifecycle assumes one section failure mode; there are two.
-- Phase 1's subphase numbering does not match this file's; see above.
-- The XP facts at the end of `provider-facts.md` belong in `../platform-facts.md`.
+- § 2 names the types subpath `@enonic/toolkit/mount-contract`; § 1 and 2.1 say
+  `@enonic/toolkit/section`. Code assumes `section`.
+- § Discovery 1: a multi-section provider's module runs once per section, not once; its module-level
+  state is not shared.
+- § Discovery 5 and the § 2 table: the stylesheet under `_static/` is an unhashed `main.css`, which
+  the guest resolves relative to its module url.
+- § Routing: hash history, not "real history" — anchor interception is unnecessary; an unknown
+  section redirects without a notice.
+- § Lifecycle: two failure modes (the module would not load; the module could not reach its data),
+  no host skeleton, and revocation does not reach `theme`.
+- § 3 / 1.2: the `@enonic/ui` workstream landed and shipped in 1.2.0 (npm-enonic-ui#534,
+  2026-08-25); the provider takes it from the registry.
+- § 5: the failed stage is named in the console and one phrase shown, by decision; 14 fixtures → 16.
+- The platform facts at the end of `provider-facts.md` belong in `../platform-facts.md`.
