@@ -13,18 +13,21 @@ app  →  pages  →  widgets / features  →  entities  →  shared
 ```
 
 No exceptions. A widget that needs app-level data takes it as a prop and declares its own view model
-for it — `SectionRail` owns `SectionRailItem` and `AppShell` passes `SECTIONS` in, rather than the
-widget reaching up into `app/navigation`. Same rule for domain data: pass a view model, never import
-from `entities/`.
+for it — `SectionRail` owns `SectionRailItem` and `AppShell` maps the discovered sections into it,
+rather than the widget reaching up into `entities/extension`. Same rule for domain data: pass a view
+model, never import from `entities/`.
 
 | Layer                | Holds                                                                                    | Never                                 |
 | -------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------- |
-| `app/`               | shell, router, navigation registry, bootstrap                                            | domain logic                          |
+| `app/`               | shell, router, section mounting, bootstrap                                               | domain logic                          |
 | `pages/<section>/`   | composition, entity → view-model mapping, route glue, the screen's own query             | reusable logic                        |
 | `widgets/`           | section-agnostic composite blocks                                                        | domain words, `entities/` imports     |
 | `features/<action>/` | one user action: dialog, wizard, command                                                 | any import to or from `widgets/`      |
 | `entities/<domain>/` | one domain slice: `api/`, `model/`, sometimes `ui/`                                      | UI beyond a domain-specific row/badge |
 | `shared/`            | api client, config, i18n, server events, notifications, selection, detail, format, `ui/` | importing anything above              |
+
+`app/` is split into two segments: `ui/` for its components, `model/` for everything else — the
+router, the section host object, the shell's hooks.
 
 **`widgets/` and `features/` never import each other**, in either direction. They sit on one level here,
 and canonical FSD puts `widgets` above `features` — so an import between them is either a same-layer
@@ -146,11 +149,17 @@ from a section id.
 
 ## Sections
 
-A section needs an entry in `app/navigation.ts`, a folder in `pages/`, and one `sectionRoutes(...)`
-line plus its two component imports in `app/router.tsx` — the helper is generic, the registration is
-not. The section screen itself is a contract: see `docs/browse-framework.md`.
+**A section is no longer registered in this app.** It is an admin extension on the `settings.section`
+interface, shipped by the app that owns it and discovered at runtime — `entities/extension` fetches
+the rows, `AppShell` builds the rail from them, and `SectionMounts` mounts each one into a shadow
+root. There is no section registry and no per-section route: `app/model/router.ts` holds one
+`$slug/$` template, and the sub-path under the slug belongs to the section. `docs/extensions/docs.md`
+is the contract; `docs/extensions/host-facts.md` is what the shell does today.
 
-The set of sections is open-ended: further admin applications are expected to move into this app.
-`app/navigation.ts` is the only place that knows which sections exist — nothing in `widgets/`,
-`features/`, `entities/` or `shared/` may enumerate them, switch on a section id, or assume how many
-there are.
+The `pages/` slices for Applications, Users, Groups, Roles and ID Providers are the code still
+waiting to move to `app-applications` and `app-users`. Nothing routes them, and they are excluded
+from lint until they go — do not add a sixth. The section screen itself stays a contract wherever it
+is built: see `docs/browse-framework.md`.
+
+Nothing in `widgets/`, `features/`, `entities/` or `shared/` may enumerate the sections, switch on a
+section id, or assume how many there are.
