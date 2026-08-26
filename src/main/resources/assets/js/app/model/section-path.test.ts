@@ -46,7 +46,9 @@ describe('sectionPath', () => {
   });
 
   it('leaves the search string exactly as the guest wrote it', () => {
-    expect(sectionPath('users', '/u1?q=b&q=a&name=a%20b')).toBe('/users/u1?q=b&q=a&name=a%20b');
+    expect(sectionPath('users', '/u1?q=b&q=a&filter=state:started')).toBe(
+      '/users/u1?q=b&q=a&filter=state:started',
+    );
   });
 
   it('keeps a search string with nothing in front of it', () => {
@@ -61,8 +63,33 @@ describe('sectionPath', () => {
     expect(sectionPath('users', '/u1?q=a#top')).toBe('/users/u1?q=a%23top');
   });
 
+  it('escapes a percent so the escape stays reversible', () => {
+    expect(sectionPath('users', '/u1?name=a%20b')).toBe('/users/u1?name=a%2520b');
+  });
+
   it('drops a trailing slash', () => {
     expect(sectionPath('users', '/u1/')).toBe('/users/u1');
+  });
+});
+
+describe('sectionPath → readSubPath round trip', () => {
+  it.each([
+    '/u1/edit',
+    '/u1?q=b&q=a',
+    '?flag',
+    '?q=a%20b',
+    '?filter=state:started',
+    '?ids=1,2',
+    '/note#1',
+    '/raw%23literal',
+    '/percent%25',
+  ])('hands back %s exactly as the guest wrote it', (subPath) => {
+    const url = sectionPath('users', subPath);
+    const [pathname = '', ...rest] = url.split('?');
+    const search = rest.length === 0 ? '' : `?${rest.join('?')}`;
+
+    const expected = subPath.startsWith('?') ? subPath : subPath.replace(/\/+$/, '');
+    expect(readSubPath(pathname, search, 'users')).toBe(expected);
   });
 });
 
@@ -101,6 +128,10 @@ describe('createSectionPath', () => {
         url = next;
         showing = stillShowing;
         listeners.forEach((listener) => listener());
+      },
+      // The url has moved but the router has not told anyone yet.
+      drift: (next: string): void => {
+        url = next;
       },
     };
   }
@@ -172,6 +203,19 @@ describe('createSectionPath', () => {
     go('/u3');
 
     expect(seen).toEqual(['/u2', '/u3']);
+  });
+
+  it('still tells listeners about a change a get() already saw', () => {
+    const seen: string[] = [];
+    const { path, go, drift } = harness('/u1');
+    path.subscribe((value) => seen.push(value));
+
+    // The url moves, a render reads it before the router notifies, then the notification lands.
+    drift('/u2');
+    expect(path.get()).toBe('/u2');
+    go('/u2');
+
+    expect(seen).toEqual(['/u2']);
   });
 
   it('lets go of the url once its last listener has', () => {

@@ -42,8 +42,10 @@ what stands. `provider-facts.md` is the other side of the boundary.
 
 - `createHashHistory`, one route template `$slug/$`. `AppShell` renders the sections itself, not
   through an `Outlet`, so keep-alive rests on keyed slots.
-- The sub-path is everything after the slug, search string included, verbatim; a `#` inside it
-  becomes `%23`. `/users` does not answer for `/users-admin`.
+- The sub-path is everything after the slug, search string included, verbatim: it is read from
+  `router.history.location` raw, never from the router's re-serialized state. In the url a `%`
+  becomes `%25` and a `#` becomes `%23`; the read undoes both. `/users` does not answer for
+  `/users-admin`.
 - Remembered per slug for the session. An unknown slug — `/` included — goes to the first section
   once discovery has landed, silently.
 - Anything in the tool url's own query string is merged into the router location by hash history
@@ -66,14 +68,15 @@ what stands. `provider-facts.md` is the other side of the boundary.
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `baseUrl`                  | the extension prefix                                                                                                                        |
 | `locale`                   | the tool config's locale                                                                                                                    |
-| `theme`                    | `$resolvedTheme` itself: calls back on subscribe; **not revoked**                                                                           |
+| `theme`                    | a wrapper over `$resolvedTheme`: calls back on subscribe; listeners dropped at revoke                                                       |
 | `path`                     | frozen while hidden; on return emits only if the sub-path moved; no call-back on subscribe; disposed at revoke                              |
 | `navigate(sub, {replace})` | `router.history.push/replace` of `/<slug><sub>`, search verbatim; no-op with a console warning while hidden or after revoke                 |
 | `url(sub)`                 | `#/<slug><sub>`                                                                                                                             |
 | `subscribeEvents`          | the whole `admin:event` stream, unfiltered; every handle dropped at revoke                                                                  |
 | `notify`                   | onto the shell's stack with `owner = key`; dedup on tone + text + owner; returns dismiss; a mount's toasts come down at revoke; no-op after |
 
-Revocation runs when the slot unmounts. `mount` is not told which section it is.
+Revocation runs after the guest's own `unmount()` has returned, so a teardown toast or navigation
+still lands. `mount` is not told which section it is.
 
 ## Contract
 

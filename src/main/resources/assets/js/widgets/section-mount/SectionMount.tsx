@@ -10,9 +10,11 @@ export type SectionMountProps = {
   host: Host;
   /** Hidden, not unmounted: the DOM and the state inside it are what keep-alive is for. */
   hidden?: boolean;
+  /** Runs after the guest's own unmount returned — where the caller revokes the host. */
+  onDisposed?: () => void;
 };
 
-export function SectionMount({ moduleUrl, host, hidden = false }: SectionMountProps) {
+export function SectionMount({ moduleUrl, host, hidden = false, onDisposed }: SectionMountProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
 
@@ -26,13 +28,20 @@ export function SectionMount({ moduleUrl, host, hidden = false }: SectionMountPr
 
     setFailed(false);
 
-    return mountSection({
+    const dispose = mountSection({
       moduleUrl,
       element,
       host,
       onFail: () => setFailed(true),
     });
-  }, [moduleUrl, host]);
+
+    // ! The guest unmounts first, then the host is released — the contract keeps the host valid
+    // ! until unmount, so a teardown toast or navigation still lands.
+    return () => {
+      dispose();
+      onDisposed?.();
+    };
+  }, [moduleUrl, host, onDisposed]);
 
   // ! The shadow host stays mounted whatever the state: rendering a message instead of it would drop
   // ! the ref, and nothing could mount afterwards.

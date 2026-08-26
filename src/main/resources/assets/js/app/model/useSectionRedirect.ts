@@ -1,7 +1,8 @@
-import { useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'preact/hooks';
 
 import { useSectionExtensions } from '../../entities/extension';
+import { router } from './router';
+import { sectionPath } from './section-path';
 import { useActiveSection } from './useActiveSection';
 
 /**
@@ -12,7 +13,6 @@ import { useActiveSection } from './useActiveSection';
 export function useSectionRedirect(): void {
   const { status, items } = useSectionExtensions();
   const { slug } = useActiveSection();
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (status !== 'ready' || items.length === 0) {
@@ -22,6 +22,9 @@ export function useSectionRedirect(): void {
       return;
     }
 
-    void navigate({ to: '/$slug/$', params: { slug: items[0].slug, _splat: '' }, replace: true });
-  }, [status, items, slug, navigate]);
+    // ! Through history, as every shell navigation: `router.navigate` percent-encodes a path param
+    // ! (`:` → `%3A`) while `decodeURI` on the way back leaves `%3A` in place, so a section whose
+    // ! slug fell back to its descriptor key would never match what was pushed.
+    router.history.replace(sectionPath(items[0].slug, ''));
+  }, [status, items, slug]);
 }

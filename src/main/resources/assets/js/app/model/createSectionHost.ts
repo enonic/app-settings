@@ -16,16 +16,18 @@ export type SectionHost = {
 /** Everything a section cannot answer for itself, for one mount. */
 export function createSectionHost(section: SectionExtension): SectionHost {
   let revoked = false;
-  const eventSubscriptions = new Set<() => void>();
+  const subscriptions = new Set<() => void>();
   // A collision resolved differently after an install moves the slug, so it is read per call.
   const slug = (): string => sectionExtensionByKey(section.key)?.slug ?? section.slug;
 
+  // ! `router.history.location`, not `router.state.location`: the router re-serializes the search
+  // ! string through its codec and percent-decodes the pathname, and the sub-path is verbatim.
   const subPath = (): string => {
-    const { pathname, searchStr } = router.state.location;
-    return readSubPath(pathname, searchStr, slug());
+    const { pathname, search } = router.history.location;
+    return readSubPath(pathname, search, slug());
   };
 
-  const isActive = (): boolean => isInSection(router.state.location.pathname, slug());
+  const isActive = (): boolean => isInSection(router.history.location.pathname, slug());
 
   const path = createSectionPath({
     read: subPath,
@@ -36,7 +38,24 @@ export function createSectionHost(section: SectionExtension): SectionHost {
   const host: Host = {
     baseUrl: section.url,
     locale: $config.get()?.locale ?? 'en',
-    theme: $resolvedTheme,
+    // ! Wrapped, not the atom itself: revocation must reach these listeners, and the raw store
+    // ! would hand the guest nanostores' `set`/`off` over the shell's own theme.
+    theme: {
+      get: () => $resolvedTheme.get(),
+      subscribe: (cb) => {
+        if (revoked) {
+          return () => {};
+        }
+
+        const unsubscribe = $resolvedTheme.subscribe(cb);
+        subscriptions.add(unsubscribe);
+
+        return () => {
+          subscriptions.delete(unsubscribe);
+          unsubscribe();
+        };
+      },
+    },
     path,
     // ! Through history, not `router.navigate`: the router would re-serialize the search params, and
     // ! they are the guest's own string.
@@ -68,10 +87,10 @@ export function createSectionHost(section: SectionExtension): SectionHost {
       }
 
       const unsubscribe = onServerEvent(cb);
-      eventSubscriptions.add(unsubscribe);
+      subscriptions.add(unsubscribe);
 
       return () => {
-        eventSubscriptions.delete(unsubscribe);
+        subscriptions.delete(unsubscribe);
         unsubscribe();
       };
     },
@@ -90,8 +109,8 @@ export function createSectionHost(section: SectionExtension): SectionHost {
     host,
     revoke: () => {
       revoked = true;
-      eventSubscriptions.forEach((unsubscribe) => unsubscribe());
-      eventSubscriptions.clear();
+      subscriptions.forEach((unsubscribe) => unsubscribe());
+      subscriptions.clear();
       path.dispose();
       dismissNotifications(section.key);
     },

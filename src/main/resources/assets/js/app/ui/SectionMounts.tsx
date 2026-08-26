@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useRef, useState } from 'preact/hooks';
 
 import { useSectionExtensions, type SectionExtension } from '../../entities/extension';
 import { SectionMount } from '../../widgets/section-mount/SectionMount';
@@ -54,7 +54,9 @@ function SectionSlot({ section, hidden }: SectionSlotState) {
   // ! `useState`, not `useMemo`: a discarded memo would hand the guest a new host and remount it.
   const [{ host, revoke }] = useState(() => createSectionHost(section));
 
-  useEffect(() => revoke, [revoke]);
-
-  return <SectionMount moduleUrl={section.moduleUrl} host={host} hidden={hidden} />;
+  // ? Revocation rides the mount's own disposal rather than an effect here: parent cleanups run
+  // ? before a child's, so an effect would revoke the host before the guest's unmount saw it.
+  return (
+    <SectionMount moduleUrl={section.moduleUrl} host={host} hidden={hidden} onDisposed={revoke} />
+  );
 }

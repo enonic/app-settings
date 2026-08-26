@@ -12,14 +12,20 @@ export function isInSection(pathname: string, slug: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-/** Everything after the section's slug, search params included; empty outside the section. */
-export function readSubPath(pathname: string, searchStr: string, slug: string): string {
-  return isInSection(pathname, slug) ? `${pathname.slice(slug.length + 1)}${searchStr}` : '';
+/**
+ * Everything after the section's slug, search params included; empty outside the section. Takes the
+ * **raw** url parts (`router.history.location`), never `router.state.location` — the router
+ * re-serializes the search string through its own codec, and the sub-path is the guest's verbatim.
+ */
+export function readSubPath(pathname: string, search: string, slug: string): string {
+  return isInSection(pathname, slug)
+    ? unescapeSubPath(`${pathname.slice(slug.length + 1)}${search}`)
+    : '';
 }
 
 /** The shell path a section's sub-path resolves to. */
 export function sectionPath(slug: string, subPath: string): string {
-  const [rawPath = '', ...rest] = escapeHash(subPath).split('?');
+  const [rawPath = '', ...rest] = escapeSubPath(subPath).split('?');
 
   const segments = rawPath.replace(/^\/+/, '').replace(/\/+$/, '');
   const search = rest.length === 0 ? '' : `?${rest.join('?')}`;
@@ -46,6 +52,9 @@ export function createSectionPath({
   onUrlChange,
 }: SectionPathOptions): Readable<string> & { dispose(): void } {
   let current = isActive() ? read() : '';
+  // ! Emission compares against what listeners were last told, not against `current`: a `get()`
+  // ! between the url moving and the router's notification must not swallow that change's emission.
+  let lastEmitted = current;
   let stop: (() => void) | undefined;
   const listeners = new Set<(value: string) => void>();
 
@@ -55,11 +64,12 @@ export function createSectionPath({
     }
 
     const next = read();
-    if (next === current) {
+    current = next;
+    if (next === lastEmitted) {
       return;
     }
 
-    current = next;
+    lastEmitted = next;
     listeners.forEach((listener) => listener(next));
   };
 
@@ -97,7 +107,15 @@ export function createSectionPath({
 // * Internal
 //
 
-/** ! Under hash history a `#` would end the url, taking the search params with it. */
-function escapeHash(subPath: string): string {
-  return subPath.replace(/#/g, '%23');
+/**
+ * ! Under hash history a `#` would end the url, taking the search params with it — and once `#`
+ * ! becomes `%23`, a literal `%` must be escaped first or the round trip back is ambiguous.
+ */
+function escapeSubPath(subPath: string): string {
+  return subPath.replace(/%/g, '%25').replace(/#/g, '%23');
+}
+
+/** The exact inverse, in the reverse order: what `readSubPath` hands back is what the guest wrote. */
+function unescapeSubPath(subPath: string): string {
+  return subPath.replace(/%23/g, '#').replace(/%25/g, '%');
 }

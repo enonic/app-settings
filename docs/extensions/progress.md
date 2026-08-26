@@ -29,12 +29,9 @@ are decided.
 - **Merge blocker.** The host's five built-in sections are commented out (`app/model/router.ts`,
   `app/ui/App.tsx`; `pages/**` unlinted); `docs.md` 2.4 and 4.4 keep them until Phases 3–4. Either
   they return beside the discovered ones — a mixed rail — or `docs.md` changes its sequence.
-- `pnpm check` is red in the host on `widgets/browse-layout/browse-layout.test.ts`: Node 24 has a
-  `localStorage` global, so the `typeof` guard no longer holds. Unrelated to extensions.
 - A failed rediscovery still empties the rail and unmounts every section — it now says so
   (`sections.failed`) rather than showing a blank panel.
 - No host-side skeleton between import and the guest's first paint; the guest's own is what shows.
-- `theme` listeners survive revocation — it is the shell's atom, handed over as-is.
 - `mount` carries no section identity; a multi-section provider parses `host.baseUrl`. An additive
   contract member to consider before Phase 2 freezes the types.
 - The module runs once per section, not once per app: the entry url is per prefix.
@@ -61,7 +58,7 @@ are decided.
 - § Routing: hash history, not "real history" — anchor interception is unnecessary; an unknown
   section redirects without a notice.
 - § Lifecycle: two failure modes (the module would not load; the module could not reach its data),
-  no host skeleton, and revocation does not reach `theme`.
+  and no host skeleton.
 - § 3 / 1.2: the `@enonic/ui` workstream landed and shipped in 1.2.0 (npm-enonic-ui#534,
   2026-08-25); the provider takes it from the registry.
 - § 5: the failed stage is named in the console and one phrase shown, by decision; 14 fixtures → 16.

@@ -1,6 +1,7 @@
 import { useRouterState } from '@tanstack/react-router';
 
 import { type SectionExtension, useSectionExtensions } from '../../entities/extension';
+import { router } from './router';
 import { readSubPath } from './section-path';
 
 export type ActiveSection = {
@@ -13,11 +14,18 @@ export type ActiveSection = {
 
 /** Read off the path rather than from route params, so the app bar can ask outside the route. */
 export function useActiveSection(): ActiveSection {
-  const slug = useRouterState({ select: (state) => state.location.pathname.split('/')[1] ?? '' });
-  const subPath = useRouterState({
-    select: (state) => readSubPath(state.location.pathname, state.location.searchStr, slug),
-  });
+  // The router state is only the re-render trigger; the values come from `router.history.location`,
+  // the raw url — `router.state.location` re-serializes the search string and decodes the pathname,
+  // and the sub-path is the guest's verbatim (see section-path.ts).
+  useRouterState({ select: (state) => state.location.href });
+  const { pathname, search } = router.history.location;
   const { items } = useSectionExtensions();
 
-  return { slug, subPath, section: items.find((section) => section.slug === slug) };
+  const slug = pathname.split('/')[1] ?? '';
+
+  return {
+    slug,
+    subPath: readSubPath(pathname, search, slug),
+    section: items.find((section) => section.slug === slug),
+  };
 }
