@@ -7,6 +7,11 @@ A unified frame for the administration sections of [Enonic XP](https://github.co
 
 The app is a system app, and its admin tool is restricted to `role:system.admin`.
 
+> **Status.** This app is becoming a hub: sections are discovered at runtime as `settings.section`
+> admin extensions provided by other apps, and the Applications, Users, Groups, Roles and ID
+> Providers code still in this repo moves out to `app-applications` and `app-users`. The layout and
+> routing described below is the pre-extension picture and is being rewritten as that lands.
+
 ## Requirements
 
 - JDK 25
@@ -113,10 +118,9 @@ i18n/               phrase bundles
 
 ## Routing
 
-The left toolbar has one entry per section, declared in `assets/js/app/navigation.ts`.
-Each section is routed as `/{section}` with a deep-linkable item route
-`/{section}/$id`; `/` redirects to the first section. Hash history is used, so an item
-view survives a reload and can be linked to.
+The left rail has one entry per discovered section. Hash history is used, and a section is routed as
+`/{slug}/{sub-path}`, where the sub-path belongs to the section itself and the shell only carries it
+— so a deep link survives a reload. A path no section answers to goes to the first one.
 
 <!-- Links -->
 

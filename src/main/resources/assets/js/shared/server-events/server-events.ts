@@ -90,6 +90,7 @@ export function isPrincipalNode(node: ServerEventNode): boolean {
   );
 }
 
+/** The stream is fanned out whole, so filtering is the consumer's: this is the idiom, not a gate. */
 export function isRelevantServerEvent(event: ServerEvent): boolean {
   if (event.type === APPLICATION_EVENT) {
     return true;
@@ -168,8 +169,10 @@ export function connectToServerEvents(url: string): () => void {
     });
 
     socket.addEventListener('message', (message: MessageEvent<string>) => {
+      // ! Fanned out whole. A host-side allow-list of "relevant" events breaks the first section
+      // ! whose events this app has never heard of — every subscriber filters its own stream.
       const event = parseServerEvent(message.data);
-      if (event && isRelevantServerEvent(event)) {
+      if (event) {
         dispatch(event);
       }
     });
