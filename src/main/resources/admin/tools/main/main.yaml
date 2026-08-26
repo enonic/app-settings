@@ -15,5 +15,6 @@ apis:
   - "graphql"
   - "server:app"
   - "admin:event"
+  - "admin:events"
   - "admin:extension"
   - "com.enonic.xp.app.main:events"
