@@ -517,6 +517,29 @@ ships with the distribution and shares its version. This app is versioned separa
 comparing against the running platform — the market filter is the case — has to call
 `getVersion()` from `/lib/xp/admin`. It carries the build suffix (`8.1.0-SNAPSHOT`).
 
+## Admin access: four gates, and `system.admin` walks through all of them
+
+The shell hands out no section access of its own — every gate below is the platform's, verified in
+`../xp`:
+
+- **The floor.** `AdminExtensionDispatcherApiHandler:19` and `EventApiHandler:22` both declare
+  `allowedPrincipals=role:system.admin.login`, and app-main's `menu`/`menu-loader` extensions allow
+  `role:system.admin` **and** `role:system.admin.login`. So an admin tool open to `admin.login` is
+  fully functional for a non-admin: menu, event socket, discovery and mounting all answer.
+- **Discovery is filtered server-side, per caller.** `GetListAllowedAdminExtensionsHandler:58-62`
+  reads the principals off the current context and keeps only rows whose
+  `isAccessAllowed(principals)` passes; `AdminExtensionApiHandler:71` runs the same check again on
+  every request to the extension's own prefix. Menu and access therefore cannot disagree — they are
+  one check — and **a client must never re-filter the list it is given.**
+- **`AdminExtensionDescriptor.isAccessAllowed:88-92`**: `allowedPrincipals == null` (no `allow` in
+  the descriptor) → everyone past the tool; `[]` → nobody but admin; listed → admin or listed. In
+  every branch **`RoleKeys.ADMIN` short-circuits the check**, so a `system.admin` sees every section
+  whatever its descriptor says. Testing that an `allow` excludes someone requires a non-admin
+  account; as an admin the section is always there.
+- **`AdminToolDescriptor.isAccessAllowed:80-83` is asymmetric with the above**: there is no null
+  branch, so an `AdminTool` with no `allow` admits admin alone, and a listed principal is admitted
+  _in addition to_ admin — never instead of.
+
 ## Pin every `@enonic-types` dependency
 
 npm's `latest` tag is **7.16.7** for all of them even though 8.0.3 exists. Unpinned means 7.x types

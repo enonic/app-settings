@@ -2,6 +2,7 @@ import { AppError } from '../api';
 
 export type ApiUrls = {
   events: string;
+  extensions: string;
   graphql: string;
   serverApp: {
     start: string;
@@ -16,6 +17,7 @@ export type ToolConfig = {
   appId: string;
   appVersion: string;
   locale: string;
+  isAdmin?: boolean;
   assetsUrl: string;
   menuLoaderUrl?: string;
   appsManagedMode?: boolean;
@@ -35,6 +37,7 @@ function isToolConfig(value: unknown): value is ToolConfig {
     typeof phrases === 'object' &&
     apis != null &&
     typeof apis.events === 'string' &&
+    typeof apis.extensions === 'string' &&
     typeof apis.graphql === 'string' &&
     apis.serverApp != null &&
     typeof apis.serverApp.start === 'string' &&

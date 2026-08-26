@@ -5,8 +5,12 @@ title:
 description:
   text: "Manage applications, users, groups, roles and ID providers"
   i18n: "admin.tool.description"
+# Everyone who can reach XP admin: which sections they then see is each extension's own `allow`,
+# filtered server-side by the platform.
 allow:
-  - "role:system.admin"
+  - "role:system.admin.login"
+interfaces:
+  - "settings.section"
 apis:
   - "graphql"
   - "server:app"

@@ -9,6 +9,7 @@ export {
   $notifications,
   clearNotifications,
   dismissNotification,
+  dismissNotifications,
   notify,
   notifyError,
   notifyInfo,

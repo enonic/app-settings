@@ -1,6 +1,6 @@
 import { useEffect } from 'preact/hooks';
 
-import { useI18n } from '../shared/i18n';
+import { useI18n } from '../../shared/i18n';
 
 /**
  * The browser tab: `XP Settings / Roles`, and the app's own name alone where the path names no
