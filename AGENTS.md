@@ -4,9 +4,14 @@ Enonic XP admin application: one frame for the Applications, Users, Groups, Role
 sections. Single Gradle project — TypeScript, Preact (React compat layer), Tailwind CSS v4,
 nanostores, TanStack Router. The admin tool is restricted to `role:system.admin`.
 
-The app replaces `app-users` and `app-applications`, and further XP admin applications are expected to
-move here later — the five current sections are not the final set. `app/navigation.ts` is the only
-place that knows which sections exist; nothing below `app/` enumerates them.
+> **Status — the `extensions` branch is turning this app into a hub.** Sections are discovered at
+> runtime as `settings.section` admin extensions provided by other apps; the Applications, Users,
+> Groups, Roles and ID Providers code still in this repo is on its way out to `app-applications` and
+> `app-users`, and none of it is routed today — `pages/` is dark. **`docs/extensions/` is
+> authoritative on how the shell works**: `docs.md` for the design and its phases, `progress.md` for
+> what stands. Everything below still describes this app as the frame that owns those five sections,
+> which is the pre-extension picture — treat it as a description of the code that has yet to move,
+> and rewrite this file when the migration lands.
 
 Every section is the same browse screen with different data: full-width action toolbar, list column
 (search, list header, rows), details column. That screen is a shared framework — **read

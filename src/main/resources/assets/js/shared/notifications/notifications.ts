@@ -11,6 +11,8 @@ export type NotificationOptions = {
   autoHide?: boolean;
   lifetimeMs?: number;
   actions?: readonly NotificationAction[];
+  /** Who raised it, where something can be revoked — a section mount. */
+  owner?: string;
 };
 
 export type Notification = {
@@ -20,6 +22,7 @@ export type Notification = {
   autoHide: boolean;
   lifetimeMs: number;
   actions: readonly NotificationAction[];
+  owner?: string;
 };
 
 export type NotificationsState = {
@@ -52,13 +55,17 @@ export function lifetimeFor(tone: NotificationTone, requestedMs?: number): numbe
   return isUrgent(tone) ? LONG_LIFETIME_MS : SHORT_LIFETIME_MS;
 }
 
-/** Acting on several items reports one failure per item; three identical toasts say it once. */
+/**
+ * Acting on several items reports one failure per item; three identical toasts say it once. Owners
+ * are told apart: two sections saying the same thing each keep an id they can take down.
+ */
 export function findDuplicate(
   { visible, queued }: NotificationsState,
-  candidate: Pick<Notification, 'tone' | 'text'>,
+  candidate: Pick<Notification, 'tone' | 'text' | 'owner'>,
 ): Notification | undefined {
   return [...visible, ...queued].find(
-    ({ tone, text }) => tone === candidate.tone && text === candidate.text,
+    ({ tone, text, owner }) =>
+      tone === candidate.tone && text === candidate.text && owner === candidate.owner,
   );
 }
 

@@ -18,6 +18,7 @@ const config = {
   phrases: {},
   apis: {
     events: 'ws:/_/admin:event',
+    extensions: '/_/admin:extension',
     graphql: '/_/app:graphql',
     serverApp: {
       start: '/_/server:app/start',

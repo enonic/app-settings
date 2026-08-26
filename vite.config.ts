@@ -31,7 +31,15 @@ export default defineConfig(({ mode }) => {
     options: { typeAware: true, typeCheck: true },
     // admin/** are CJS + XP globals (outside tsconfig); build/** and bin/** are generated output
     // (bin/ is the Java language server's shadow copy of the whole resources tree).
-    ignorePatterns: ['build/**', 'bin/**', 'src/main/resources/admin/**', '**/*.d.ts'],
+    ignorePatterns: [
+      'build/**',
+      'bin/**',
+      'src/main/resources/admin/**',
+      '**/*.d.ts',
+      // TODO: [extensions] Dormant while `app/model/router.ts` registers no section: nothing imports
+      // `pages/`, and the typed route paths those pages navigate by no longer exist.
+      'src/main/resources/assets/js/pages/**',
+    ],
   };
 
   const fmt = {
