@@ -161,9 +161,6 @@ importers:
       '@enonic-types/lib-project':
         specifier: ^8.0.4
         version: 8.0.4
-      '@enonic-types/lib-schema':
-        specifier: ^8.0.4
-        version: 8.0.4
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(typescript@7.0.2))
@@ -235,9 +232,6 @@ packages:
 
   '@enonic-types/lib-project@8.0.4':
     resolution: {integrity: sha512-8k8/7cJEJiyHz18TqYu9jvldHRVvXDmxtmBM7yhykXJdlzRO+kfKT1Dl/a4T10PjkG/SccDthWmTTSOK/ZlOQw==}
-
-  '@enonic-types/lib-schema@8.0.4':
-    resolution: {integrity: sha512-+qa7z9FuoP3RSVdFbkUs7BtFU3K5VkYaVQUwLV5FQI1BwsAgmsgXnp0nfl4DwVF9DOimosCvH/EUzadIoe7Tdw==}
 
   '@enonic/ui@1.1.1':
     resolution: {integrity: sha512-ekBRhzFJ8mi5GAh7VZY5mHNXHQ0I1B3DJjlfNmTancCtBCm3X4bapOFii/z2V3jL49LX4eiRIcLoEStCnUjxYQ==}
@@ -1697,10 +1691,6 @@ snapshots:
       '@enonic-types/core': 8.0.4
 
   '@enonic-types/lib-project@8.0.4':
-    dependencies:
-      '@enonic-types/core': 8.0.4
-
-  '@enonic-types/lib-schema@8.0.4':
     dependencies:
       '@enonic-types/core': 8.0.4
 
