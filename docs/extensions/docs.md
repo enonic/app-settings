@@ -243,15 +243,15 @@ What it does **not** remove:
   `role:system.admin.login` on the dispatcher → the host tool's `allow` → the interface/mount
   check → the extension's own `allow` (also applied to the discovery list, so menu and access
   agree).
-- **The host tool's `allow` is the floor, `role:system.admin.login`** — everyone who can reach XP
-  admin opens the shell, and nothing about _which_ sections they see is expressed there. Each
-  extension's own `allow` decides that, filtered server-side per caller, so a provider changes its
-  audience by redeploying itself and the host is never released for it. A hand-maintained union of
-  the section apps' audiences was the earlier decision and is dropped with the coupling it carried:
-  it made every new guest role a host descriptor release. The cost of the floor is that the tool
-  appears in the admin menu for people with no section at all — an `AdminTool`'s `allow` is static
-  and cannot be computed from what is installed — which is what the empty-rail state is for
-  (§ 5.2, shipped).
+- **The host tool's `allow` is the union of the section audiences** — today
+  `role:system.admin` + `role:system.user.admin` + `role:system.user.app` (`system.admin` passes
+  `isAccessAllowed` unconditionally anyway) — and means only "may open Settings". Which sections a
+  caller sees is still each extension's own `allow`, filtered server-side. The floor
+  (`role:system.admin.login`) was tried and reverted: it put the Settings tool in the admin menu for
+  every principal who can log into admin, section or no section. The accepted cost of the union is
+  coupling — a provider introducing a new audience role needs this descriptor extended, i.e. a host
+  release. The empty-rail state (§ 5.2) still matters: a listed role with its provider not yet
+  installed lands on an empty rail.
 - **Inaccessible sections are absent, not disabled.** The rail renders exactly what the filtered
   discovery list returns: an operator with `role:system.user.admin` and no admin role does not see
   Applications at all — no greyed-out items, nothing to probe. The menu and the access decision

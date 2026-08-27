@@ -19,7 +19,7 @@ replaces that app's UI, so it cannot merge before Phase 3.
 | 1.6       | config and phrases as schema root fields                                                  | done                                                                                           |
 | 1.7       | dev override from a local Vite dev server                                                 | not started                                                                                    |
 | —         | rail follows application events and socket reconnects                                     | done, beyond § Discovery 6                                                                     |
-| —         | tool at the `admin.login` floor; empty and failed rail states (#113)                      | done, beyond § Security and 5.2                                                                |
+| —         | tool `allow` = the union of the section audiences; empty and failed rail states (#113)    | done, beyond § Security and 5.2                                                                |
 
 Phase 1 exits when 1.2's overlays are verified, 1.7 is done or dropped, and the first two gaps below
 are decided.
