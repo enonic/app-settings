@@ -1,7 +1,6 @@
 import { Link } from '@enonic/ui';
 
 import type { Application } from '../../../entities/application';
-import { isAppsManagedMode } from '../../../shared/config';
 import { i18n, useI18n } from '../../../shared/i18n';
 import { DetailsPanel } from '../../../widgets/details-panel/DetailsPanel';
 import { systemVersionPhrase } from '../model/application-details';
@@ -34,7 +33,10 @@ export function ApplicationSummarySection({ application }: ApplicationSummarySec
 
       {vendorName !== undefined && (
         <DetailsPanel.Field labelKey="applications.details.vendor">
-          {vendorUrl === undefined || isAppsManagedMode() ? (
+          {/* TODO: Restore against app-applications' `config.managedMode` — managed mode shows no
+              TODO: links out. It read:
+              TODO:   {vendorUrl === undefined || isAppsManagedMode() ? ( */}
+          {vendorUrl === undefined ? (
             vendorName
           ) : (
             <span className="inline-flex items-center gap-1">
