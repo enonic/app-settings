@@ -1,7 +1,8 @@
 import { AppError } from '../api';
 
 export type ApiUrls = {
-  events: string;
+  /** The hub endpoint: `client.js` under it is the client, the endpoint itself the socket. */
+  adminEvents: string;
   extensions: string;
   graphql: string;
   serverApp: {
@@ -21,6 +22,10 @@ export type ToolConfig = {
   assetsUrl: string;
   menuLoaderUrl?: string;
   phrases: Readonly<Record<string, string>>;
+  /** Admin events hub topics the shell subscribes to, by their canonical names. */
+  topics: {
+    applications: string;
+  };
   apis: ApiUrls;
 };
 
@@ -28,14 +33,16 @@ function isToolConfig(value: unknown): value is ToolConfig {
   if (value == null || typeof value !== 'object') {
     return false;
   }
-  const { appId, locale, phrases, apis } = value as Partial<ToolConfig>;
+  const { appId, locale, phrases, topics, apis } = value as Partial<ToolConfig>;
   return (
     typeof appId === 'string' &&
     typeof locale === 'string' &&
     phrases != null &&
     typeof phrases === 'object' &&
+    topics != null &&
+    typeof topics.applications === 'string' &&
     apis != null &&
-    typeof apis.events === 'string' &&
+    typeof apis.adminEvents === 'string' &&
     typeof apis.extensions === 'string' &&
     typeof apis.graphql === 'string' &&
     apis.serverApp != null &&

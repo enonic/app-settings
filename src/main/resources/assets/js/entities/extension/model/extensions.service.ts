@@ -1,57 +1,38 @@
-import {
-  $serverEventsConnected,
-  APPLICATION_EVENT,
-  onServerEvent,
-  type ServerEvent,
-} from '../../../shared/server-events';
+import { subscribeTopic } from '../../../shared/admin-events';
+import { $config } from '../../../shared/config';
 import { loadSectionExtensions } from './extensions.load';
 
-/**
- * The lifecycle events that change which sections exist. `PROGRESS` fires once per percent while an
- * app downloads, and the transient states are each followed by one of these.
- */
-const SECTION_EVENT_TYPES = new Set(['INSTALLED', 'UNINSTALLED', 'STARTED', 'STOPPED', 'UPDATED']);
-
-/** An install ends in a burst of these, and only the rail's last word matters. */
+/** An install ends in a burst of publishes, and only the rail's last word matters. */
 const RELOAD_DELAY_MS = 300;
 
-export function affectsSections(event: ServerEvent): boolean {
-  return event.type === APPLICATION_EVENT && SECTION_EVENT_TYPES.has(event.data?.eventType ?? '');
-}
-
-let unsubscribeEvents: (() => void) | undefined;
-let unsubscribeConnection: (() => void) | undefined;
+let unsubscribe: (() => void) | undefined;
 let timer: ReturnType<typeof setTimeout> | undefined;
 
-/** Keeps the rail level with the server: an app installed, started, stopped or gone changes it. */
+/**
+ * Keeps the rail level with the server through the hub's `applications` topic: any lifecycle event
+ * may change which sections exist, and a detected loss means the same — something was missed, so
+ * rediscover. ! That topic's `allow` is admin-only for now, so a delegated operator's rail is
+ * static until reload — accepted until a broader topic is warranted.
+ */
 export function start(): void {
-  if (unsubscribeEvents != null) {
+  if (unsubscribe != null) {
     return;
   }
 
-  unsubscribeEvents = onServerEvent(handleServerEvent);
+  const topic = $config.get()?.topics.applications;
+  if (topic == null) {
+    return;
+  }
 
-  // Events missed while the socket was down leave the rail stale, so a reconnect rediscovers. The
-  // first connect is not a reconnect: nothing was missed yet.
-  let disconnected = false;
-  unsubscribeConnection = $serverEventsConnected.listen((connected) => {
-    if (!connected) {
-      disconnected = true;
-      return;
-    }
-
-    if (disconnected) {
-      disconnected = false;
-      reload();
-    }
+  unsubscribe = subscribeTopic(topic, {
+    onMessage: reload,
+    onLoss: reload,
   });
 }
 
 export function stop(): void {
-  unsubscribeEvents?.();
-  unsubscribeEvents = undefined;
-  unsubscribeConnection?.();
-  unsubscribeConnection = undefined;
+  unsubscribe?.();
+  unsubscribe = undefined;
 
   if (timer != null) {
     clearTimeout(timer);
@@ -62,12 +43,6 @@ export function stop(): void {
 //
 // * Internal
 //
-
-function handleServerEvent(event: ServerEvent): void {
-  if (affectsSections(event)) {
-    reload();
-  }
-}
 
 function reload(): void {
   if (timer != null) {

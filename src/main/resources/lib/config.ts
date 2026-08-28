@@ -1,4 +1,5 @@
 import { isAdmin } from '/lib/auth';
+import { applicationsTopic } from '/lib/events';
 import { getAllPhrases } from '/lib/i18n';
 import { extensionUrl } from '/lib/xp/admin';
 import { apiUrl, assetUrl } from '/lib/xp/portal';
@@ -16,8 +17,13 @@ export type ToolConfig = {
   assetsUrl: string;
   menuLoaderUrl: string;
   phrases: Record<string, string>;
+  /** Admin events hub topics the shell subscribes to, by their canonical names. */
+  topics: {
+    applications: string;
+  };
   apis: {
-    events: string;
+    /** The hub endpoint: `client.js` under it is the client, the endpoint itself the socket. */
+    adminEvents: string;
     extensions: string;
     graphql: string;
     serverApp: {
@@ -39,8 +45,11 @@ export function getConfig(locales: string[]): ToolConfig {
     assetsUrl: assetUrl({ path: '' }),
     menuLoaderUrl: extensionUrl({ application: ADMIN_APP, extension: 'menu-loader' }),
     phrases: getAllPhrases(locales),
+    topics: {
+      applications: applicationsTopic(),
+    },
     apis: {
-      events: apiUrl({ api: 'admin:event', type: 'websocket' }),
+      adminEvents: apiUrl({ api: 'admin:events' }),
       extensions: apiUrl({ api: 'admin:extension' }),
       graphql: apiUrl({ api: `${app.name}:graphql` }),
       serverApp: {

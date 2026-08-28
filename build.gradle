@@ -47,8 +47,8 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // Optional XP libs — uncomment as features need them.
+    include xplibs.event
     //include xplibs.context
-    //include xplibs.event
     //include xplibs.sse
     //include xplibs.io
     //include xplibs.mail

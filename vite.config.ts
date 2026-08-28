@@ -94,6 +94,8 @@ export default defineConfig(({ mode }) => {
       '/lib/xp/auth': join(import.meta.dirname, 'src/test/mocks/lib-xp-auth.ts'),
       '/lib/xp/project': join(import.meta.dirname, 'src/test/mocks/lib-xp-project.ts'),
       '/lib/xp/i18n': join(import.meta.dirname, 'src/test/mocks/lib-xp-i18n.ts'),
+      '/lib/xp/event': join(import.meta.dirname, 'src/test/mocks/lib-xp-event.ts'),
+      '/lib/events': join(import.meta.dirname, 'src/main/resources/lib/events.ts'),
       '/lib/idprovider': join(import.meta.dirname, 'src/test/mocks/lib-idprovider.ts'),
       '/lib/publickey': join(import.meta.dirname, 'src/test/mocks/lib-publickey.ts'),
       '/lib/auth': join(import.meta.dirname, 'src/main/resources/lib/auth.ts'),

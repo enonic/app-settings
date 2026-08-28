@@ -1,126 +1,113 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  $serverEventsConnected,
-  type ServerEvent,
-  type ServerEventListener,
-} from '../../../shared/server-events';
-import { loadSectionExtensions } from './extensions.load';
-import { affectsSections, start, stop } from './extensions.service';
+import { setConfig, type ToolConfig } from '../../../shared/config';
 
-const subscribed = vi.hoisted(() => ({ listeners: [] as unknown[] }));
+const subscribeTopic = vi.hoisted(() => vi.fn());
+vi.mock('../../../shared/admin-events', () => ({ subscribeTopic }));
 
-vi.mock('../../../shared/server-events', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../shared/server-events')>()),
-  onServerEvent: vi.fn((listener: unknown) => {
-    subscribed.listeners.push(listener);
-    return () => {
-      subscribed.listeners = subscribed.listeners.filter((entry) => entry !== listener);
-    };
-  }),
-}));
+const loadSectionExtensions = vi.hoisted(() => vi.fn(() => Promise.resolve()));
+vi.mock('./extensions.load', () => ({ loadSectionExtensions }));
 
-vi.mock('./extensions.load', () => ({ loadSectionExtensions: vi.fn() }));
+import { start, stop } from './extensions.service';
 
-function applicationEvent(eventType: string): ServerEvent {
-  return { type: 'application', data: { eventType, applicationKey: 'com.enonic.app.users' } };
+const config = {
+  appId: 'com.enonic.xp.app.settings',
+  appVersion: '1.0.0',
+  locale: 'en',
+  assetsUrl: '/assets',
+  phrases: {},
+  topics: { applications: 'com.enonic.xp.app.settings:applications' },
+  apis: {
+    adminEvents: '/_/admin:events',
+    extensions: '/_/admin:extension',
+    graphql: '/_/app:graphql',
+    serverApp: {
+      start: '/_/server:app/start',
+      stop: '/_/server:app/stop',
+      uninstall: '/_/server:app/uninstall',
+      install: '/_/server:app/install',
+      installUrl: '/_/server:app/installUrl',
+    },
+  },
+} satisfies ToolConfig;
+
+type Handlers = { onMessage: (data: unknown) => void; onLoss?: (count: number | null) => void };
+
+function subscribedHandlers(): Handlers {
+  return subscribeTopic.mock.calls[0][1] as Handlers;
 }
 
-function emit(event: ServerEvent): void {
-  subscribed.listeners.forEach((listener) => (listener as ServerEventListener)(event));
-}
-
-beforeEach(() => {
-  vi.useFakeTimers();
-  start();
-});
-
-afterEach(() => {
-  stop();
-  subscribed.listeners = [];
-  $serverEventsConnected.set(false);
-  vi.clearAllMocks();
-  vi.useRealTimers();
-});
-
-describe('affectsSections', () => {
-  it('accepts the lifecycle events that change which sections exist', () => {
-    ['INSTALLED', 'UNINSTALLED', 'STARTED', 'STOPPED', 'UPDATED'].forEach((eventType) => {
-      expect(affectsSections(applicationEvent(eventType))).toBe(true);
-    });
+describe('extensions.service', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    setConfig(config);
+    subscribeTopic.mockReturnValue(() => {});
   });
 
-  it('rejects the progress burst an install fires while it downloads', () => {
-    expect(affectsSections(applicationEvent('PROGRESS'))).toBe(false);
+  afterEach(() => {
+    stop();
+    vi.runAllTimers();
+    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
-  it('rejects everything that is not an application event', () => {
-    expect(affectsSections({ type: 'node.updated' })).toBe(false);
-    expect(affectsSections({ type: 'application' })).toBe(false);
-  });
-});
+  it('subscribes to the applications topic the config names', () => {
+    start();
 
-describe('the service', () => {
-  it('rediscovers after an application event', async () => {
-    emit(applicationEvent('UNINSTALLED'));
-
-    expect(loadSectionExtensions).not.toHaveBeenCalled();
-
-    await vi.runAllTimersAsync();
-    expect(loadSectionExtensions).toHaveBeenCalledTimes(1);
-  });
-
-  it('rediscovers once for a burst', async () => {
-    emit(applicationEvent('INSTALLED'));
-    emit(applicationEvent('STARTED'));
-    emit(applicationEvent('UPDATED'));
-
-    await vi.runAllTimersAsync();
-
-    expect(loadSectionExtensions).toHaveBeenCalledTimes(1);
-  });
-
-  it('leaves the rail alone for an event that changes no section', async () => {
-    emit(applicationEvent('PROGRESS'));
-    emit({ type: 'node.updated' });
-
-    await vi.runAllTimersAsync();
-
-    expect(loadSectionExtensions).not.toHaveBeenCalled();
-  });
-
-  it('rediscovers after a reconnect, because the events missed are gone for good', async () => {
-    $serverEventsConnected.set(true);
-    $serverEventsConnected.set(false);
-    $serverEventsConnected.set(true);
-
-    await vi.runAllTimersAsync();
-
-    expect(loadSectionExtensions).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not treat the first connect as a reconnect', async () => {
-    $serverEventsConnected.set(true);
-
-    await vi.runAllTimersAsync();
-
-    expect(loadSectionExtensions).not.toHaveBeenCalled();
+    expect(subscribeTopic).toHaveBeenCalledWith(
+      'com.enonic.xp.app.settings:applications',
+      expect.anything(),
+    );
   });
 
   it('subscribes once however often it is started', () => {
     start();
     start();
 
-    expect(subscribed.listeners).toHaveLength(1);
+    expect(subscribeTopic).toHaveBeenCalledTimes(1);
   });
 
-  it('drops a pending rediscovery when it stops', async () => {
-    emit(applicationEvent('UNINSTALLED'));
-    stop();
+  it('rediscovers once for a burst of publishes', async () => {
+    start();
+    const { onMessage } = subscribedHandlers();
 
+    onMessage({});
+    onMessage({});
+    onMessage({});
     await vi.runAllTimersAsync();
 
+    expect(loadSectionExtensions).toHaveBeenCalledTimes(1);
+  });
+
+  it('rediscovers on a detected loss, countable or not', async () => {
+    start();
+    const { onLoss } = subscribedHandlers();
+
+    onLoss?.(null);
+    await vi.runAllTimersAsync();
+
+    expect(loadSectionExtensions).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops the subscription and the pending reload on stop', async () => {
+    const unsubscribe = vi.fn();
+    subscribeTopic.mockReturnValue(unsubscribe);
+    start();
+    const { onMessage } = subscribedHandlers();
+
+    onMessage({});
+    stop();
+    await vi.runAllTimersAsync();
+
+    expect(unsubscribe).toHaveBeenCalled();
     expect(loadSectionExtensions).not.toHaveBeenCalled();
-    expect(subscribed.listeners).toHaveLength(0);
+  });
+
+  it('resubscribes after a stop', () => {
+    start();
+    stop();
+    start();
+
+    expect(subscribeTopic).toHaveBeenCalledTimes(2);
   });
 });

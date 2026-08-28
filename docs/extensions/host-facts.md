@@ -5,15 +5,15 @@ what stands. `provider-facts.md` is the other side of the boundary.
 
 ## Surface
 
-| Where                                                | What                                                                                                                                                                                                                                           |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `admin/tools/main/main.yaml`                         | `interfaces: [settings.section]`; `apis: graphql, server:app, admin:event, admin:events, admin:extension, com.enonic.xp.app.main:events`; `allow:` the union of the section audiences (`system.admin`, `system.user.admin`, `system.user.app`) |
-| `lib/config.ts` → `apis.extensions`                  | the discovery endpoint: `admin:extension` under the tool                                                                                                                                                                                       |
-| `entities/extension/`                                | discovery, sorting, slugs, the rediscovery service                                                                                                                                                                                             |
-| `app/model/createSectionHost.ts`                     | the `Host` object, one per mounted section, with its `revoke`                                                                                                                                                                                  |
-| `app/model/router.ts`, `section-path.ts`             | the url scheme, and the `path` signal a hidden section stops tracking                                                                                                                                                                          |
-| `app/ui/SectionMounts.tsx`, `widgets/section-mount/` | one slot per visited section; the shadow host element and the failure phrase                                                                                                                                                                   |
-| `shared/sections/`                                   | `contract.ts`, `mountSection`, `isSectionModule`, the shadow container                                                                                                                                                                         |
+| Where                                                | What                                                                                                                                                                                                                              |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin/tools/main/main.yaml`                         | `interfaces: [settings.section]`; `apis: graphql, server:app, admin:events, admin:extension, com.enonic.xp.app.main:events`; `allow:` the union of the section audiences (`system.admin`, `system.user.admin`, `system.user.app`) |
+| `lib/config.ts` → `apis.extensions`                  | the discovery endpoint: `admin:extension` under the tool                                                                                                                                                                          |
+| `entities/extension/`                                | discovery, sorting, slugs, the rediscovery service                                                                                                                                                                                |
+| `app/model/createSectionHost.ts`                     | the `Host` object, one per mounted section, with its `revoke`                                                                                                                                                                     |
+| `app/model/router.ts`, `section-path.ts`             | the url scheme, and the `path` signal a hidden section stops tracking                                                                                                                                                             |
+| `app/ui/SectionMounts.tsx`, `widgets/section-mount/` | one slot per visited section; the shadow host element and the failure phrase                                                                                                                                                      |
+| `shared/sections/`                                   | `contract.ts`, `mountSection`, `isSectionModule`, the shadow container                                                                                                                                                            |
 
 ## Discovery and the rail
 
@@ -72,7 +72,6 @@ what stands. `provider-facts.md` is the other side of the boundary.
 | `path`                     | frozen while hidden; on return emits only if the sub-path moved; no call-back on subscribe; disposed at revoke                              |
 | `navigate(sub, {replace})` | `router.history.push/replace` of `/<slug><sub>`, search verbatim; no-op with a console warning while hidden or after revoke                 |
 | `url(sub)`                 | `#/<slug><sub>`                                                                                                                             |
-| `subscribeEvents`          | the whole `admin:event` stream, unfiltered; every handle dropped at revoke                                                                  |
 | `notify`                   | onto the shell's stack with `owner = key`; dedup on tone + text + owner; returns dismiss; a mount's toasts come down at revoke; no-op after |
 
 Revocation runs after the guest's own `unmount()` has returned, so a teardown toast or navigation

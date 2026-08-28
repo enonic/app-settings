@@ -14,8 +14,9 @@ const config = {
   locale: 'en',
   assetsUrl: '/assets',
   phrases: {},
+  topics: { applications: 'com.enonic.xp.app.settings:applications' },
   apis: {
-    events: 'ws:/_/admin:event',
+    adminEvents: '/_/admin:events',
     extensions: '/_/admin:extension',
     graphql: '/_/app:graphql',
     serverApp: {
