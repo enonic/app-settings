@@ -1,12 +1,5 @@
-import { encodeApplicationIcon } from '/lib/icon';
 import { getIdProviderDescriptor } from '/lib/idprovider';
-import {
-  get,
-  getDescriptor,
-  list,
-  type Application,
-  type ApplicationDescriptor,
-} from '/lib/xp/app';
+import { getDescriptor, list, type Application, type ApplicationDescriptor } from '/lib/xp/app';
 
 export type ApplicationSource = Application & {
   descriptor: ApplicationDescriptor | null;
@@ -15,25 +8,6 @@ export type ApplicationSource = Application & {
 export function displayNameOf(source: ApplicationSource): string {
   const title = source.descriptor?.title;
   return title != null && title.length > 0 ? title : source.key;
-}
-
-export function iconDataUriOf(source: ApplicationSource): string | undefined {
-  const mimeType = source.descriptor?.icon?.mimeType;
-  if (mimeType == null) {
-    return undefined;
-  }
-
-  const encoded = encodeApplicationIcon({ application: source.key });
-  return encoded == null ? undefined : `data:${mimeType};base64,${encoded}`;
-}
-
-export function getApplication(key: string): ApplicationSource | null {
-  const application = get({ key });
-  if (application == null) {
-    return null;
-  }
-
-  return { ...application, descriptor: getDescriptor({ key }) };
 }
 
 export function listApplications(): ApplicationSource[] {

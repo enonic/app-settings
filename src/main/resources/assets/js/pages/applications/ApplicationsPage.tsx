@@ -14,7 +14,6 @@ import { loadMarketApplications, useMarketApplications } from '../../entities/ma
 import { ConfirmMajorUpdateDialog } from '../../features/install-applications/ui/ConfirmMajorUpdateDialog';
 import { InstallApplicationsDialog } from '../../features/install-applications/ui/InstallApplicationsDialog';
 import { UninstallApplicationsDialog } from '../../features/uninstall-applications/ui/UninstallApplicationsDialog';
-import { isAppsManagedMode } from '../../shared/config';
 import { i18n, useI18n } from '../../shared/i18n';
 import { ProgressBar } from '../../shared/ui/ProgressBar';
 import { sortByDisplayName, type SortDirection } from '../../widgets/browse-list/browse-sort';
@@ -50,7 +49,6 @@ export function ApplicationsPage() {
   const sort = useStore($applicationsSort);
   const { items: marketItems } = useMarketApplications();
   const uploads = useStore($applicationUploads);
-  const appsManagedMode = isAppsManagedMode();
 
   const emptyLabel = useI18n('applications.list.empty');
   const uploadingLabel = useI18n('applications.list.uploading');
@@ -132,9 +130,11 @@ export function ApplicationsPage() {
     leadingRows: uploadRows,
     reload: () => {
       void loadApplications();
-      if (!appsManagedMode) {
-        void loadMarketApplications();
-      }
+      // TODO: Restore against app-applications' `config.managedMode`. It read:
+      // TODO:   if (!appsManagedMode) {
+      // TODO:     void loadMarketApplications();
+      // TODO:   }
+      void loadMarketApplications();
     },
   });
 
@@ -143,7 +143,9 @@ export function ApplicationsPage() {
       <BrowseScreen
         {...section}
         actions={APPLICATION_ACTIONS}
-        managedMode={appsManagedMode}
+        // TODO: Restore against app-applications' `config.managedMode`, which is what turns the
+        // TODO: toolbar into `notice` and makes the list unselectable. It read:
+        // TODO:   managedMode={appsManagedMode}
         notice={<ManagedModeBanner title={managedTitle} help={managedHelp} />}
         emptyLabel={emptyLabel}
         details={<Outlet />}
@@ -157,13 +159,14 @@ export function ApplicationsPage() {
         sort={<BrowseSort options={sortOptions} value={sort} onChange={setApplicationsSort} />}
       />
 
-      {!appsManagedMode && (
-        <>
-          <InstallApplicationsDialog />
-          <UninstallApplicationsDialog />
-          <ConfirmMajorUpdateDialog />
-        </>
-      )}
+      {/* TODO: Restore against app-applications' `config.managedMode` — managed mode mounts none
+          TODO: of these. It read:
+          TODO:   {!appsManagedMode && (
+          TODO:     <>…</>
+          TODO:   )} */}
+      <InstallApplicationsDialog />
+      <UninstallApplicationsDialog />
+      <ConfirmMajorUpdateDialog />
     </>
   );
 }
