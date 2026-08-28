@@ -35,9 +35,7 @@ dependencies {
     include xplibs.auth
     include xplibs.i18n
     include xplibs.project
-    include xplibs.schema
     include 'com.enonic.lib:lib-graphql:3.0.0'
-    include 'com.enonic.lib:lib-http-client:4.0.0' // the market lookup — no XP lib makes outbound calls
     include 'com.enonic.lib:lib-mustache:3.0.0'
 
     // ScriptTestSupport runs a bean on the engine XP runs it on, through the JS that calls it.

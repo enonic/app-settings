@@ -2,14 +2,15 @@ import { useEffect } from 'preact/hooks';
 
 import { ensureApplications } from '../../../entities/application';
 import { ensureMarketApplications } from '../../../entities/market';
-import { isAppsManagedMode } from '../../../shared/config';
 
 export function useApplicationsScreen(): void {
   useEffect(() => {
     void ensureApplications();
-
-    if (!isAppsManagedMode()) {
-      void ensureMarketApplications();
-    }
+    // TODO: Restore the managed-mode guard on the way back to app-applications, against that app's
+    // TODO: own `config.managedMode`. It read:
+    // TODO:   if (!isAppsManagedMode()) {
+    // TODO:     void ensureMarketApplications();
+    // TODO:   }
+    void ensureMarketApplications();
   }, []);
 }

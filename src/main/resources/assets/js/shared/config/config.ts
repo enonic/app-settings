@@ -20,7 +20,6 @@ export type ToolConfig = {
   isAdmin?: boolean;
   assetsUrl: string;
   menuLoaderUrl?: string;
-  appsManagedMode?: boolean;
   phrases: Readonly<Record<string, string>>;
   apis: ApiUrls;
 };

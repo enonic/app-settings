@@ -17,8 +17,3 @@ export function setConfig(config: ToolConfig): void {
 export function isSystemAdmin(): boolean {
   return $config.get()?.isAdmin === true;
 }
-
-/** Managed mode, where the tool shows what is installed and offers nothing that changes it */
-export function isAppsManagedMode(): boolean {
-  return $config.get()?.appsManagedMode === true;
-}
