@@ -1,7 +1,6 @@
 import { type GraphQLType } from '/lib/graphql';
 
 import { applicationQueryFields } from '../application/application.fields';
-import { marketQueryFields } from '../market/market.fields';
 import { groupQueryFields } from '../principal/group.fields';
 import { idProviderQueryFields } from '../principal/id-provider.fields';
 import { roleQueryFields } from '../principal/role.fields';
@@ -25,7 +24,6 @@ export const QueryType: GraphQLType = generator.createObjectType({
     'Read access to everything the Settings sections manage. A list field is null only when reading it failed; the accompanying error says why.',
   fields: {
     ...applicationQueryFields,
-    ...marketQueryFields,
     ...userQueryFields,
     ...roleQueryFields,
     ...groupQueryFields,

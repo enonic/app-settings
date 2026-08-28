@@ -2,7 +2,6 @@ import { Link, Tooltip } from '@enonic/ui';
 
 import { type Application, ApplicationIcon } from '../../../entities/application';
 import { useMarketApplication } from '../../../entities/market';
-import { isAppsManagedMode } from '../../../shared/config';
 import { useI18n } from '../../../shared/i18n';
 import { DetailsPanel } from '../../../widgets/details-panel/DetailsPanel';
 import { ApplicationStateMenu } from './ApplicationStateMenu';
@@ -19,8 +18,10 @@ export function ApplicationDetailsHeader({ application }: ApplicationDetailsHead
   const { marketApplication } = useMarketApplication(application.key);
   const marketLinkLabel = useI18n('applications.details.marketLink');
 
-  // Managed mode shows no links out, and never reads the catalogue this one comes from.
-  const pageUrl = isAppsManagedMode() ? undefined : marketApplication?.pageUrl;
+  // TODO: Restore against app-applications' `config.managedMode` — managed mode shows no links
+  // TODO: out, and never reads the catalogue this one comes from. It read:
+  // TODO:   const pageUrl = isAppsManagedMode() ? undefined : marketApplication?.pageUrl;
+  const pageUrl = marketApplication?.pageUrl;
 
   return (
     <DetailsPanel.Header

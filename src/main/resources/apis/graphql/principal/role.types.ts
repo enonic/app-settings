@@ -9,7 +9,8 @@ import { listRoleMembers, type RoleSource } from './role.source';
  * Everything about a role that costs nothing, shared by the two types that show it.
  *
  * Spread rather than inherited: lib-graphql's builder has no inheritance, and the same trick carries
- * `itemFields` across the three admin-extension types in `application-info.types.ts`.
+ * `itemFields` across the three admin-extension types in app-applications'
+ * `application-info.types.ts`.
  */
 const roleFields: GraphQLFields = {
   key: {

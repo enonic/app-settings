@@ -13,7 +13,6 @@ const config: ToolConfig = {
   isAdmin: true,
   assetsUrl: '/admin/tool/_/asset/com.enonic.xp.app.settings',
   menuLoaderUrl: '/admin/tool/_/admin:extension/com.enonic.xp.app.main:menu-loader',
-  appsManagedMode: false,
   phrases: { 'nav.users': 'Users' },
   apis: {
     events: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:events',
@@ -95,30 +94,6 @@ describe('getConfig', () => {
 
     expect(getConfig(['en']).isAdmin).toBe(false);
     expect(vi.mocked(hasRole)).toHaveBeenCalledWith('role:system.admin');
-  });
-
-  it('reports managed mode where the install configured it', () => {
-    withAppConfig({ 'applications.managedMode': 'true' });
-
-    expect(getConfig(['en']).appsManagedMode).toBe(true);
-  });
-
-  it('leaves managed mode off where nothing is configured', () => {
-    expect(getConfig(['en']).appsManagedMode).toBe(false);
-  });
-
-  it('reads managed mode through the whitespace a cfg value keeps', () => {
-    withAppConfig({ 'applications.managedMode': ' true ' });
-
-    expect(getConfig(['en']).appsManagedMode).toBe(true);
-  });
-
-  it('takes only the exact string true as managed mode', () => {
-    for (const value of ['True', 'TRUE', '1', 'yes', '']) {
-      withAppConfig({ 'applications.managedMode': value });
-
-      expect(getConfig(['en']).appsManagedMode).toBe(false);
-    }
   });
 
   it('points at the lifecycle endpoints of the built-in server:app api', () => {

@@ -4,7 +4,6 @@ import { useStore } from '@nanostores/preact';
 import type { Application } from '../../../entities/application';
 import { useMarketApplication } from '../../../entities/market';
 import { $marketInstalls, startMarketUpdate } from '../../../features/install-applications';
-import { isAppsManagedMode } from '../../../shared/config';
 import { formatDate } from '../../../shared/format';
 import { i18n, useI18n } from '../../../shared/i18n';
 import { ProgressButton } from '../../../shared/ui/ProgressButton';
@@ -27,8 +26,10 @@ export function ApplicationUpdateField({ application }: ApplicationUpdateFieldPr
   const updateLabel = useI18n('applications.action.update');
   const localLabel = useI18n('applications.details.localNoUpdate');
 
-  // Managed mode reads no catalogue
-  if (isAppsManagedMode() || marketApplication?.updateAvailable !== true) {
+  // TODO: Restore against app-applications' `config.managedMode` — managed mode reads no
+  // TODO: catalogue. It read:
+  // TODO:   if (isAppsManagedMode() || marketApplication?.updateAvailable !== true) {
+  if (marketApplication?.updateAvailable !== true) {
     return null;
   }
 
