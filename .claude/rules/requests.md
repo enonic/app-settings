@@ -72,7 +72,7 @@ export function fetchApplications(signal?: AbortSignal): ResultAsync<Application
 ## Server side
 
 The app owns one HTTP API, `apis/graphql/`, listed first under `apis:` in `main.yaml` beside the foreign
-ones (`server:app`, `admin:event`, `admin:extension`, `com.enonic.xp.app.main:events`).
+ones (`server:app`, `admin:events`, `admin:extension`, `com.enonic.xp.app.main:events`).
 
 **The jar upload is not a second one.** It goes to core's `server:app/install`, which takes the jar as
 multipart under the form field `file` and is already `role:system.admin` — the same universal API this
@@ -85,8 +85,8 @@ Should a second app-owned API ever be warranted, it goes in `src/main/resources/
 - `kind: API`, `allow: role:system.admin`, no `mount:` — an admin-tool API is authorized by being
   listed in `admin/tools/main/main.yaml`, where it is referenced by its bare name.
 - Expose the url through `lib/config.ts` so the client reads it from the tool config. An app-owned
-  api is addressed as `apiUrl({ api: `${app.name}:<name>` })`; the existing `apis.events` entry uses
-  the foreign form `apiUrl({ api: 'admin:event', type: 'websocket' })`.
+  api is addressed as `apiUrl({ api: `${app.name}:<name>` })`; the existing `apis.adminEvents`
+  entry uses the foreign form `apiUrl({ api: 'admin:events' })`.
 - Route by subpath: `request.path.slice(request.contextPath.length)`.
 - Wrap handlers in `adminOnly()` from `lib/auth.ts`.
 - Return `{ status, body }` with a JSON body; on failure include `{ message }` — `shared/api` reads

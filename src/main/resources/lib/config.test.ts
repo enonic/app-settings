@@ -14,9 +14,6 @@ const config: ToolConfig = {
   assetsUrl: '/admin/tool/_/asset/com.enonic.xp.app.settings',
   menuLoaderUrl: '/admin/tool/_/admin:extension/com.enonic.xp.app.main:menu-loader',
   phrases: { 'nav.users': 'Users' },
-  topics: {
-    applications: 'com.enonic.xp.app.settings:applications',
-  },
   apis: {
     adminEvents: '/admin/tool/com.enonic.xp.app.settings/main/_/admin:events',
     extensions: '/admin/tool/com.enonic.xp.app.settings/main/_/admin:extension',
@@ -80,10 +77,6 @@ describe('getConfig', () => {
   it('points at the admin events hub, whose endpoint serves its own client', () => {
     expect(getConfig(['en']).apis.adminEvents).toBe('/_/admin:events');
     expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'admin:events' });
-  });
-
-  it('names the applications topic by its canonical name', () => {
-    expect(getConfig(['en']).topics.applications).toBe('com.enonic.xp.app.settings:applications');
   });
 
   it('points at the built-in admin:extension api, which serves the section extensions', () => {

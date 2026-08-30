@@ -1,5 +1,5 @@
 import { subscribeTopic } from '../../../shared/admin-events';
-import { $config } from '../../../shared/config';
+import { HUB_TOPICS } from '../../../shared/sections';
 import { loadSectionExtensions } from './extensions.load';
 
 /** An install ends in a burst of publishes, and only the rail's last word matters. */
@@ -19,12 +19,7 @@ export function start(): void {
     return;
   }
 
-  const topic = $config.get()?.topics.applications;
-  if (topic == null) {
-    return;
-  }
-
-  unsubscribe = subscribeTopic(topic, {
+  unsubscribe = subscribeTopic(HUB_TOPICS.applications, {
     onMessage: reload,
     onLoss: reload,
   });

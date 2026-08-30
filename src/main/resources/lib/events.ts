@@ -2,15 +2,11 @@ import { sendToTopic, setTopic } from '/lib/xp/admin';
 import { listener } from '/lib/xp/event';
 
 // ! The hub owns every topic: it alone listens to XP events, gates each topic with its own
-// ! `allow`, and publishes. A provider's section is only a subscriber, through the platform's
-// ! `client.js` — the canonical names below are part of the contract (docs/extensions/docs.md).
+// ! `allow`, and publishes. The canonical names are contract constants (`HUB_TOPICS` in
+// ! `shared/sections/contract.ts`); the platform composes `<appKey>:<localName>`, and
+// ! `events.test.ts` pins the contract values against the app name gradle.properties builds.
 const APPLICATIONS = 'applications';
 const PRINCIPALS = 'principals';
-
-/** What subscribers address; the hub composes the same name from the owning application. */
-export function applicationsTopic(): string {
-  return `${app.name}:${APPLICATIONS}`;
-}
 
 export function init(): void {
   // Each topic's audience mirrors the section it serves; role:system.admin subscribes regardless.
@@ -22,15 +18,21 @@ export function init(): void {
     localOnly: false,
     callback: (event) => {
       const { eventType, applicationKey, systemApplication } = event.data;
-      if (typeof eventType !== 'string') {
+      // ! `PROGRESS` (per-percent during an install; this listener is its only route to a
+      // ! browser) is dropped as noise — a channel for it is an open decision.
+      if (
+        typeof eventType !== 'string' ||
+        typeof applicationKey !== 'string' ||
+        eventType === 'PROGRESS'
+      ) {
         return;
       }
 
-      // Install progress stays off the hub: `server:app`'s SSE channel carries it, and a publish
-      // per percent to every subscriber is noise.
-      if (eventType !== 'PROGRESS') {
-        sendToTopic(APPLICATIONS, { eventType, key: applicationKey, systemApplication });
-      }
+      sendToTopic(APPLICATIONS, {
+        eventType,
+        key: applicationKey,
+        systemApplication: systemApplication === true,
+      });
     },
   });
 

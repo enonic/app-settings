@@ -186,8 +186,10 @@ What it does **not** remove:
   | `applications` | —                                | application lifecycle, `PROGRESS` excluded    | `{eventType, key, systemApplication}`                                   |
   | `principals`   | `user.admin`, `user.app`         | `node.*` of the system repo under `/identity` | `{operation, changes: [{kind, key}]}`, kinds user/group/role/idProvider |
 
-  Install progress stays off the hub — `server:app`'s SSE channel carries it, and a publish per
-  percent to every subscriber is noise. The rail's rediscovery rides `applications` too; its
+  Install progress stays off the `applications` topic — a publish per percent to every subscriber
+  is noise — and, contrary to an earlier note here, `server:app`'s SSE does **not** carry it
+  (cluster lifecycle only): the hub's listener is its only route, so a channel for it is an open
+  decision (`platform-facts.md`). The rail's rediscovery rides `applications` too; its
   admin-only `allow` means a delegated operator's rail is static until reload — accepted until a
   broader topic is warranted.
 

@@ -21,6 +21,6 @@
       "/lib/*": ["./lib/*"]
     }
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "../../test/types/**/*.d.ts"],
   "exclude": ["assets/**"]
 }

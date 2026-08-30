@@ -9,7 +9,6 @@ const config = {
   locale: 'en',
   assetsUrl: '/assets',
   phrases: {},
-  topics: { applications: 'com.enonic.xp.app.settings:applications' },
   apis: {
     adminEvents: '/_/admin:events',
     extensions: '/_/admin:extension',

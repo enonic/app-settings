@@ -16,7 +16,6 @@ const config = {
   locale: 'en',
   assetsUrl: '/assets',
   phrases: {},
-  topics: { applications: 'com.enonic.xp.app.settings:applications' },
   apis: {
     adminEvents: '/_/admin:events',
     extensions: '/_/admin:extension',
@@ -51,7 +50,7 @@ describe('extensions.service', () => {
     vi.clearAllMocks();
   });
 
-  it('subscribes to the applications topic the config names', () => {
+  it('subscribes to the applications topic the contract names', () => {
     start();
 
     expect(subscribeTopic).toHaveBeenCalledWith(
