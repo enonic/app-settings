@@ -36,7 +36,7 @@ export function fetchSectionExtensions(
   const url = `${base}?interface=${encodeURIComponent(SECTION_INTERFACE)}`;
 
   return requestJson<ExtensionDto[]>(url, { signal }).map((dtos) =>
-    assignSlugs(dtos.map((dto) => toSectionRow(dto, base)).sort(byOrderThenKey)),
+    assignSlugs(shareModules(dtos.map((dto) => toSectionRow(dto, base)).sort(byOrderThenKey))),
   );
 }
 
@@ -47,6 +47,7 @@ export function fetchSectionExtensions(
 function toSectionRow(dto: ExtensionDto, base: string): Omit<SectionExtension, 'slug'> {
   const order = Number(dto.config?.order);
   const path = dto.config?.path;
+  const module = dto.config?.module;
 
   // ! `url` is a descriptor key and `iconUrl` a bare query string (`?icon&app=…`), so the first
   // ! takes a separator and the second must not — see `docs/platform-facts.md`.
@@ -61,7 +62,35 @@ function toSectionRow(dto: ExtensionDto, base: string): Omit<SectionExtension, '
     iconUrl: `${base}${dto.iconUrl ?? ''}`,
     order: Number.isFinite(order) ? order : DEFAULT_ORDER,
     path: typeof path === 'string' ? path : undefined,
+    module: typeof module === 'string' ? module : undefined,
   };
+}
+
+/**
+ * One module per application: every section points at the first row of its group, so the browser
+ * imports one URL and `mount` runs once per section from one instance — the contract's multi-mount
+ * rule. A section opts out by naming its own `config.module`.
+ *
+ * ! Grouping never crosses an application, and the canonical row comes from this caller's own
+ * ! discovery — already filtered by their principals — so the rewritten url is always behind an
+ * ! `allow` the caller has passed.
+ */
+function shareModules(rows: Omit<SectionExtension, 'slug'>[]): Omit<SectionExtension, 'slug'>[] {
+  const canonical = new Map<string, string>();
+
+  return rows.map((row) => {
+    // ? A space cannot appear in an application key (OSGi symbolic name), so the pair reads back
+    // ? unambiguously however the module half is named.
+    const group = `${appOf(row.key)} ${row.module ?? ''}`;
+    const moduleUrl = canonical.get(group) ?? row.moduleUrl;
+    canonical.set(group, moduleUrl);
+
+    return moduleUrl === row.moduleUrl ? row : { ...row, moduleUrl };
+  });
+}
+
+function appOf(key: string): string {
+  return key.split(':', 1)[0] ?? key;
 }
 
 /** The key breaks a tie because it is the identity; a localized title is neither stable nor unique. */

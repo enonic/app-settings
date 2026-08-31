@@ -75,9 +75,13 @@ to components from another — two copies means overlays silently lose their lay
 
 1. Provider ships one extension **per section**: `admin/extensions/<name>/` — descriptor
    (`kind: AdminExtension`, `interfaces: ["settings.section"]`, `allow`,
-   `config: {order, path}`), controller, and `<name>.svg` (the rail icon). A multi-section
-   provider like app-users ships four descriptors whose entries point at the same module: the
-   browser executes it once, module-level state is shared, only `mount()` runs per section.
+   `config: {order, path, module}`), controller, and `<name>.svg` (the rail icon). A
+   multi-section provider like app-users ships four descriptors backed by the same module: the host
+   groups an app's rows and imports the first one's entry url for all of them, so the browser
+   executes the module once, module-level state is shared, and only `mount()` runs per section.
+   `config.module` names a sharing group within the app and is the opt-out — sections naming
+   different values keep separate modules. Grouping never crosses an application, and the canonical
+   row comes from the caller's own principal-filtered discovery, so its url is always readable.
 2. Host tool descriptor declares `interfaces: ["settings.section"]` and mounts
    `apis: ["admin:extension", "admin:events"]`, plus the core APIs sections need — today
    `server:app` for application lifecycle (see Data, core API mounts).
