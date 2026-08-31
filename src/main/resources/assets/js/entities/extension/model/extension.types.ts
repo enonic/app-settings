@@ -15,6 +15,8 @@ export type SectionExtension = {
   order: number;
   /** `config.path` — the url segment the section asks for; `slug` is what it got. */
   path?: string;
+  /** `config.module` — names a sharing group within the app; absent, the app itself is the group. */
+  module?: string;
   /** The url segment the shell routes on: the asked-for path, or the key where that was taken. */
   slug: string;
 };

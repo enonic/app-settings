@@ -226,7 +226,10 @@ Done ahead of the phase that asks for it.
 - No host-side skeleton between import and the guest's first paint; the guest's own is what shows.
 - `mount` carries no section identity; a multi-section provider parses `host.baseUrl`. An additive
   contract member to consider before Phase 2 freezes the types.
-- The module runs once per section, not once per app: the entry url is per prefix.
+- An app's sections now share one module instance: the host points the whole group at its first
+  row's entry url (`shareModules` in `extensions.api.ts`), with `config.module` as the opt-out. The
+  contract's `SectionModule` comment carries the multi-mount rule; app-users' copy is updated,
+  app-applications' copy still needs the same lines.
 - `@enonic/ui` is not tree-shakeable, so a section costs ~88 kB gz JS + ~15 kB gz CSS before it
   renders anything of its own.
 - Nothing on the provider side exercises the host object: its section renders a hardcoded page, so a
@@ -243,8 +246,9 @@ Done ahead of the phase that asks for it.
 
 - § 2 names the types subpath `@enonic/toolkit/mount-contract`; § 1 and 2.1 say
   `@enonic/toolkit/section`. Code assumes `section`.
-- § Discovery 1: a multi-section provider's module runs once per section, not once; its module-level
-  state is not shared.
+- ~~§ Discovery 1: a multi-section provider's module runs once per section, not once~~ — resolved
+  code-side instead: the host now groups an app's rows onto one module url, as § Discovery 1 always
+  described.
 - § Discovery 5 and the § 2 table: the stylesheet under `_static/` is an unhashed `main.css`, which
   the guest resolves relative to its module url.
 - § Routing: hash history, not "real history" — anchor interception is unnecessary; an unknown
