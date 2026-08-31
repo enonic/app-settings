@@ -17,13 +17,6 @@ const config: ToolConfig = {
     adminEvents: '/_/admin:events',
     extensions: '/_/admin:extension',
     graphql: '/_/app:graphql',
-    serverApp: {
-      start: '/_/server:app/start',
-      stop: '/_/server:app/stop',
-      uninstall: '/_/server:app/uninstall',
-      install: '/_/server:app/install',
-      installUrl: '/_/server:app/installUrl',
-    },
   },
 };
 
@@ -122,18 +115,6 @@ describe('readConfig', () => {
     const doc = stubDocument({
       scriptId: 'config-json',
       content: JSON.stringify({ ...config, apis: { adminEvents: '/_/admin:events' } }),
-    });
-
-    expect(() => readConfig(doc)).toThrow(/does not describe a tool config/);
-  });
-
-  it('fails when a lifecycle url is missing', () => {
-    const doc = stubDocument({
-      scriptId: 'config-json',
-      content: JSON.stringify({
-        ...config,
-        apis: { ...config.apis, serverApp: { start: '/_/server:app/start' } },
-      }),
     });
 
     expect(() => readConfig(doc)).toThrow(/does not describe a tool config/);

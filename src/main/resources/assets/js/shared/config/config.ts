@@ -5,13 +5,6 @@ export type ApiUrls = {
   adminEvents: string;
   extensions: string;
   graphql: string;
-  serverApp: {
-    start: string;
-    stop: string;
-    uninstall: string;
-    install: string;
-    installUrl: string;
-  };
 };
 
 export type ToolConfig = {
@@ -38,13 +31,7 @@ function isToolConfig(value: unknown): value is ToolConfig {
     apis != null &&
     typeof apis.adminEvents === 'string' &&
     typeof apis.extensions === 'string' &&
-    typeof apis.graphql === 'string' &&
-    apis.serverApp != null &&
-    typeof apis.serverApp.start === 'string' &&
-    typeof apis.serverApp.stop === 'string' &&
-    typeof apis.serverApp.uninstall === 'string' &&
-    typeof apis.serverApp.install === 'string' &&
-    typeof apis.serverApp.installUrl === 'string'
+    typeof apis.graphql === 'string'
   );
 }
 
