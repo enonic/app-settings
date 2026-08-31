@@ -10,7 +10,7 @@ const config = {
   assetsUrl: '/assets',
   phrases: {},
   apis: {
-    events: 'ws:/_/admin:event',
+    adminEvents: '/_/admin:events',
     extensions: '/admin/tool/settings/main/_/admin:extension',
     graphql: '/_/app:graphql',
     serverApp: {

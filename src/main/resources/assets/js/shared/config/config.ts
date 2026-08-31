@@ -1,7 +1,8 @@
 import { AppError } from '../api';
 
 export type ApiUrls = {
-  events: string;
+  /** The hub endpoint: `client.js` under it is the client, the endpoint itself the socket. */
+  adminEvents: string;
   extensions: string;
   graphql: string;
   serverApp: {
@@ -35,7 +36,7 @@ function isToolConfig(value: unknown): value is ToolConfig {
     phrases != null &&
     typeof phrases === 'object' &&
     apis != null &&
-    typeof apis.events === 'string' &&
+    typeof apis.adminEvents === 'string' &&
     typeof apis.extensions === 'string' &&
     typeof apis.graphql === 'string' &&
     apis.serverApp != null &&

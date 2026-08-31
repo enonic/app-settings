@@ -11,12 +11,16 @@
     // Type the absolute XP requires; vp pack keeps them external at build time.
     "paths": {
       "/lib/xp/core": ["../../../node_modules/@enonic-types/core"],
+      // Overridden: 8.0.4 predates the admin events hub, `admin.d.ts` adds setTopic/sendToTopic.
+      "/lib/xp/admin": ["./types/admin.d.ts"],
+      // No @enonic-types package exists for lib-event at 8.x.
+      "/lib/xp/event": ["./types/event.d.ts"],
       "/lib/xp/*": ["../../../node_modules/@enonic-types/lib-*"],
       "/lib/graphql": ["./types/graphql.d.ts"],
       "/lib/mustache": ["./types/mustache.d.ts"],
       "/lib/*": ["./lib/*"]
     }
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "../../test/types/**/*.d.ts"],
   "exclude": ["assets/**"]
 }

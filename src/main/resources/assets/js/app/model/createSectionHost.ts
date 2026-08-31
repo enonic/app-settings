@@ -3,7 +3,6 @@ import { $resolvedTheme } from '../../shared/app-state';
 import { $config } from '../../shared/config';
 import { dismissNotification, dismissNotifications, notify } from '../../shared/notifications';
 import type { Host, Notification } from '../../shared/sections';
-import { onServerEvent } from '../../shared/server-events';
 import { router } from './router';
 import { createSectionPath, isInSection, readSubPath, sectionPath } from './section-path';
 
@@ -81,19 +80,6 @@ export function createSectionHost(section: SectionExtension): SectionHost {
     },
     // Hash history, so an anchor's href carries the fragment the router reads.
     url: (to) => `#${sectionPath(slug(), to)}`,
-    subscribeEvents: (cb) => {
-      if (revoked) {
-        return () => {};
-      }
-
-      const unsubscribe = onServerEvent(cb);
-      subscriptions.add(unsubscribe);
-
-      return () => {
-        subscriptions.delete(unsubscribe);
-        unsubscribe();
-      };
-    },
     notify: (n) => {
       if (revoked) {
         return () => {};

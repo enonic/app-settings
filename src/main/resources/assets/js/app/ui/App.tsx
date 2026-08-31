@@ -6,10 +6,10 @@ import {
   startSectionExtensionsService,
   stopSectionExtensionsService,
 } from '../../entities/extension';
+import { connectAdminEvents } from '../../shared/admin-events';
 import { useTheme } from '../../shared/app-state';
 import type { ToolConfig } from '../../shared/config';
 import { useMenuPanel } from '../../shared/menu';
-import { connectToServerEvents } from '../../shared/server-events';
 import { router } from '../model/router';
 
 export type AppProps = {
@@ -20,8 +20,10 @@ export function App({ config }: AppProps) {
   useTheme();
   useMenuPanel(config);
 
-  const eventsUrl = config.apis.events;
-  useEffect(() => connectToServerEvents(eventsUrl), [eventsUrl]);
+  const adminEventsUrl = config.apis.adminEvents;
+  useEffect(() => {
+    connectAdminEvents(adminEventsUrl);
+  }, [adminEventsUrl]);
 
   useEffect(() => {
     void loadSectionExtensions();

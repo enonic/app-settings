@@ -79,7 +79,7 @@ to components from another — two copies means overlays silently lose their lay
    provider like app-users ships four descriptors whose entries point at the same module: the
    browser executes it once, module-level state is shared, only `mount()` runs per section.
 2. Host tool descriptor declares `interfaces: ["settings.section"]` and mounts
-   `apis: ["admin:extension", "admin:event"]`, plus the core APIs sections need — today
+   `apis: ["admin:extension", "admin:events"]`, plus the core APIs sections need — today
    `server:app` for application lifecycle (see Data, core API mounts).
 3. Host asks `GET <extensionApi>?interface=settings.section` → rows of
    `{key, title, description, iconUrl, url, interfaces, config}` — **title localized by the
@@ -154,17 +154,44 @@ What it does **not** remove:
 
 ### Events
 
-- **One websocket, owned by the host** (`admin:event`). Not a preference: extension endpoints
-  cannot serve websockets (verified against XP source, see Platform facts).
-- Host forwards the **whole stream** to subscribers; each guest filters in its callback (a kit
-  helper owns the filtering idiom). No host-side allow-lists of "relevant" events — that breaks
-  the first third-party section.
-- A dropped socket loses events silently (XP does not replay). In v1 that risk is accepted as it
-  is in the current app; a `connected`/reconnect-epoch member is the parked, additive answer if
-  stale-after-reconnect starts hurting (see the contract's parked list).
-- **Security note:** XP has no per-event role filtering — any subscriber sees the full stream a
-  hub visitor is entitled to open themselves. Events are therefore not a channel for sensitive
-  payloads: carry IDs, re-read data through the section's own gateway where `allow` applies.
+- **The admin events hub** (`admin:events`, XP #12253) carries every event that crosses this
+  boundary. A publisher registers a topic with `setTopic({name, allow})` from `/lib/xp/admin` and
+  publishes with `sendToTopic` off a server-side listener; a topic's `allow` is enforced by the hub
+  per subscriber, so events stopped being a broadcast (#42 E1 is closed by construction). The old
+  `admin:event` socket is not mounted on the tool any more.
+- **The host owns every topic.** It alone listens to the XP events that matter to the container
+  (`lib/events.ts`: application lifecycle, principal nodes), registers one topic per domain with
+  that domain's `allow`, and publishes minimal payloads. A provider ships no event code at all —
+  no `setTopic`, no listener, no `main.js` — so a section's audience and its event feed are gated
+  in one place, by the app that already gates the tool.
+- **Sections are subscribers only, the menu in app-admin-home being the pattern**: the section's
+  own `config` root field hands it `eventsUrl` (`portal.apiUrl({api: 'admin:events'})`), its client
+  imports `${eventsUrl}/client.js` and calls `connect({onEvent, onLoss}).subscribe(topic)` with the
+  canonical topic name — a contract constant from the table below. Nothing crosses the host object:
+  the contract carries no event member. The platform's client rides a shared worker keyed by its
+  url, so the shell, the menu and every section share one socket per browser anyway.
+- A subscription outlives a revoked mount (the platform client's `connect` facade has no
+  unsubscribe), and the hub's topics outlive any provider — so a dead section's handler keeps
+  hearing messages until the page reloads. Accepted: the payloads are ids a stale handler can do
+  nothing with.
+- **Loss is a signal, not a gap to ignore**: the hub client counts missed messages per topic
+  (`onLoss`, `null` across an epoch change), and the usual answer is a refetch — the rail
+  rediscovers on it, which also covers reconnects.
+- **Security note:** a topic's payload still reaches every principal its `allow` admits — carry
+  IDs, re-read data through the section's own gateway where the data-plane `allow` applies.
+- The topics, all owned by the host (canonical prefix `com.enonic.xp.app.settings:`):
+
+  | Topic          | `allow` (besides `system.admin`) | Published on                                  | Payload                                                                 |
+  | -------------- | -------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------- |
+  | `applications` | —                                | application lifecycle, `PROGRESS` excluded    | `{eventType, key, systemApplication}`                                   |
+  | `principals`   | `user.admin`, `user.app`         | `node.*` of the system repo under `/identity` | `{operation, changes: [{kind, key}]}`, kinds user/group/role/idProvider |
+
+  Install progress stays off the `applications` topic — a publish per percent to every subscriber
+  is noise — and, contrary to an earlier note here, `server:app`'s SSE does **not** carry it
+  (cluster lifecycle only): the hub's listener is its only route, so a channel for it is an open
+  decision (`platform-facts.md`). The rail's rediscovery rides `applications` too; its
+  admin-only `allow` means a delegated operator's rail is static until reload — accepted until a
+  broader topic is warranted.
 
 ### Notifications
 
@@ -326,8 +353,6 @@ structurally, but the contract never names them):
 ```ts
 export type Readable<T> = { get(): T; subscribe(cb: (v: T) => void): () => void };
 
-export type XpServerEvent = { type: string; timestamp?: number; data?: Record<string, unknown> };
-
 export type Notification = {
   level: 'info' | 'success' | 'warning' | 'error';
   message: string; // already localized by the guest
@@ -348,8 +373,6 @@ export type Host = {
   navigate(subPath: string, opts?: { replace?: boolean }): void;
   /** Href builder for real anchors within the module's own segment. */
   url(subPath: string): string;
-  /** The host's single socket, fanned out; filter in the callback. */
-  subscribeEvents(cb: (event: XpServerEvent) => void): () => void;
   /** Toast on the host's stack; returns dismiss. */
   notify(n: Notification): () => void;
 };
@@ -366,7 +389,7 @@ export type SectionModule = { mount(opts: MountOptions): Unmount };
 
 Every member answers a question the guest cannot answer on its own, because the host owns the
 answer: where my data lives (`baseUrl`), which language and theme (`locale`, `theme`), where I am
-and how to move (`path`, `navigate`, `url`), what happened on the server (`subscribeEvents`), how
+and how to move (`path`, `navigate`, `url`), how
 to speak to the user outside my column (`notify`). Anything absent from the list the guest either
 knows itself or asks its own server.
 
