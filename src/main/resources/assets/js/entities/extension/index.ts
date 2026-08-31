@@ -2,7 +2,6 @@ export type { SectionExtension } from './model/extension.types';
 export { DEFAULT_ORDER } from './model/extension.types';
 export { loadSectionExtensions } from './model/extensions.load';
 export {
-  affectsSections,
   start as startSectionExtensionsService,
   stop as stopSectionExtensionsService,
 } from './model/extensions.service';

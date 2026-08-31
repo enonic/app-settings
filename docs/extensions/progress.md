@@ -113,7 +113,7 @@ Done ahead of the phase that asks for it.
 
 | What                                                                                   | Where it belongs   |
 | -------------------------------------------------------------------------------------- | ------------------ |
-| rail follows application events and socket reconnects                                  | § Discovery 6      |
+| rail follows application events over the hub topic; loss triggers rediscovery          | § Discovery 6      |
 | tool `allow` = the union of the section audiences; empty and failed rail states (#113) | § Security and 5.2 |
 
 ## Known gaps

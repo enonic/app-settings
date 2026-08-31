@@ -15,7 +15,7 @@ const config: ToolConfig = {
   menuLoaderUrl: '/admin/tool/_/admin:extension/com.enonic.xp.app.main:menu-loader',
   phrases: { 'nav.users': 'Users' },
   apis: {
-    events: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:events',
+    adminEvents: '/admin/tool/com.enonic.xp.app.settings/main/_/admin:events',
     extensions: '/admin/tool/com.enonic.xp.app.settings/main/_/admin:extension',
     graphql: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:graphql',
     serverApp: {
@@ -74,9 +74,9 @@ describe('getConfig', () => {
     });
   });
 
-  it('points at the built-in admin:event api as a websocket url', () => {
-    expect(getConfig(['en']).apis.events).toBe('ws:/_/admin:event');
-    expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'admin:event', type: 'websocket' });
+  it('points at the admin events hub, whose endpoint serves its own client', () => {
+    expect(getConfig(['en']).apis.adminEvents).toBe('/_/admin:events');
+    expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'admin:events' });
   });
 
   it('points at the built-in admin:extension api, which serves the section extensions', () => {
