@@ -115,6 +115,53 @@ describe('fetchSectionExtensions', () => {
     expect(result._unsafeUnwrap().map(({ key }) => key)).toEqual(['a:section', 'z:section']);
   });
 
+  // The contract lets one module serve every section an app ships; the host points the group at
+  // the first row so the browser imports one URL — see `shareModules`.
+  it("shares one module among an app's sections, keeping each section's own prefix", async () => {
+    respondWith([
+      row({ key: 'app.users:groups', url: 'app.users:groups', config: { order: 21 } }),
+      row({ key: 'app.users:users', url: 'app.users:users', config: { order: 20 } }),
+    ]);
+
+    const result = await fetchSectionExtensions();
+    const [users, groups] = result._unsafeUnwrap();
+
+    expect(users.moduleUrl).toBe(`${BASE}/app.users:users/_static/main.js`);
+    expect(groups.moduleUrl).toBe(`${BASE}/app.users:users/_static/main.js`);
+    expect(groups.url).toBe(`${BASE}/app.users:groups`);
+  });
+
+  it('never groups across applications', async () => {
+    respondWith([
+      row({ key: 'app.users:users', url: 'app.users:users', config: { order: 20 } }),
+      row({ key: 'app.license:license', url: 'app.license:license', config: { order: 30 } }),
+    ]);
+
+    const result = await fetchSectionExtensions();
+    const [users, license] = result._unsafeUnwrap();
+
+    expect(users.moduleUrl).toBe(`${BASE}/app.users:users/_static/main.js`);
+    expect(license.moduleUrl).toBe(`${BASE}/app.license:license/_static/main.js`);
+  });
+
+  it('lets a section opt out of the app group by naming its own config.module', async () => {
+    respondWith([
+      row({ key: 'app.users:users', url: 'app.users:users', config: { order: 20 } }),
+      row({ key: 'app.users:groups', url: 'app.users:groups', config: { order: 21 } }),
+      row({
+        key: 'app.users:audit',
+        url: 'app.users:audit',
+        config: { order: 22, module: 'audit' },
+      }),
+    ]);
+
+    const result = await fetchSectionExtensions();
+    const [, groups, audit] = result._unsafeUnwrap();
+
+    expect(groups.moduleUrl).toBe(`${BASE}/app.users:users/_static/main.js`);
+    expect(audit.moduleUrl).toBe(`${BASE}/app.users:audit/_static/main.js`);
+  });
+
   it('fails before the network when the tool config has not been read', async () => {
     $config.set(undefined);
     respondWith([]);
