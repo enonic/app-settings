@@ -54,7 +54,7 @@ first even though it is an effect: it is why the component has anything to read.
 
 - Early return instead of `<>{ready && …}</>`.
 - Minimize `useEffect`: derive from stores and props first; an effect is for subscriptions and
-  imperative DOM work. `useServerEvent` already wraps the subscribe/unsubscribe pattern.
+  imperative DOM work, as `useTheme` does for the document's `dark` class.
 - `useCallback` / `useMemo` only where a dependency actually needs stability, as `useIdProviderName`
   does — a fresh closure per render would kill the memo a page builds its filter entries with.
 

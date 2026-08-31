@@ -1,62 +1,10 @@
-export type ApplicationState = 'STARTED' | 'STOPPED';
-
-export type Application = {
-  key: string;
-  displayName: string;
-  description?: string;
-  version?: string;
-  state: ApplicationState;
-  system: boolean;
-  local: boolean;
-  icon?: string;
-  modifiedTime?: string;
-  minSystemVersion?: string;
-  maxSystemVersion?: string;
-  vendorName?: string;
-  vendorUrl?: string;
-};
-
-export type ApplicationItem = {
-  key: string;
-  name: string;
-  displayName: string;
-  description?: string;
-};
-
-export type AdminToolItem = ApplicationItem & { url: string };
-
-export type AdminExtensionItem = ApplicationItem & { interfaces: readonly string[] };
-
-export type ApiItem = ApplicationItem & { documentationUrl?: string };
-
-export type IdProviderMode = 'LOCAL' | 'EXTERNAL' | 'MIXED';
-
-export type IdProviderInstance = {
-  key: string;
-  displayName: string;
-};
-
-export type ApplicationIdProvider = {
-  mode?: IdProviderMode;
-  usedBy: readonly IdProviderInstance[];
-};
-
-export type ApplicationInfo = {
-  contentTypes: readonly ApplicationItem[];
-  mixins: readonly ApplicationItem[];
-  formFragments: readonly ApplicationItem[];
-  pages: readonly ApplicationItem[];
-  parts: readonly ApplicationItem[];
-  layouts: readonly ApplicationItem[];
-  macros: readonly ApplicationItem[];
-  tasks: readonly ApplicationItem[];
-  adminTools: readonly AdminToolItem[];
-  adminExtensions: readonly AdminExtensionItem[];
-  apis: readonly ApiItem[];
-  deploymentUrl?: string;
-  /** Only an application that declares an id provider descriptor has one. */
-  idProvider?: ApplicationIdProvider;
-};
+/**
+ * ? One id-provider type in a slice named `application`, which reads oddly until you ask who wants
+ * ? it: the ID Providers editor, not an Applications screen. The applications domain had two
+ * ? consumers and only the first moved to app-applications in Phase 3.3 — this is the remainder,
+ * ? left where it was rather than renamed, because Phase 4.3 takes it to app-users and moving it
+ * ? twice buys nothing. Its root field is `apis/graphql/application/`, kept for the same reason.
+ */
 
 /** An application an id provider can be bound to, i.e. one that ships an id provider descriptor. */
 export type IdProviderApplication = {
