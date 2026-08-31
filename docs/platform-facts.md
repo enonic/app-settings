@@ -136,12 +136,21 @@ dropped into `deploy/` is both — `ApplicationServiceSystemAppGuardsTest` cover
 Neither flag can be derived from the other, and `isUninstallable` in `application-lifecycle.ts` refuses
 on each separately for that reason.
 
-## Our existing websocket already carries application events
+## Application lifecycle rides the admin events hub; install progress currently reaches no browser
 
-`server:app/events` SSE is **redundant for us**. `admin:event` forwards _every_ event unfiltered
-(`EventApiHandler.onEvent` → `sendToGroup`), and XP publishes app lifecycle as
-`EVENT_TYPE = "application"` with `eventType ∈ { INSTALLED, STARTED, STOPPED, UNINSTALLED }`
-(`ApplicationEvents.java`) — which is what `shared/server-events/server-events.ts` already filters on.
+XP publishes app lifecycle as `EVENT_TYPE = "application"` with
+`eventType ∈ { INSTALLED, STARTED, STOPPED, UNINSTALLED }` (`ApplicationEvents.java`); the hub's
+server listener republishes it on the `applications` topic (`lib/events.ts`). The legacy
+`admin:event` socket still exists in XP but forwards _every_ event unfiltered
+(`EventApiHandler.onEvent` → `sendToGroup`) and is no longer mounted on the tool.
+
+Per-percent install progress **is** an `application` event too — `ApplicationLoader.progress()`
+publishes `eventType: "PROGRESS"` with `applicationUrl` and `progress` onto the ordinary event bus
+— and that bus is its _only_ route toward a browser: `server:app`'s `GET /events` SSE stream does
+**not** carry it (`ApplicationApiHandler.onEvent` reacts solely to `application.cluster`
+lifecycle events — `installed`/`state`/`uninstalled`). The hub listener drops `PROGRESS` as noise,
+so today install progress reaches nothing; giving it a channel (its own hub topic, or admitting it
+into `applications`) is an open decision the Applications section will force.
 
 ## Coverage: what JS can and cannot reach
 
@@ -152,7 +161,7 @@ on each separately for that reason.
 | pages, parts, layouts, content types, mixins, form fragments, site form | `lib-schema`                                                           |
 | id providers _using_ an app                                             | `lib-auth.getIdProviders`, filter on `idProviderConfig.applicationKey` |
 | install / start / stop / uninstall                                      | `server:app`                                                           |
-| lifecycle events                                                        | existing `admin:event` websocket                                       |
+| lifecycle events                                                        | the hub's `applications` topic (`HUB_TOPICS`, `admin:events`)          |
 | available version                                                       | Market GraphQL                                                         |
 | icon                                                                    | ✅ Java — our `/lib/icon`; base64, because GraalJS cannot serve bytes  |
 | task descriptors                                                        | ✅ Java — our `/lib/task`; `taskLib.list()` is _running_ instances     |

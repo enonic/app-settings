@@ -14,7 +14,7 @@ const config: ToolConfig = {
   menuLoaderUrl: '/_/admin:extension/com.enonic.xp.app.main:menu-loader',
   phrases: { 'nav.users': 'Users' },
   apis: {
-    events: '/_/app:events',
+    adminEvents: '/_/admin:events',
     extensions: '/_/admin:extension',
     graphql: '/_/app:graphql',
     serverApp: {
@@ -121,7 +121,7 @@ describe('readConfig', () => {
   it('fails when an api url is missing', () => {
     const doc = stubDocument({
       scriptId: 'config-json',
-      content: JSON.stringify({ ...config, apis: { events: '/_/app:events' } }),
+      content: JSON.stringify({ ...config, apis: { adminEvents: '/_/admin:events' } }),
     });
 
     expect(() => readConfig(doc)).toThrow(/does not describe a tool config/);

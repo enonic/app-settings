@@ -17,7 +17,8 @@ export type ToolConfig = {
   menuLoaderUrl: string;
   phrases: Record<string, string>;
   apis: {
-    events: string;
+    /** The hub endpoint: `client.js` under it is the client, the endpoint itself the socket. */
+    adminEvents: string;
     extensions: string;
     graphql: string;
     serverApp: {
@@ -40,7 +41,7 @@ export function getConfig(locales: string[]): ToolConfig {
     menuLoaderUrl: extensionUrl({ application: ADMIN_APP, extension: 'menu-loader' }),
     phrases: getAllPhrases(locales),
     apis: {
-      events: apiUrl({ api: 'admin:event', type: 'websocket' }),
+      adminEvents: apiUrl({ api: 'admin:events' }),
       extensions: apiUrl({ api: 'admin:extension' }),
       graphql: apiUrl({ api: `${app.name}:graphql` }),
       serverApp: {

@@ -1,3 +1,4 @@
+export { HUB_TOPICS } from './contract';
 export type {
   Host,
   MountOptions,
@@ -5,7 +6,6 @@ export type {
   Readable,
   SectionModule,
   Unmount,
-  XpServerEvent,
 } from './contract';
 export { mountSection } from './mount-section';
 export type { MountSectionOptions } from './mount-section';

@@ -2,7 +2,6 @@ import { Tooltip } from '@enonic/ui';
 import { Settings } from 'lucide-react';
 
 import { useI18n } from '../../shared/i18n';
-import { ServerEventsIndicator } from '../server-events-indicator/ServerEventsIndicator';
 
 /** One discovered section. The title arrives localized, so the rail resolves no phrase for it. */
 export type SectionRailItem = {
@@ -65,8 +64,6 @@ export function SectionRail({ sections }: SectionRailProps) {
             </li>
           ))}
         </ul>
-
-        <ServerEventsIndicator />
       </div>
     </nav>
   );

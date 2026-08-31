@@ -1,3 +1,7 @@
+// ! Dead: nothing connects this socket any more — the shell moved to the admin events hub
+// ! (`shared/admin-events`), and `admin:event` is no longer mounted on the tool. The module stays
+// ! only because the departing applications/market entities still compile against it; it leaves
+// ! with them (#114).
 import { setServerEventsConnected } from './server-events.store';
 
 const SUB_PROTOCOL = 'text';
