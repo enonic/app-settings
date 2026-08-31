@@ -18,13 +18,6 @@ const config: ToolConfig = {
     adminEvents: '/admin/tool/com.enonic.xp.app.settings/main/_/admin:events',
     extensions: '/admin/tool/com.enonic.xp.app.settings/main/_/admin:extension',
     graphql: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:graphql',
-    serverApp: {
-      start: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/start',
-      stop: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/stop',
-      uninstall: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/uninstall',
-      install: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/install',
-      installUrl: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/installUrl',
-    },
   },
 };
 
@@ -94,16 +87,6 @@ describe('getConfig', () => {
 
     expect(getConfig(['en']).isAdmin).toBe(false);
     expect(vi.mocked(hasRole)).toHaveBeenCalledWith('role:system.admin');
-  });
-
-  it('points at the lifecycle endpoints of the built-in server:app api', () => {
-    expect(getConfig(['en']).apis.serverApp).toEqual({
-      start: '/_/server:app/start',
-      stop: '/_/server:app/stop',
-      uninstall: '/_/server:app/uninstall',
-      install: '/_/server:app/install',
-      installUrl: '/_/server:app/installUrl',
-    });
   });
 });
 
