@@ -5,16 +5,13 @@ import { i18n } from '../../../shared/i18n';
 import { IconBadge } from '../../../shared/ui/IconBadge';
 
 export type ApplicationIconProps = {
-  /**
-   * The `data:` uri the schema resolves from the application descriptor, or a market entry's remote
-   * `iconUrl`.
-   */
+  /** The `data:` uri the schema resolves from the descriptor, or a market entry's remote `iconUrl`. */
   icon?: string;
   /** `sm` for a list row, `lg` for the details header. */
   size?: 'sm' | 'lg';
   /**
-   * The application's own flags. At most one corner badge, system before local. Absent for an icon
-   * standing for no installed application: a market entry, or the id provider form placeholder.
+   * The application's own flags: at most one corner badge, system before local. Absent for an icon standing
+   * for no installed application — a market entry, or a form placeholder.
    */
   system?: boolean;
   local?: boolean;

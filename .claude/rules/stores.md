@@ -45,9 +45,8 @@ One contract, so that "where does this list come from" has one answer.
   else. Not from `onMount` on the store: a store that fetches on subscribe hides the request from the
   section that pays for it, and the moment a second domain joins the screen it has to be unpicked.
 - Prefer `onMount` for a store that owns a browser subscription, as `theme.store.ts` does.
-- Connection and transport logic stays out of the store file: `server-events.store.ts` holds the
-  `$serverEventsConnected` atom and its setter, `server-events.ts` owns the websocket and calls that
-  setter.
+- Transport and parsing stay out of the store file: `config.store.ts` holds the `$config` atom and
+  its setter, `config.ts` owns reading and validating the JSON island that feeds it.
 
 ## Reading
 

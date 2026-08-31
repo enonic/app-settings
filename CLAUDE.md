@@ -5,13 +5,15 @@ sections. Single Gradle project — TypeScript, Preact (React compat layer), Tai
 nanostores, TanStack Router. The admin tool is restricted to `role:system.admin`.
 
 > **Status — the `extensions` branch is turning this app into a hub.** Sections are discovered at
-> runtime as `settings.section` admin extensions provided by other apps; the Applications, Users,
-> Groups, Roles and ID Providers code still in this repo is on its way out to `app-applications` and
-> `app-users`, and none of it is routed today — `pages/` is dark. **`docs/extensions/` is
-> authoritative on how the shell works**: `docs.md` for the design and its phases, `progress.md` for
-> what stands. Everything below still describes this app as the frame that owns those five sections,
-> which is the pre-extension picture — treat it as a description of the code that has yet to move,
-> and rewrite this file when the migration lands.
+> runtime as `settings.section` admin extensions provided by other apps. **Applications has left**:
+> Phase 3 moved it to `app-applications`, which now provides it as an extension this app mounts, and
+> nothing of it is in this repo but the one id-provider query and icon the ID Providers editor still
+> reaches for. The Users, Groups, Roles and ID Providers code is next, out to `app-users`, and none of
+> it is routed today — `pages/` is dark. **`docs/extensions/` is authoritative on how the shell
+> works**: `docs.md` for the design and its phases, `progress.md` for what stands. Everything below
+> still describes this app as the frame that owns four of those sections, which is the pre-extension
+> picture — treat it as a description of the code that has yet to move, and rewrite this file when the
+> rest of the migration lands.
 
 Every section is the same browse screen with different data: full-width action toolbar, list column
 (search, list header, rows), details column. That screen is a shared framework — **read
@@ -87,12 +89,12 @@ reasoning are in `.claude/rules/structure.md`.
 Sibling checkouts, read-only — nothing here imports from them. Paths are relative to this repo's
 parent directory. The list grows as further admin applications are folded into this app.
 
-| Repo                   | What to read it for                                                                                                                                                                                                                                                                                                                                                           |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `../app-users`         | The app the Users, Groups, Roles and ID Providers sections replace. `assets/js/app/browse/` for list rows, toolbar and actions (plus `browse/serviceaccount/`), `wizard/` for principal CRUD, passwords and public keys, `report/` for permission reports, and the backend contracts under `src/main/resources/apis/graphql` and `apis/permissionReport`.                     |
-| `../app-applications`  | The app the Applications section replaces. `assets/js/app/browse/` for the list with version and state cells, lifecycle actions and the system-app filter (`SystemAppsHelper`), `installation/` for install by URL and upload, `Market*.ts` with `resource/MarketApplicationFetcher.ts` for where "available version" comes from, and JAX-RS resources under `src/main/java`. |
-| `../app-contentstudio` | The stack model. `modules/lib/src/main/resources/assets/js/v6/` is the Feature-Sliced tree this app follows — `widgets/browse-toolbar`, `widgets/browse-grid`, `widgets/context-panel`, `features/<action>/`, `entities/<domain>/`. Its `CLAUDE.md` and `.claude/rules/` are what these conventions were adapted from. Ignore `assets/js/app/`, which is legacy class-based.  |
-| `../npm-enonic-ui`     | Source of `@enonic/ui`. Read a component before composing it — several fail silently, see `.claude/rules/enonic-ui.md`.                                                                                                                                                                                                                                                       |
+| Repo                   | What to read it for                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `../app-users`         | The app the Users, Groups, Roles and ID Providers sections replace. `assets/js/app/browse/` for list rows, toolbar and actions (plus `browse/serviceaccount/`), `wizard/` for principal CRUD, passwords and public keys, `report/` for permission reports, and the backend contracts under `src/main/resources/apis/graphql` and `apis/permissionReport`.                                             |
+| `../app-applications`  | **No longer a reference — the provider of the Applications section**, and not read-only: Phase 3 moved this app's Applications slice there whole. Read it for what a `settings.section` provider looks like end to end, and for the copies of `widgets/` and parts of `shared/` that Phase 2 will extract into `@enonic/toolkit`. The legacy lib-admin-ui app it replaced is on that repo's `master`. |
+| `../app-contentstudio` | The stack model. `modules/lib/src/main/resources/assets/js/v6/` is the Feature-Sliced tree this app follows — `widgets/browse-toolbar`, `widgets/browse-grid`, `widgets/context-panel`, `features/<action>/`, `entities/<domain>/`. Its `CLAUDE.md` and `.claude/rules/` are what these conventions were adapted from. Ignore `assets/js/app/`, which is legacy class-based.                          |
+| `../npm-enonic-ui`     | Source of `@enonic/ui`. Read a component before composing it — several fail silently, see `.claude/rules/enonic-ui.md`.                                                                                                                                                                                                                                                                               |
 
 This app targets XP 8.1 and has **no `lib-admin-ui` dependency** — dropping that framework is the
 point of the rewrite. The two apps being replaced target the same XP version, so their server-side

@@ -140,10 +140,14 @@ What it does **not** remove:
   enumerate unknown apps). Everything app-specific goes through the extension prefix.
 - **Known, accepted limitation — core API mounts.** A core platform API a section calls from the
   hub page (application lifecycle on `server:app` being the case today) must be listed in the
-  _host tool's_ `apis:`. If a section ever needs another core API, the host list grows and the
-  host is released — accepted for a first-party set. Providers proxy through their own prefix
-  where that is cheap (upload _reception_ works in GraalJS); per-extension api mounts remain worth
-  raising with the platform team as a future improvement.
+  _host tool's_ `apis:` — XP checks the mount against the page, not the caller — so that list is the
+  only allow-list there is. The **url** is the provider's own answer, though: a request to an
+  extension keeps the hosting tool's `baseUri`, so `portal.apiUrl` in the provider's controller
+  builds exactly the url the host would have, and nothing about core APIs crosses the contract. If a
+  section ever needs another core API, the host list grows and the host is released — accepted for a
+  first-party set. Providers proxy through their own prefix where that is cheap (upload _reception_
+  works in GraalJS); per-extension api mounts remain worth raising with the platform team as a future
+  improvement.
 - Client config and phrases: root fields on the provider's own GraphQL schema (or a JSON endpoint
   under the prefix for phrases). The controller runs in the provider's app context — `app.config`
   and its own `phrases.properties` via lib-i18n work. The section requests phrases for
@@ -388,10 +392,11 @@ export type SectionModule = { mount(opts: MountOptions): Unmount };
 ```
 
 Every member answers a question the guest cannot answer on its own, because the host owns the
-answer: where my data lives (`baseUrl`), which language and theme (`locale`, `theme`), where I am
-and how to move (`path`, `navigate`, `url`), how
-to speak to the user outside my column (`notify`). Anything absent from the list the guest either
-knows itself or asks its own server.
+answer: where my data lives (`baseUrl`), which language and theme (`locale`, `theme`), where I am and
+how to move (`path`, `navigate`, `url`), and how to speak to the user outside my column (`notify`).
+Anything absent from the list the guest either knows itself or asks its own server. Events are not on
+it: a section subscribes to the hub itself. Nor are core api urls: the provider's own controller
+builds them with `portal.apiUrl`.
 
 **Routing semantics:**
 
