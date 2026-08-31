@@ -65,8 +65,9 @@ Not started. It mirrors app-applications with four descriptors — users, groups
 spaced `order` 20–23, each with its own `allow` — all pointing at one module: one shared controller
 body in `lib/` that each `admin/extensions/<name>/<name>.ts` is two one-liners over, one schema
 answering from every prefix, and a switch on which section a mount is, read off the end of
-`host.baseUrl` (`<app>:<name>`) since `mount` is not told (the browser runs the module once per
-section anyway). Copy `shared/{api,config,i18n,sections,styles}`, `lib/i18n.ts`,
+`host.baseUrl` (`<app>:<name>`) since `mount` is not told. The host imports one module for all of
+an app's sections, so `mount` runs once per section from one instance: anything derived from `host`
+must live per mount, never at module level. Copy `shared/{api,config,i18n,sections,styles}`, `lib/i18n.ts`,
 `types/graphql.d.ts`, `src/test/mocks/`, the Vite and Gradle wiring and the `@enonic/ui` dependency
 (`^1.2.0`); `shared/sections/contract.ts` stays byte-identical with the host's. The auth schema
 moves per `docs.md` 4.2.

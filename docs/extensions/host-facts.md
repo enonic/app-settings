@@ -22,7 +22,7 @@ what stands. `provider-facts.md` is the other side of the boundary.
   entirely by each extension's own `allow`**, server-side, and the shell adds no filter of its own.
   A `system.admin` passes every one of those gates — see `../platform-facts.md`.
   Row → `url: <base>/<key>`, `moduleUrl: <url>/_static/main.js`, `iconUrl: <base><iconUrl>`,
-  `order: config.order ?? 1000`, `path: config.path`.
+  `order: config.order ?? 1000`, `path: config.path`, `module: config.module`.
 - Sorted by `(order, key)`. Slug = `config.path` when it matches `[a-z0-9-]+` and is unclaimed, else
   the key, with a console warning; read per call, so a collision resolved differently after an
   install moves it.
@@ -60,7 +60,10 @@ what stands. `provider-facts.md` is the other side of the boundary.
   15 s timeout → `isSectionModule` → `mount({container, host})`. On failure one phrase on screen
   (`sectionMount.failed`) and the stage in the console — could not be imported, exports no mount
   function, threw while mounting. The host element stays mounted in every state. No host skeleton.
-- The entry url is per prefix, so a provider's module runs once per section.
+- An app's sections share one module: the host rewrites the group's `moduleUrl` to its first row's
+  (by `(order, key)`), so the browser executes the module once and `mount` runs per section.
+  `config.module` names a sharing group within the app — the per-section opt-out. Each section's
+  `url` (its data plane) stays its own.
 
 ## The host object
 
