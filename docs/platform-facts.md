@@ -140,7 +140,7 @@ on each separately for that reason.
 
 XP publishes app lifecycle as `EVENT_TYPE = "application"` with
 `eventType ∈ { INSTALLED, STARTED, STOPPED, UNINSTALLED }` (`ApplicationEvents.java`); the hub's
-server listener republishes it on the `applications` topic (`lib/events.ts`). The legacy
+server listener republishes it on the `applications` topic (`lib/events/applications.ts`). The legacy
 `admin:event` socket still exists in XP but forwards _every_ event unfiltered
 (`EventApiHandler.onEvent` → `sendToGroup`) and is no longer mounted on the tool.
 

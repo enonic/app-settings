@@ -118,7 +118,7 @@ which is where Phase 2 will extract them from.
 and left that module standing only for the departing Applications and Market slices; with those gone its
 last reader was the `connected` member #117 had added to the mount contract, and since #118 had taken
 `subscribeEvents` out there was nothing left for it to report, so it went too. The host now has one
-event path and no websocket of its own: `lib/events.ts` publishes, `shared/admin-events` subscribes.
+event path and no websocket of its own: `lib/events/` publishes, `shared/admin-events` subscribes.
 
 `shared/format/bytes.ts` is dead in the host too, but it arrived with the browse framework (#17) rather
 than with Applications, so 3.5 left it alone. Worth a look in Phase 5.1.

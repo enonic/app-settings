@@ -168,7 +168,7 @@ What it does **not** remove:
   per subscriber, so events stopped being a broadcast (#42 E1 is closed by construction). The old
   `admin:event` socket is not mounted on the tool any more.
 - **The host owns every topic.** It alone listens to the XP events that matter to the container
-  (`lib/events.ts`: application lifecycle, principal nodes), registers one topic per domain with
+  (`lib/events/`: application lifecycle, principal nodes), registers one topic per domain with
   that domain's `allow`, and publishes minimal payloads. A provider ships no event code at all —
   no `setTopic`, no listener, no `main.js` — so a section's audience and its event feed are gated
   in one place, by the app that already gates the tool.
