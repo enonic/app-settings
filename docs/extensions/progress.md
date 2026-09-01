@@ -201,18 +201,18 @@ Java package. After it, app-settings has no `src/main/java` and no GraphQL API a
 
 Done ahead of the phase that asks for it.
 
-| What                                                                                   | Where it belongs   |
-| -------------------------------------------------------------------------------------- | ------------------ |
-| rail follows application events over the hub topic; loss triggers rediscovery          | § Discovery 6      |
-| tool `allow` = the union of the section audiences; empty and failed rail states (#113) | § Security and 5.2 |
+| What                                                                                      | Where it belongs   |
+| ----------------------------------------------------------------------------------------- | ------------------ |
+| rail follows application events over the hub topic; loss triggers rediscovery             | § Discovery 6      |
+| tool `allow` = the union of the section audiences; empty and failed rail states (#113)    | § Security and 5.2 |
+| install progress on its own hub topic, `{url, percent}`, passed through unsmoothed (#129) | § Events           |
 
 ## Known gaps
 
-- **Market install progress is inert.** XP reports a download as `PROGRESS` application events, which
-  the hub excludes deliberately, so nothing feeds the provider's `receiveInstallProgress` and a market
-  install renders a bar stuck at 0 — as it already did for a download core cannot measure.
-  `server:app`'s SSE channel is the carrier left and has no consumer yet; the store and its test stay
-  as the seam one would call. Uploading a jar is unaffected — that progress is the browser's own XHR.
+- **Market install progress is published but not yet consumed** (#129). The hub carries a download
+  on the `application-progress` topic; app-applications#2317 is the subscriber that feeds
+  `receiveInstallProgress`, and until it lands a market install still renders a bar stuck at 0.
+  Uploading a jar is unaffected — that progress is the browser's own XHR.
 - The provider's applications and market services subscribe the hub topic from `mount` rather than
   from the module. A provider pointing several descriptors at one module would have the first unmount
   detach a subscription the others are still reading — latent while app-applications ships one

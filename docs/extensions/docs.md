@@ -189,17 +189,28 @@ What it does **not** remove:
   IDs, re-read data through the section's own gateway where the data-plane `allow` applies.
 - The topics, all owned by the host (canonical prefix `com.enonic.xp.app.settings:`):
 
-  | Topic          | `allow` (besides `system.admin`) | Published on                                  | Payload                                                                 |
-  | -------------- | -------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------- |
-  | `applications` | —                                | application lifecycle, `PROGRESS` excluded    | `{eventType, key, systemApplication}`                                   |
-  | `principals`   | `user.admin`, `user.app`         | `node.*` of the system repo under `/identity` | `{operation, changes: [{kind, key}]}`, kinds user/group/role/idProvider |
+  | Topic                  | `allow` (besides `system.admin`) | Published on                                  | Payload                                                                 |
+  | ---------------------- | -------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------- |
+  | `applications`         | —                                | application lifecycle                         | `{eventType, key, systemApplication}`                                   |
+  | `application-progress` | —                                | `PROGRESS`, once per percent of a download    | `{url, percent}`                                                        |
+  | `principals`           | `user.admin`, `user.app`         | `node.*` of the system repo under `/identity` | `{operation, changes: [{kind, key}]}`, kinds user/group/role/idProvider |
 
-  Install progress stays off the `applications` topic — a publish per percent to every subscriber
-  is noise — and, contrary to an earlier note here, `server:app`'s SSE does **not** carry it
-  (cluster lifecycle only): the hub's listener is its only route, so a channel for it is an open
-  decision (`platform-facts.md`). The rail's rediscovery rides `applications` too; its
-  admin-only `allow` means a delegated operator's rail is static until reload — accepted until a
-  broader topic is warranted.
+  **Install progress has a topic of its own, not a row on `applications`.** Sequence numbers and
+  `onLoss` are per topic, so a hundred percent-messages sharing the lifecycle stream would make a
+  dropped percent indistinguishable from a dropped `INSTALLED` — the rail would rediscover and the
+  market catalogue would reload, a call out to Enonic Market, for nothing. The shapes are unrelated
+  too, and three subscribers of `applications` would parse every percent to discard it. The hub's
+  listener is that event's only route to a browser: `server:app`'s SSE does **not** carry it
+  (`platform-facts.md`).
+
+  It is passed through unsmoothed — no throttling, and no terminal message. Core publishes only
+  when the percent moves, 100% means the download finished rather than the install, and where a bar
+  ends belongs to whoever watches `applications`. `percent` stays 0 for a download core has no
+  content length to measure. The payload's `url` is the one place a topic carries data rather than
+  an id, because it is the only handle core reports a download by.
+
+  The rail's rediscovery rides `applications` too; its admin-only `allow` means a delegated
+  operator's rail is static until reload — accepted until a broader topic is warranted.
 
 ### Notifications
 

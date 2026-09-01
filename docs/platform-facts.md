@@ -136,7 +136,7 @@ dropped into `deploy/` is both — `ApplicationServiceSystemAppGuardsTest` cover
 Neither flag can be derived from the other, and `isUninstallable` in `application-lifecycle.ts` refuses
 on each separately for that reason.
 
-## Application lifecycle rides the admin events hub; install progress currently reaches no browser
+## Application lifecycle and install progress ride the admin events hub, on a topic each
 
 XP publishes app lifecycle as `EVENT_TYPE = "application"` with
 `eventType ∈ { INSTALLED, STARTED, STOPPED, UNINSTALLED }` (`ApplicationEvents.java`); the hub's
@@ -148,9 +148,15 @@ Per-percent install progress **is** an `application` event too — `ApplicationL
 publishes `eventType: "PROGRESS"` with `applicationUrl` and `progress` onto the ordinary event bus
 — and that bus is its _only_ route toward a browser: `server:app`'s `GET /events` SSE stream does
 **not** carry it (`ApplicationApiHandler.onEvent` reacts solely to `application.cluster`
-lifecycle events — `installed`/`state`/`uninstalled`). The hub listener drops `PROGRESS` as noise,
-so today install progress reaches nothing; giving it a channel (its own hub topic, or admitting it
-into `applications`) is an open decision the Applications section will force.
+lifecycle events — `installed`/`state`/`uninstalled`). The hub republishes it on its own
+`application-progress` topic as `{url, percent}`, keyed by the download url because the event
+carries no application key; why it is not a row on `applications` is in `extensions/docs.md`.
+
+**Progress is node-local at both ends, and nothing makes it otherwise.** The core event is
+`distributed(false)`, and `AdminEventHubImpl` "delivers to the sockets on this node and does not
+distribute over the cluster". So a clustered instance shows a download only to a browser whose
+websocket happens to sit on the node that served the `installUrl` request — the same limitation the
+legacy `admin:event` socket had. Lifecycle events are unaffected: those XP distributes.
 
 ## Coverage: what JS can and cannot reach
 
