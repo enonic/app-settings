@@ -136,11 +136,11 @@ dropped into `deploy/` is both — `ApplicationServiceSystemAppGuardsTest` cover
 Neither flag can be derived from the other, and `isUninstallable` in `application-lifecycle.ts` refuses
 on each separately for that reason.
 
-## Application lifecycle rides the admin events hub; install progress currently reaches no browser
+## Application lifecycle and install progress ride the admin events hub, on a topic each
 
 XP publishes app lifecycle as `EVENT_TYPE = "application"` with
 `eventType ∈ { INSTALLED, STARTED, STOPPED, UNINSTALLED }` (`ApplicationEvents.java`); the hub's
-server listener republishes it on the `applications` topic (`lib/events.ts`). The legacy
+server listener republishes it on the `applications` topic (`lib/events/applications.ts`). The legacy
 `admin:event` socket still exists in XP but forwards _every_ event unfiltered
 (`EventApiHandler.onEvent` → `sendToGroup`) and is no longer mounted on the tool.
 
@@ -148,9 +148,22 @@ Per-percent install progress **is** an `application` event too — `ApplicationL
 publishes `eventType: "PROGRESS"` with `applicationUrl` and `progress` onto the ordinary event bus
 — and that bus is its _only_ route toward a browser: `server:app`'s `GET /events` SSE stream does
 **not** carry it (`ApplicationApiHandler.onEvent` reacts solely to `application.cluster`
-lifecycle events — `installed`/`state`/`uninstalled`). The hub listener drops `PROGRESS` as noise,
-so today install progress reaches nothing; giving it a channel (its own hub topic, or admitting it
-into `applications`) is an open decision the Applications section will force.
+lifecycle events — `installed`/`state`/`uninstalled`). The hub republishes it on its own
+`application-progress` topic as `{url, percent}`, keyed by the download url because the event
+carries no application key; why it is not a row on `applications` is in `extensions/docs.md`.
+
+**Progress is node-local at both ends, and nothing makes it otherwise.** The core event is
+`distributed(false)`, and `AdminEventHubImpl` "delivers to the sockets on this node and does not
+distribute over the cluster". So a clustered instance shows a download only to a browser whose
+websocket happens to sit on the node that served the `installUrl` request — the same limitation the
+legacy `admin:event` socket had.
+
+Lifecycle events reach every node all the same, but **not because XP distributes them**: every
+`application` event `ApplicationEvents` builds is `distributed(false)` too, progress and lifecycle
+alike. What crosses the cluster is `application.cluster` (`distributed(true)`), on which each node's
+`ApplicationServiceImpl.onEvent` installs, starts or stops the application locally — and each of
+those local calls publishes that node's own `application` event. A download has no such counterpart:
+only the node that served the request ever reads the jar.
 
 ## Coverage: what JS can and cannot reach
 
