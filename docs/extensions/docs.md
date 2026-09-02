@@ -168,7 +168,7 @@ What it does **not** remove:
   per subscriber, so events stopped being a broadcast (#42 E1 is closed by construction). The old
   `admin:event` socket is not mounted on the tool any more.
 - **The host owns every topic.** It alone listens to the XP events that matter to the container
-  (`lib/events.ts`: application lifecycle, principal nodes), registers one topic per domain with
+  (`lib/events/`: application lifecycle, principal nodes), registers one topic per domain with
   that domain's `allow`, and publishes minimal payloads. A provider ships no event code at all —
   no `setTopic`, no listener, no `main.js` — so a section's audience and its event feed are gated
   in one place, by the app that already gates the tool.
@@ -189,17 +189,29 @@ What it does **not** remove:
   IDs, re-read data through the section's own gateway where the data-plane `allow` applies.
 - The topics, all owned by the host (canonical prefix `com.enonic.xp.app.settings:`):
 
-  | Topic          | `allow` (besides `system.admin`) | Published on                                  | Payload                                                                 |
-  | -------------- | -------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------- |
-  | `applications` | —                                | application lifecycle, `PROGRESS` excluded    | `{eventType, key, systemApplication}`                                   |
-  | `principals`   | `user.admin`, `user.app`         | `node.*` of the system repo under `/identity` | `{operation, changes: [{kind, key}]}`, kinds user/group/role/idProvider |
+  | Topic                  | `allow` (besides `system.admin`) | Published on                                  | Payload                                                                 |
+  | ---------------------- | -------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------- |
+  | `applications`         | —                                | application lifecycle                         | `{eventType, key, systemApplication}`                                   |
+  | `application-progress` | —                                | `PROGRESS`, once per percent of a download    | `{url, percent}`                                                        |
+  | `principals`           | `user.admin`, `user.app`         | `node.*` of the system repo under `/identity` | `{operation, changes: [{kind, key}]}`, kinds user/group/role/idProvider |
 
-  Install progress stays off the `applications` topic — a publish per percent to every subscriber
-  is noise — and, contrary to an earlier note here, `server:app`'s SSE does **not** carry it
-  (cluster lifecycle only): the hub's listener is its only route, so a channel for it is an open
-  decision (`platform-facts.md`). The rail's rediscovery rides `applications` too; its
-  admin-only `allow` means a delegated operator's rail is static until reload — accepted until a
-  broader topic is warranted.
+  **Install progress has a topic of its own, not a row on `applications`.** Sequence numbers and
+  `onLoss` are per topic, so a hundred percent-messages sharing the lifecycle stream would make a
+  dropped percent indistinguishable from a dropped `INSTALLED` — the rail would rediscover and the
+  market catalogue would reload, a call out to Enonic Market, for nothing. The shapes are unrelated
+  too, and three subscribers of `applications` would parse every percent to discard it. The hub's
+  listener is that event's only route to a browser: `server:app`'s SSE does **not** carry it
+  (`platform-facts.md`).
+
+  It is passed through unsmoothed — no throttling, and no terminal message. Core publishes only
+  when the percent moves, and 100% means the download finished rather than the install, so ending a
+  bar is the caller's own business: app-applications clears the row when its `installUrl` request
+  resolves, and the `applications` topic only drives the catalogue reload behind it. `percent` stays
+  0 for a download core has no content length to measure. The payload's `url` is the one place a
+  topic carries data rather than an id, because it is the only handle core reports a download by.
+
+  The rail's rediscovery rides `applications` too; its admin-only `allow` means a delegated
+  operator's rail is static until reload — accepted until a broader topic is warranted.
 
 ### Notifications
 

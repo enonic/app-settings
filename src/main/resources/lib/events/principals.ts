@@ -1,40 +1,30 @@
 import { sendToTopic, setTopic } from '/lib/xp/admin';
 import { listener } from '/lib/xp/event';
 
-// ! The hub owns every topic: it alone listens to XP events, gates each topic with its own
-// ! `allow`, and publishes. The canonical names are contract constants (`HUB_TOPICS` in
-// ! `shared/sections/contract.ts`); the platform composes `<appKey>:<localName>`, and
-// ! `events.test.ts` pins the contract values against the app name gradle.properties builds.
-const APPLICATIONS = 'applications';
 const PRINCIPALS = 'principals';
 
-export function init(): void {
-  // Each topic's audience mirrors the section it serves; role:system.admin subscribes regardless.
-  setTopic({ name: APPLICATIONS, allow: ['role:system.admin'] });
+/** The node events a principal write can produce. */
+const PRINCIPAL_NODE_EVENTS = [
+  'node.created',
+  'node.updated',
+  'node.deleted',
+  'node.moved',
+  'node.permissionsUpdated',
+];
+
+/** Where XP keeps principals: nodes of the system repo under `/identity`. */
+const SYSTEM_REPO = 'system-repo';
+
+type EventNode = { path?: unknown; newPath?: unknown; repo?: unknown };
+
+export type PrincipalKind = 'user' | 'group' | 'role' | 'idProvider';
+
+/** Ids only, never data: a subscriber re-reads through its own gateway, where `allow` applies. */
+export type PrincipalChange = { kind: PrincipalKind; key: string };
+
+export function initPrincipals(): void {
+  // The audience mirrors the sections principals serve; role:system.admin subscribes regardless.
   setTopic({ name: PRINCIPALS, allow: ['role:system.user.admin', 'role:system.user.app'] });
-
-  listener({
-    type: 'application',
-    localOnly: false,
-    callback: (event) => {
-      const { eventType, applicationKey, systemApplication } = event.data;
-      // ! `PROGRESS` (per-percent during an install; this listener is its only route to a
-      // ! browser) is dropped as noise — a channel for it is an open decision.
-      if (
-        typeof eventType !== 'string' ||
-        typeof applicationKey !== 'string' ||
-        eventType === 'PROGRESS'
-      ) {
-        return;
-      }
-
-      sendToTopic(APPLICATIONS, {
-        eventType,
-        key: applicationKey,
-        systemApplication: systemApplication === true,
-      });
-    },
-  });
 
   listener({
     type: 'node.*',
@@ -54,34 +44,6 @@ export function init(): void {
     },
   });
 }
-
-//
-// * Principals
-//
-
-/** `node.updated` → `updated`; anything unprefixed travels as it came. */
-function operationOf(type: string): string {
-  return type.startsWith('node.') ? type.slice('node.'.length) : type;
-}
-
-export type PrincipalKind = 'user' | 'group' | 'role' | 'idProvider';
-
-/** Ids only, never data: a subscriber re-reads through its own gateway, where `allow` applies. */
-export type PrincipalChange = { kind: PrincipalKind; key: string };
-
-/** The node events a principal write can produce. */
-const PRINCIPAL_NODE_EVENTS = [
-  'node.created',
-  'node.updated',
-  'node.deleted',
-  'node.moved',
-  'node.permissionsUpdated',
-];
-
-/** Where XP keeps principals: nodes of the system repo under `/identity`. */
-const SYSTEM_REPO = 'system-repo';
-
-type EventNode = { path?: unknown; newPath?: unknown; repo?: unknown };
 
 /**
  * The principal changes a `node.*` event carries, deduplicated. The paths mirror
@@ -111,6 +73,15 @@ export function principalChanges(data: Record<string, unknown>): PrincipalChange
   });
 
   return [...changes.values()];
+}
+
+//
+// * Internal
+//
+
+/** `node.updated` → `updated`; anything unprefixed travels as it came. */
+function operationOf(type: string): string {
+  return type.startsWith('node.') ? type.slice('node.'.length) : type;
 }
 
 function toChange(path: string): PrincipalChange | undefined {

@@ -118,7 +118,7 @@ which is where Phase 2 will extract them from.
 and left that module standing only for the departing Applications and Market slices; with those gone its
 last reader was the `connected` member #117 had added to the mount contract, and since #118 had taken
 `subscribeEvents` out there was nothing left for it to report, so it went too. The host now has one
-event path and no websocket of its own: `lib/events.ts` publishes, `shared/admin-events` subscribes.
+event path and no websocket of its own: `lib/events/` publishes, `shared/admin-events` subscribes.
 
 `shared/format/bytes.ts` is dead in the host too, but it arrived with the browse framework (#17) rather
 than with Applications, so 3.5 left it alone. Worth a look in Phase 5.1.
@@ -201,22 +201,26 @@ Java package. After it, app-settings has no `src/main/java` and no GraphQL API a
 
 Done ahead of the phase that asks for it.
 
-| What                                                                                   | Where it belongs   |
-| -------------------------------------------------------------------------------------- | ------------------ |
-| rail follows application events over the hub topic; loss triggers rediscovery          | § Discovery 6      |
-| tool `allow` = the union of the section audiences; empty and failed rail states (#113) | § Security and 5.2 |
+| What                                                                                      | Where it belongs   |
+| ----------------------------------------------------------------------------------------- | ------------------ |
+| rail follows application events over the hub topic; loss triggers rediscovery             | § Discovery 6      |
+| tool `allow` = the union of the section audiences; empty and failed rail states (#113)    | § Security and 5.2 |
+| install progress on its own hub topic, `{url, percent}`, passed through unsmoothed (#129) | § Events           |
 
 ## Known gaps
 
-- **Market install progress is inert.** XP reports a download as `PROGRESS` application events, which
-  the hub excludes deliberately, so nothing feeds the provider's `receiveInstallProgress` and a market
-  install renders a bar stuck at 0 — as it already did for a download core cannot measure.
-  `server:app`'s SSE channel is the carrier left and has no consumer yet; the store and its test stay
-  as the seam one would call. Uploading a jar is unaffected — that progress is the browser's own XHR.
-- The provider's applications and market services subscribe the hub topic from `mount` rather than
-  from the module. A provider pointing several descriptors at one module would have the first unmount
-  detach a subscription the others are still reading — latent while app-applications ships one
-  section, and the same trap `app/events.ts` documents for the connection itself.
+- **Market install progress is published but not yet consumed** (#129). The hub carries a download
+  on the `application-progress` topic; app-applications#2317 is the subscriber that feeds
+  `receiveInstallProgress`, and until it lands a market install still renders a bar stuck at 0.
+  Uploading a jar is unaffected — that progress is the browser's own XHR. The host has to be
+  released first: a guest subscribing a topic an older host never registered is answered
+  `deny {reason: unknown}`, which the platform's `client.js` only writes to the console, so the
+  section degrades to exactly that bar rather than failing.
+- The provider's applications, market and install services all subscribe their hub topic from
+  `mount` rather than from the module. A provider pointing several descriptors at one module would
+  have the first unmount detach a subscription the others are still reading — and #127 made that
+  module sharing the default, so only app-applications shipping a single section keeps it latent.
+  The same trap `app/events.ts` documents for the connection itself.
 - **Merge blocker.** The host's five built-in sections are commented out (`app/model/router.ts`,
   `app/ui/App.tsx`; `pages/**` unlinted); `docs.md` 2.4 and 4.4 keep them until Phases 3–4. Either
   they return beside the discovered ones — a mixed rail — or `docs.md` changes its sequence.
