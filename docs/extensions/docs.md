@@ -204,10 +204,11 @@ What it does **not** remove:
   (`platform-facts.md`).
 
   It is passed through unsmoothed — no throttling, and no terminal message. Core publishes only
-  when the percent moves, 100% means the download finished rather than the install, and where a bar
-  ends belongs to whoever watches `applications`. `percent` stays 0 for a download core has no
-  content length to measure. The payload's `url` is the one place a topic carries data rather than
-  an id, because it is the only handle core reports a download by.
+  when the percent moves, and 100% means the download finished rather than the install, so ending a
+  bar is the caller's own business: app-applications clears the row when its `installUrl` request
+  resolves, and the `applications` topic only drives the catalogue reload behind it. `percent` stays
+  0 for a download core has no content length to measure. The payload's `url` is the one place a
+  topic carries data rather than an id, because it is the only handle core reports a download by.
 
   The rail's rediscovery rides `applications` too; its admin-only `allow` means a delegated
   operator's rail is static until reload — accepted until a broader topic is warranted.

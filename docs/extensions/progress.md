@@ -212,11 +212,15 @@ Done ahead of the phase that asks for it.
 - **Market install progress is published but not yet consumed** (#129). The hub carries a download
   on the `application-progress` topic; app-applications#2317 is the subscriber that feeds
   `receiveInstallProgress`, and until it lands a market install still renders a bar stuck at 0.
-  Uploading a jar is unaffected — that progress is the browser's own XHR.
-- The provider's applications and market services subscribe the hub topic from `mount` rather than
-  from the module. A provider pointing several descriptors at one module would have the first unmount
-  detach a subscription the others are still reading — latent while app-applications ships one
-  section, and the same trap `app/events.ts` documents for the connection itself.
+  Uploading a jar is unaffected — that progress is the browser's own XHR. The host has to be
+  released first: a guest subscribing a topic an older host never registered is answered
+  `deny {reason: unknown}`, which the platform's `client.js` only writes to the console, so the
+  section degrades to exactly that bar rather than failing.
+- The provider's applications, market and install services all subscribe their hub topic from
+  `mount` rather than from the module. A provider pointing several descriptors at one module would
+  have the first unmount detach a subscription the others are still reading — and #127 made that
+  module sharing the default, so only app-applications shipping a single section keeps it latent.
+  The same trap `app/events.ts` documents for the connection itself.
 - **Merge blocker.** The host's five built-in sections are commented out (`app/model/router.ts`,
   `app/ui/App.tsx`; `pages/**` unlinted); `docs.md` 2.4 and 4.4 keep them until Phases 3–4. Either
   they return beside the discovered ones — a mixed rail — or `docs.md` changes its sequence.

@@ -73,20 +73,19 @@ describe('initApplications', () => {
     });
   });
 
-  it('publishes no progress it cannot key or size', () => {
+  it.each<[string, Record<string, unknown>]>([
+    ['no url', { eventType: 'PROGRESS', progress: 42 }],
+    ['an empty url', { ...progressEvent(42), applicationUrl: '' }],
+    ['no percent', { eventType: 'PROGRESS', applicationUrl: DOWNLOAD_URL }],
+    ['a percent that is a string', { ...progressEvent(42), progress: '42' }],
+    ['a percent that is NaN', { ...progressEvent(42), progress: Number.NaN }],
+    ['a percent that is infinite', { ...progressEvent(42), progress: Number.POSITIVE_INFINITY }],
+    ['a percent below the range', progressEvent(-1)],
+    ['a percent above the range', progressEvent(101)],
+  ])('publishes no progress with %s', (_case, data) => {
     initApplications();
-    const callback = applicationCallback();
 
-    callback({ type: 'application', data: { eventType: 'PROGRESS', progress: 42 } }); // no url
-    callback({ type: 'application', data: { ...progressEvent(42), applicationUrl: '' } });
-    callback({
-      type: 'application',
-      data: { eventType: 'PROGRESS', applicationUrl: DOWNLOAD_URL },
-    }); // no percent
-    callback({ type: 'application', data: { ...progressEvent(42), progress: '42' } });
-    callback({ type: 'application', data: { ...progressEvent(42), progress: Number.NaN } });
-    callback({ type: 'application', data: progressEvent(-1) });
-    callback({ type: 'application', data: progressEvent(101) });
+    applicationCallback()({ type: 'application', data });
 
     expect(sendToTopic).not.toHaveBeenCalled();
   });

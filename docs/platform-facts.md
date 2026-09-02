@@ -156,7 +156,14 @@ carries no application key; why it is not a row on `applications` is in `extensi
 `distributed(false)`, and `AdminEventHubImpl` "delivers to the sockets on this node and does not
 distribute over the cluster". So a clustered instance shows a download only to a browser whose
 websocket happens to sit on the node that served the `installUrl` request — the same limitation the
-legacy `admin:event` socket had. Lifecycle events are unaffected: those XP distributes.
+legacy `admin:event` socket had.
+
+Lifecycle events reach every node all the same, but **not because XP distributes them**: every
+`application` event `ApplicationEvents` builds is `distributed(false)` too, progress and lifecycle
+alike. What crosses the cluster is `application.cluster` (`distributed(true)`), on which each node's
+`ApplicationServiceImpl.onEvent` installs, starts or stops the application locally — and each of
+those local calls publishes that node's own `application` event. A download has no such counterpart:
+only the node that served the request ever reads the jar.
 
 ## Coverage: what JS can and cannot reach
 

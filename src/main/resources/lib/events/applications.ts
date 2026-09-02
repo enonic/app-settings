@@ -27,7 +27,6 @@ export function initApplications(): void {
 // * Internal
 //
 
-/** An application's lifecycle, as `{eventType, key, systemApplication}`. */
 function publishLifecycle(data: Record<string, unknown>): void {
   const { eventType, applicationKey, systemApplication } = data;
 
@@ -42,7 +41,6 @@ function publishLifecycle(data: Record<string, unknown>): void {
   });
 }
 
-/** Core's download progress, passed through as `{url, percent}`. */
 function publishProgress(data: Record<string, unknown>): void {
   const { applicationUrl, progress } = data;
 
@@ -50,14 +48,8 @@ function publishProgress(data: Record<string, unknown>): void {
     return;
   }
 
-  // Core computes the percent, but this is still a wire boundary: a NaN or an out-of-range value
-  // would reach the browser as a width.
-  if (
-    typeof progress !== 'number' ||
-    !Number.isFinite(progress) ||
-    progress < 0 ||
-    progress > 100
-  ) {
+  // Core computes the percent, but it reaches a browser as a width: this is still a wire boundary.
+  if (typeof progress !== 'number' || !(progress >= 0 && progress <= 100)) {
     return;
   }
 
