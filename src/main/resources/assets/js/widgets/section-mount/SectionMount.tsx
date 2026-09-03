@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 
 import { useI18n } from '../../shared/i18n';
-import { mountSection, type Host } from '../../shared/sections';
+import { mountSection, type SectionHost } from '../../shared/sections';
 
 export type SectionMountProps = {
   /** The section module's url: the extension prefix plus the contract-fixed entry path. */
   moduleUrl: string;
   /** Handed to `mount`, and stable per mount: a new object remounts the section. */
-  host: Host;
+  host: SectionHost;
   /** Hidden, not unmounted: the DOM and the state inside it are what keep-alive is for. */
   hidden?: boolean;
   /** Runs after the guest's own unmount returned — where the caller revokes the host. */

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { createSectionPath, isInSection, readSubPath, sectionPath } from './section-path';
+import {
+  createSectionPath,
+  createSectionVisible,
+  isInSection,
+  readSubPath,
+  sectionPath,
+} from './section-path';
 
 describe('readSubPath', () => {
   it('is what follows the section slug', () => {
@@ -230,5 +236,62 @@ describe('createSectionPath', () => {
 
     second();
     expect(listenerCount()).toBe(0);
+  });
+});
+
+describe('createSectionVisible', () => {
+  function harness(active: boolean) {
+    const state = { active, notify: () => undefined as void };
+    const visible = createSectionVisible({
+      isActive: () => state.active,
+      onUrlChange: (cb) => {
+        state.notify = cb;
+        return () => {
+          state.notify = () => undefined;
+        };
+      },
+    });
+    return { state, visible };
+  }
+
+  it('answers whether the section is the one showing', () => {
+    expect(harness(true).visible.get()).toBe(true);
+    expect(harness(false).visible.get()).toBe(false);
+  });
+
+  it('does not call back on subscribe', () => {
+    const { visible } = harness(true);
+    const seen: boolean[] = [];
+
+    visible.subscribe((value) => seen.push(value));
+
+    expect(seen).toEqual([]);
+  });
+
+  it('emits once per change, not per url move', () => {
+    const { state, visible } = harness(true);
+    const seen: boolean[] = [];
+    visible.subscribe((value) => seen.push(value));
+
+    state.notify();
+    state.active = false;
+    state.notify();
+    state.notify();
+    state.active = true;
+    state.notify();
+
+    expect(seen).toEqual([false, true]);
+  });
+
+  it('stops emitting once disposed', () => {
+    const { state, visible } = harness(true);
+    const seen: boolean[] = [];
+    visible.subscribe((value) => seen.push(value));
+
+    visible.dispose();
+    state.active = false;
+    state.notify();
+
+    expect(seen).toEqual([]);
   });
 });

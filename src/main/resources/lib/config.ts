@@ -20,7 +20,6 @@ export type ToolConfig = {
     /** The hub endpoint: `client.js` under it is the client, the endpoint itself the socket. */
     adminEvents: string;
     extensions: string;
-    graphql: string;
   };
 };
 
@@ -36,7 +35,6 @@ export function getConfig(locales: string[]): ToolConfig {
     apis: {
       adminEvents: apiUrl({ api: 'admin:events' }),
       extensions: apiUrl({ api: 'admin:extension' }),
-      graphql: apiUrl({ api: `${app.name}:graphql` }),
     },
   };
 }

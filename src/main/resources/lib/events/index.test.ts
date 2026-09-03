@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { setTopic } from '/lib/xp/admin';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { HUB_TOPICS } from '../../assets/js/shared/sections';
+import { HUB_TOPICS } from '../../assets/js/shared/admin-events';
 import { init } from './index';
 
 /** Renaming the app must fail here, not silently split the publisher from its subscribers. */
