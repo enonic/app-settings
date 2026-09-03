@@ -31,16 +31,17 @@ Copy the built JAR to `$XP_HOME/deploy`, or let Gradle do it:
 
 Optional, in `$XP_HOME/config/com.enonic.xp.app.settings.cfg`:
 
-| Key                        | Default                                 | Effect                                                                                                                                       |
-| -------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `applications.managedMode` | off                                     | `true` puts the Applications section in managed mode: it lists what is installed and offers nothing that changes it. Any other value is off. |
-| `marketApiUrl`             | `https://market.enonic.com/api/graphql` | Where Enonic Market is read from.                                                                                                            |
+| Key                             | Default | Effect                                                                                                                                     |
+| ------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `contentSecurityPolicy.enabled` | on      | `false` sends no `Content-Security-Policy` header at all, for the sections too. Any other value is on.                                     |
+| `contentSecurityPolicy.header`  | none    | A raw header value unioned onto the policy last, so a directive can be widened without restating the baseline. Invalid tokens are skipped. |
 
 Both values are trimmed, so trailing whitespace in the file is harmless.
 
-Managed mode is for installs where applications arrive through a deploy pipeline rather than through
-this tool. It is a UI affordance, not a security boundary — the platform's own `server:app` api stays
-open to `role:system.admin` — and it leaves the other four sections alone.
+The header this tool sends is the whole policy for the page, and a section that needs a remote source
+adds it itself — so turning the switch off turns off every section's contribution with it. Each
+section's own settings live in the app that provides it: `marketApiUrl` and `applications.managedMode`
+moved to `com.enonic.xp.app.applications.cfg`.
 
 ## Building
 

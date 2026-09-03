@@ -201,11 +201,12 @@ Java package. After it, app-settings has no `src/main/java` and no GraphQL API a
 
 Done ahead of the phase that asks for it.
 
-| What                                                                                      | Where it belongs   |
-| ----------------------------------------------------------------------------------------- | ------------------ |
-| rail follows application events over the hub topic; loss triggers rediscovery             | § Discovery 6      |
-| tool `allow` = the union of the section audiences; empty and failed rail states (#113)    | § Security and 5.2 |
-| install progress on its own hub topic, `{url, percent}`, passed through unsmoothed (#129) | § Events           |
+| What                                                                                                     | Where it belongs   |
+| -------------------------------------------------------------------------------------------------------- | ------------------ |
+| rail follows application events over the hub topic; loss triggers rediscovery                            | § Discovery 6      |
+| tool `allow` = the union of the section audiences; empty and failed rail states (#113)                   | § Security and 5.2 |
+| install progress on its own hub topic, `{url, percent}`, passed through unsmoothed (#129)                | § Events           |
+| CSP baseline on the tool page; sections extend it through the platform SPI (#132, app-applications#2320) | § Security and 5.2 |
 
 ## Known gaps
 
