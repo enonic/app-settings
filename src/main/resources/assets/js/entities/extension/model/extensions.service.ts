@@ -1,5 +1,4 @@
-import { subscribeTopic } from '../../../shared/admin-events';
-import { HUB_TOPICS } from '../../../shared/sections';
+import { HUB_TOPICS, subscribeTopic } from '../../../shared/admin-events';
 import { loadSectionExtensions } from './extensions.load';
 
 /** An install ends in a burst of publishes, and only the rail's last word matters. */

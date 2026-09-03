@@ -2,18 +2,24 @@ import { sectionExtensionByKey, type SectionExtension } from '../../entities/ext
 import { $resolvedTheme } from '../../shared/app-state';
 import { $config } from '../../shared/config';
 import { dismissNotification, dismissNotifications, notify } from '../../shared/notifications';
-import type { Host, Notification } from '../../shared/sections';
+import type { Notification, SectionHost } from '../../shared/sections';
 import { router } from './router';
-import { createSectionPath, isInSection, readSubPath, sectionPath } from './section-path';
+import {
+  createSectionPath,
+  createSectionVisible,
+  isInSection,
+  readSubPath,
+  sectionPath,
+} from './section-path';
 
-export type SectionHost = {
-  host: Host;
+export type MountedHost = {
+  host: SectionHost;
   /** Run at unmount: the mount is gone, and nothing it kept a reference to may still act. */
   revoke: () => void;
 };
 
 /** Everything a section cannot answer for itself, for one mount. */
-export function createSectionHost(section: SectionExtension): SectionHost {
+export function createSectionHost(section: SectionExtension): MountedHost {
   let revoked = false;
   const subscriptions = new Set<() => void>();
   // A collision resolved differently after an install moves the slug, so it is read per call.
@@ -33,8 +39,12 @@ export function createSectionHost(section: SectionExtension): SectionHost {
     isActive,
     onUrlChange: (cb) => router.subscribe('onResolved', () => cb()),
   });
+  const visible = createSectionVisible({
+    isActive,
+    onUrlChange: (cb) => router.subscribe('onResolved', () => cb()),
+  });
 
-  const host: Host = {
+  const host: SectionHost = {
     baseUrl: section.url,
     locale: $config.get()?.locale ?? 'en',
     // ! Wrapped, not the atom itself: revocation must reach these listeners, and the raw store
@@ -46,7 +56,7 @@ export function createSectionHost(section: SectionExtension): SectionHost {
           return () => {};
         }
 
-        const unsubscribe = $resolvedTheme.subscribe(cb);
+        const unsubscribe = $resolvedTheme.listen((theme) => cb(theme));
         subscriptions.add(unsubscribe);
 
         return () => {
@@ -56,6 +66,7 @@ export function createSectionHost(section: SectionExtension): SectionHost {
       },
     },
     path,
+    visible,
     // ! Through history, not `router.navigate`: the router would re-serialize the search params, and
     // ! they are the guest's own string.
     navigate: (to, opts) => {
@@ -78,8 +89,6 @@ export function createSectionHost(section: SectionExtension): SectionHost {
         router.history.push(path);
       }
     },
-    // Hash history, so an anchor's href carries the fragment the router reads.
-    url: (to) => `#${sectionPath(slug(), to)}`,
     notify: (n) => {
       if (revoked) {
         return () => {};
@@ -98,6 +107,7 @@ export function createSectionHost(section: SectionExtension): SectionHost {
       subscriptions.forEach((unsubscribe) => unsubscribe());
       subscriptions.clear();
       path.dispose();
+      visible.dispose();
       dismissNotifications(section.key);
     },
   };
@@ -113,7 +123,5 @@ function toNotificationOptions(n: Notification) {
     text: n.message,
     autoHide: n.autoClose !== false,
     lifetimeMs: typeof n.autoClose === 'number' ? n.autoClose : undefined,
-    actions:
-      n.action == null ? [] : [{ label: n.action.label, onClick: () => n.action?.onAction() }],
   };
 }

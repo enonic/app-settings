@@ -1,29 +1,18 @@
 # App Settings
 
-Enonic XP admin application: one frame for the Applications, Users, Groups, Roles and ID Providers
-sections. Single Gradle project — TypeScript, Preact (React compat layer), Tailwind CSS v4,
-nanostores, TanStack Router. The admin tool is restricted to `role:system.admin`.
+Enonic XP's Settings admin tool: the **shell** that discovers administration sections other
+applications provide and hosts them on one page. A section is an admin extension on the
+`settings.section` interface — app-applications ships Applications, app-users ships Users, Groups,
+Roles and ID Providers — and this app owns what they share: the app bar, the section rail, the
+theme, the toast stack, the url and the admin events hub topics. It renders nothing of a section
+itself. Single Gradle project, XP 8.1, TypeScript, Preact (React compat), Tailwind CSS v4,
+nanostores, TanStack Router. No `lib-admin-ui`.
 
-> **Status — the `extensions` branch is turning this app into a hub.** Sections are discovered at
-> runtime as `settings.section` admin extensions provided by other apps. **Applications has left**:
-> Phase 3 moved it to `app-applications`, which now provides it as an extension this app mounts, and
-> nothing of it is in this repo but the one id-provider query and icon the ID Providers editor still
-> reaches for. The Users, Groups, Roles and ID Providers code is next, out to `app-users`, and none of
-> it is routed today — `pages/` is dark. **`docs/extensions/` is authoritative on how the shell
-> works**: `docs.md` for the design and its phases, `progress.md` for what stands. Everything below
-> still describes this app as the frame that owns four of those sections, which is the pre-extension
-> picture — treat it as a description of the code that has yet to move, and rewrite this file when the
-> rest of the migration lands.
-
-Every section is the same browse screen with different data: full-width action toolbar, list column
-(search, list header, rows), details column. That screen is a shared framework — **read
-`docs/browse-framework.md` before adding a section or touching `widgets/`.**
-
-Three documents carry what the code cannot say. `docs/browse-framework.md` is the contract for that
-screen. `docs/unified-api.md` is the plan for the one GraphQL layer all five sections read through,
-with its decisions and phases. `docs/platform-facts.md` records what XP actually does where its types
-and documentation mislead — **read it before concluding an XP lib cannot do something**, and re-verify
-against `../xp` rather than re-deriving.
+**`docs/extensions/` is authoritative on how the shell works** — read `docs.md` before touching the
+host↔section boundary, `host-facts.md` for what the code does today, `provider-facts.md` for the
+other side, `progress.md` for what stands. `docs/platform-facts.md` records what XP actually does
+where its types and documentation mislead — **read it before concluding an XP lib cannot do
+something**, and re-verify against `../xp` rather than re-deriving.
 
 ## Scripts
 
@@ -34,14 +23,12 @@ against `../xp` rather than re-deriving.
 | Tests                             | `pnpm test` / `pnpm test:watch` |
 | Frontend watch build              | `pnpm dev`                      |
 | Server-side TS → CommonJS         | `pnpm pack:server`              |
-| Java (script bean) tests          | `./gradlew test`                |
 | Build + deploy to local XP        | `./gradlew deploy -Penv=dev`    |
 | Full watch loop (server + assets) | `./gradlew dev`                 |
 
 `pnpm check` is what CI runs: format, lint, client typecheck, server typecheck, tests. Reach for
-Gradle when descriptors, `build.gradle`, the jar or `src/main/java` matter; for most changes `pnpm check`
-is enough. `./gradlew test` runs the script beans through GraalJS against the golden fixtures under
-`src/test/resources`, and depends on `pnpmPack` because those fixtures require the compiled wrappers.
+Gradle when descriptors, `build.gradle` or the jar matter; for most changes `pnpm check` is enough.
+There is no Java in this app.
 
 ### Toolchain
 
@@ -52,79 +39,63 @@ is enough. `./gradlew test` runs the script beans through GraalJS against the go
   config is the root `tsconfig.json`, server config is `src/main/resources/tsconfig.json`.
 - **Client**: Preact 10 with `react`/`react-dom` aliased to `preact/compat` in both `vite.config.ts`
   and `tsconfig.json`. `@enonic/ui` is Preact-native; Radix ref type mismatches are expected.
+  `@radix-ui/react-slot` and `focus-trap-react` are `@enonic/ui`'s peers, declared here because the
+  library does not tree-shake and the bundle resolves both whether or not the shell uses them.
 - **Server**: `vp pack` (tsdown) emits per-file CommonJS into `build/resources/main`, target
   `es2023` — safe because `build.gradle` pins `scriptEngine = 'GraalJS'`.
-- **XP libs**: server code requires them absolutely (`/lib/xp/auth`); types resolve through the
+- **XP libs**: server code requires them absolutely (`/lib/xp/admin`); types resolve through the
   `paths` in the server tsconfig. Adding a lib means an `include xplibs.<name>` in `build.gradle`
   **and** a double in `src/test/mocks/` plus an alias in the `test.alias` block of `vite.config.ts`.
-  Not every XP lib has a published type package, and some stop before 8.x — hand-write a minimal
-  declaration under `src/main/resources/types/` instead of downgrading, as `mustache.d.ts` does.
+  Not every XP lib has a published type package — hand-write a minimal declaration under
+  `src/main/resources/types/` instead of downgrading, as `event.d.ts` and `mustache.d.ts` do.
 
 ## Structure
 
 ```
-src/main/java/          script beans, one package per lib/*.ts that wraps them — only for data no
-                        XP JS lib exposes
 src/main/resources/
   admin/tools/main/     the single admin tool: descriptor, controller, page template
-  apis/                 app-owned HTTP APIs, one folder per api (added when a section needs one)
-  lib/                  server modules (auth guard, i18n, tool config, bean wrappers)
+  lib/                  server modules: tool config, i18n, the admin guard, the hub topics (`events/`)
   types/                hand-written declarations for XP libs without a type package
   i18n/phrases.properties
   assets/js/
-    app/                shell, router, navigation
-    pages/              one slice per section — composition only
-    widgets/            composite section-agnostic blocks (the browse framework)
-    features/           user-facing actions (dialogs, wizards, commands)
-    entities/           domain models, one slice per domain: api/, model/, ui/ segments
-    shared/             api client, config, i18n, server events, notifications, app state,
-                        formatting
+    app/                shell, router, the host object, section mounting
+    widgets/            the rail, the mount slot, the empty state, the toast list
+    features/           theme switcher
+    entities/extension/ discovery: the rows, their sorting and slugs, rediscovery on events
+    shared/             api client, config, i18n, admin events, notifications, app state, sections
+                        (the mount contract and `mountSection`), menu
 ```
 
-Import direction is one-way: `app → pages → widgets/features → entities → shared`. Details and the
-reasoning are in `.claude/rules/structure.md`.
+Import direction is one-way: `app → widgets/features → entities → shared`. Details and the
+reasoning are in `.claude/rules/structure.md`. `shared/sections/contract.ts` is the mount contract,
+duplicated byte-identically in every provider until `@enonic/ui-types` publishes it; change every
+copy or none.
 
 ## Reference repositories
 
-Sibling checkouts, read-only — nothing here imports from them. Paths are relative to this repo's
-parent directory. The list grows as further admin applications are folded into this app.
+Sibling checkouts. Paths are relative to this repo's parent directory.
 
-| Repo                   | What to read it for                                                                                                                                                                                                                                                                                                                                                                                   |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `../app-users`         | The app the Users, Groups, Roles and ID Providers sections replace. `assets/js/app/browse/` for list rows, toolbar and actions (plus `browse/serviceaccount/`), `wizard/` for principal CRUD, passwords and public keys, `report/` for permission reports, and the backend contracts under `src/main/resources/apis/graphql` and `apis/permissionReport`.                                             |
-| `../app-applications`  | **No longer a reference — the provider of the Applications section**, and not read-only: Phase 3 moved this app's Applications slice there whole. Read it for what a `settings.section` provider looks like end to end, and for the copies of `widgets/` and parts of `shared/` that Phase 2 will extract into `@enonic/toolkit`. The legacy lib-admin-ui app it replaced is on that repo's `master`. |
-| `../app-contentstudio` | The stack model. `modules/lib/src/main/resources/assets/js/v6/` is the Feature-Sliced tree this app follows — `widgets/browse-toolbar`, `widgets/browse-grid`, `widgets/context-panel`, `features/<action>/`, `entities/<domain>/`. Its `CLAUDE.md` and `.claude/rules/` are what these conventions were adapted from. Ignore `assets/js/app/`, which is legacy class-based.                          |
-| `../npm-enonic-ui`     | Source of `@enonic/ui`. Read a component before composing it — several fail silently, see `.claude/rules/enonic-ui.md`.                                                                                                                                                                                                                                                                               |
+| Repo                       | What to read it for                                                                                                                                                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `../app-applications`      | The provider of the Applications section, one extension. `assets/js/main.ts` and `app/` are what mounting looks like from the guest's side; its `.claude/rules/sections.md` is the guest's rule.                                   |
+| `../app-users`             | The provider of Users, Groups, Roles and ID Providers — four extensions, one module. `shared/host/` is the per-mount host frame the toolkit's section runtime is modelled on; `docs/unified-api.md` is its GraphQL layer's design. |
+| `../npm-enonic-ui-toolkit` | `@enonic/ui-types`, `ui-utils`, `ui-kit`, `input-types`: where the contract and the providers' shared widgets are being extracted to. `docs/browse-framework.md` there is the browse screen every section composes.                |
+| `../npm-enonic-ui`         | Source of `@enonic/ui`. Read a component before composing it — several fail silently, see `.claude/rules/enonic-ui.md`.                                                                                                            |
 
-This app targets XP 8.1 and has **no `lib-admin-ui` dependency** — dropping that framework is the
-point of the rewrite. The two apps being replaced target the same XP version, so their server-side
-contracts, permissions and event handling are current and worth following closely; their UI is built
-on lib-admin-ui (class-based components, `Q` promises, imperative DOM) and is reference-only. Take
-behaviour, data shapes and edge cases from them, never structure or style.
-
-Content Studio is an example, not an authority: its v6 tree is Preact and Tailwind like ours and worth
-reading closely, but 4-space arrow components, imports from `react`, `should` test names and a DOM test
-environment are its conventions, not ours, its entity slices are segmented inconsistently, and its
-legacy layer still runs on lib-admin-ui. Where the two disagree, `.claude/rules/` wins — the aim is to
-be tidier than the example, not to match it.
-
-**Overlap with Content Studio v6 is expected and will be extracted, not duplicated.** Browse widgets,
-formatting helpers, request plumbing and parts of the XP API surface are the same problem solved
-twice, and the plan is to move that common ground into a shared library. So anything written here
-that has a v6 counterpart should stay portable — no reaching into this app's config, stores or i18n
-keys beyond what its props carry — and is worth naming in review as a candidate for extraction.
+The providers' `widgets/`, `shared/` and `.claude/rules/` were copied out of this app when the
+sections moved and are now the canonical copies of that code; nothing here mirrors them any more.
 
 ## Conventions
 
 - `.claude/rules/` holds them, scoped by file pattern: `structure.md`, `typescript.md`, `preact.md`,
   `stores.md`, `requests.md`, `enonic-ui.md`, `testing.md`, `comments.md`. Read the relevant rule
   before writing in that area.
-- Every user-visible string goes through `shared/i18n`: a component names its strings at the top with the
-  `useI18n(key)` hook and renders them by name, and `i18n(key)` is the plain function for where a hook
-  cannot go — a key that varies per row, a store, an entity command. Phrases live in
-  `i18n/phrases.properties`, sentence-case, grouped by section. Existing keys are `nav.<section>`, `section.<section>.title`,
-  `browse.*` for the browse widgets and ungrouped app-shell keys; new section keys extend that as
-  `<section>.<area>.<name>`.
+- Every user-visible string goes through `shared/i18n`: a component names its strings at the top with
+  the `useI18n(key)` hook and renders them by name, and `i18n(key)` is the plain function for where a
+  hook cannot go. Phrases live in `i18n/phrases.properties`, sentence-case. The shell's keys are
+  `app.*`, `nav.*`, `sections.*`, `sectionMount.*`, `notifications.*`, `theme.*` and `admin.tool.*`,
+  which XP resolves from `main.yaml`. A section's phrases are the provider's own and never enter
+  this bundle.
 - Tests sit next to the code as `*.test.ts(x)`. The vitest environment is `node` and no DOM library
   is installed, so component rendering is not tested — keep testable logic in pure helpers.
 - `AGENTS.md` is a copy of this file for agents that read that name. Edit both, keep them identical.

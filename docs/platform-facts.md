@@ -8,9 +8,11 @@ implementation, and most of it was learned the expensive way.
 names the class and, where it matters, the line — so checking a claim against a newer XP is reading
 one file, not repeating the investigation.
 
-This file outlives any single issue. `docs/unified-api.md` holds the plan and the decisions that
-follow from these facts; when a phase there is finished the plan ages, but nothing here does until XP
-itself changes.
+This file outlives any single issue, and it outlived the code most of it was learned on: the
+sections that hit these facts now live in app-applications and app-users, whose `CLAUDE.md` point
+back here rather than carry their own copy. `docs/extensions/docs.md` holds the shell's decisions;
+app-users' `docs/unified-api.md` the GraphQL layer's. Plans age when their phases finish, but nothing
+here does until XP itself changes.
 
 ## `lib-schema` reaches static descriptors in a normal app jar
 
@@ -588,3 +590,24 @@ compiles and bnd derives `Import-Package` with no extra plugin and no manifest w
 Two consequences: `pnpm check` no longer covers the whole server, so `./gradlew compileJava` is the fast
 check for a bean; and IDE Java support shadow-compiles the whole resources tree into `bin/`, which is
 gitignored and excluded from `lint`/`fmt` — without that, oxlint type-checks the copy and reports every
+
+## Admin extensions, as the providers met them
+
+Verified against the XP 8.1 source while building the first providers; the host-side facts are in
+`extensions/docs.md` § Platform facts.
+
+- An admin tool path is `/admin/<app>/<tool>`; a wrong base fails `verifyPathMountedOnAdminTool` with
+  the misleading "API [admin:extension] is not mounted".
+- Controller dispatch is `<METHOD>` → `<method>` → `all`, else 405. `request.body` is read for
+  `text/*` and `application/json` before any handler runs.
+- `AdminExtensionApiHandler`: the extension's `allow`, then the interface/mount check (skipped for
+  interface `generic`), then `admin/extensions/<name>/<name>.js` with
+  `contextPath = <toolBase>/_/admin:extension/<app>:<name>`.
+- A universal API under a tool page resolves only if the host tool's descriptor lists it.
+- A discovery row always has `config` (`{}`) and `interfaces` (`[]`); `title`/`description` are
+  re-localized only when i18n keys are given, from `Accept-Language` against the provider's bundles;
+  `iconUrl` falls back descriptor svg → application icon → XP's default.
+- `allow` is tri-state: omitted = everyone past the tool, `[]` = admin only, listed = admin or listed.
+- A GraalJS app serves text only; `.js` must be `text/javascript`.
+- lib-graphql's `Json` scalar survives GraalJS; graphql-java rejects an object type with no fields at
+  schema build and occupies `graphql/**` in the jar.

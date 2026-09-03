@@ -3,7 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setConfig, type ToolConfig } from '../../../shared/config';
 
 const subscribeTopic = vi.hoisted(() => vi.fn());
-vi.mock('../../../shared/admin-events', () => ({ subscribeTopic }));
+vi.mock('../../../shared/admin-events', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../shared/admin-events')>()),
+  subscribeTopic,
+}));
 
 const loadSectionExtensions = vi.hoisted(() => vi.fn(() => Promise.resolve()));
 vi.mock('./extensions.load', () => ({ loadSectionExtensions }));
@@ -19,7 +22,6 @@ const config = {
   apis: {
     adminEvents: '/_/admin:events',
     extensions: '/_/admin:extension',
-    graphql: '/_/app:graphql',
   },
 } satisfies ToolConfig;
 

@@ -2,90 +2,86 @@
 
 A provider ships one `AdminExtension` per section on `settings.section` and serves everything under
 its own extension prefix. `docs.md` § 2 is the contract; this is what implementing it looks like, per
-provider. `host-facts.md` is the other side.
+provider, read off `app-applications` `extensions` and `app-users` `extensions`. `host-facts.md` is
+the other side. The platform facts the providers verified are in `../platform-facts.md` § Admin
+extensions.
 
-## app-applications (`issue-2295`)
+## What every provider does
 
-### What exists
-
-- `admin/extensions/applications/` — `applications.yaml` (`order: 10`, `path: applications`,
-  `allow: role:system.admin`), `applications.svg`, and `applications.ts`: the whole prefix in one
-  controller — `get` serves `_static/*` as text (`text/javascript`, `text/css`), `post` hands
-  `/graphql` to lib-graphql, anything else is a 404. A provider with several sections would lift the
-  shared body into `lib/`; with one, it lives where it is used.
-- `apis/graphql/` — schema built once per module require; every root nullable; no role check (the
-  four platform gates already ran); roots `config { appId appVersion }` and `phrases(locale): Json`.
-  Not under `graphql/`, which graphql-java occupies in the jar.
-- `assets/js/main.ts` — `mount({container, host})`: starts the bootstrap, renders `App`, returns
-  `() => render(null, container)`. Synchronous.
-- `app/bootstrap.ts` — one document, `config` + `phrases(locale: host.locale)`, to
-  `${baseUrl}/graphql`; memoized per module instance; `App` gates on it: skeleton → failure → screen.
-- `app/App.tsx` — `AppRoot` from `@enonic/ui` with `theme` from `host.theme` and `stylesheets` from
-  `$stylesheets`: it adopts the sheet into the shadow root, sets the theme class inside it and
-  portals overlays inside it.
-- `shared/styles/stylesheet.ts` — fetches `_static/main.css` (Tailwind + `@enonic/ui/preset.css`)
-  into a `CSSStyleSheet` and sets `$stylesheets` only once loaded, since `AppRoot` reads the rules
-  for its `@property` fallback. Fonts come from the host.
-- `shared/{api,config,i18n,sections}` — verbatim from the host; the transport's endpoint is set by
-  `setGraphQlEndpoint`. The bootstrap fills `config` and `i18n`; no UI reads them yet.
-- `@enonic/ui` is `^1.2.0` from the registry — the release carrying `AppRoot` (npm-enonic-ui#534,
-  released 2026-08-25).
-
-### Temporary
-
-`pages/applications/ApplicationsPage.tsx` is a hardcoded hello world — the section paints, and
-nothing more — standing in until the real screen lands in Phase 3. Nothing in this repo touches the
-host object, so what Phase 1 established about it is recorded in `progress.md` and `host-facts.md`
-rather than exercised in code.
-
-### Build wiring
-
-- Vite: `root: assets/`, `base: './'`, unhashed entry `_static/main`, strict entry signatures (or
-  the exports are dropped and the host imports an inert module), chunks and assets under `_static/`,
-  react → `preact/compat` aliases plus `dedupe`, `@tailwindcss/vite`.
-- `vp pack`: server `.ts` → per-file CJS into `build/resources/main`; `/lib/*` and `/apis/*`
-  requires stay external; server tsconfig paths `/lib/graphql` → `types/graphql.d.ts`, `/apis/*`,
-  `/lib/*`.
-- Tests: `test.alias` maps `/lib/graphql` and `/lib/xp/i18n` to `src/test/mocks/`. Server code is
-  linted and formatted with the rest.
-- Gradle: `include xplibs.{admin,portal,io,i18n}` and `lib-graphql:3.0.0`; GraalJS pinned as the
-  script engine; `systemApp = true`; `processResources` excludes `assets/js/**`, `assets/css/**`,
-  `**/*.ts(x)`.
+- `admin/extensions/<name>/` per section: `<name>.yaml` (`order`, `path`, its own `allow`),
+  `<name>.svg` (the rail icon), `<name>.ts` (the controller). The controller owns the prefix: `get`
+  serves `_static/*` as text (`text/javascript`, `text/css`), `post` hands `/graphql` to
+  lib-graphql, anything else is a 404.
+- `apis/graphql/` (app-applications) or `extensions/graphql/` (app-users): the section's schema,
+  built once per module require, every root nullable, no role check — the four platform gates already
+  ran. Roots `config` and `phrases(locale): Json` carry client config and the phrases for
+  `host.locale`. Not under `graphql/`, which graphql-java occupies in the jar.
+- `assets/js/main.ts` exports `mount({container, host})`: it starts the bootstrap without awaiting
+  it, renders `App`, and hands back the unmount synchronously. `App` gates on the bootstrap:
+  skeleton → failure → screen.
+- `App` renders inside `@enonic/ui`'s `AppRoot` with `theme` read off `host.theme` (`get()` first,
+  then `subscribe`) and `stylesheets` from `shared/styles`: the sheet is `_static/main.css` fetched
+  into one `CSSStyleSheet` per module, adopted into the shadow root. Fonts come from the host.
+- `shared/{api,config,i18n,sections}` were copied from the host when the sections moved, and
+  `widgets/`, `shared/ui` and the rest of `shared/` with them. **Those copies are now canonical** —
+  the host deleted its own in Phase 5.1 — and are being resynced to one form between the two
+  providers before `@enonic/ui-kit` extracts them. `shared/sections/contract.ts` stays byte-identical
+  with the host's until `@enonic/ui-types` publishes it.
+- Events: the section subscribes the hub itself through `shared/admin-events`, with the topic names
+  it needs copied from the table in `docs.md` § Events into `shared/admin-events/topics.ts`. No event
+  code on the server. A loss means refetch.
+- Build: Vite with `root: assets/`, `base: './'`, unhashed entry `_static/main`, strict entry
+  signatures (or the exports are dropped and the host imports an inert module), chunks and assets
+  under `_static/`, react → `preact/compat` aliases plus `dedupe`, `@tailwindcss/vite`. `vp pack`
+  emits the server `.ts` per file into `build/resources/main`. Gradle: `include xplibs.{admin,portal,
+io,i18n}` and `lib-graphql:3.0.0`, GraalJS pinned, `processResources` excludes the sources.
 - `-Penv=dev` deploys with `X-Source-Paths`, so XP reads `src/main/resources` and
-  `build/resources/main` live: `pnpm dev` (watch build) or `pnpm pack:server`, then reload. A
-  descriptor or dependency change needs a redeploy.
-- Size, production, on `@enonic/ui` 1.2.0 with `AppRoot` and a hello-world page: `main.js`
-  297.2 kB / 88.4 kB gz, `main.css` 84.4 kB / 14.6 kB gz — the floor a section pays before it
-  renders anything: `@enonic/ui` is not tree-shakeable, and Preact and the library are per provider
-  by design.
+  `build/resources/main` live: `pnpm dev` or `pnpm pack:server`, then reload. A descriptor or
+  dependency change needs a redeploy.
+- Cost, before a section renders anything of its own: about 88 kB gz of JS and 15 kB gz of CSS.
+  `@enonic/ui` is not tree-shakeable, and Preact and the library are per provider by design.
+
+## Module and mount
+
+The host imports one module for all of an application's sections and calls `mount` once per section
+from that one instance, so a provider has two levels of life, and everything it holds lives on
+exactly one of them:
+
+- **Module level, one per application**: Preact, the parsed stylesheet, phrases and config, the hub
+  connection, the domain stores and the services that keep them fresh on events, the GraphQL
+  endpoint (every prefix of an app serves the same schema, so the first mount's `baseUrl` sets it).
+  Module code never reads `host`: there are as many as there are sections.
+- **Mount level, one per section**: everything derived from `host` — the sub-path and the selected
+  item, `navigate`, `notify`, the theme — and the screen's own state. app-users builds a
+  `HostFrame` per mount (`shared/host/frame.ts`: `$itemId`, `$visible` off `host.visible`, `openItem`, `closeItem`,
+  `notify(level, message)`, `dispose`) and hands it down through a context, the one context in an
+  app of stores. Commands never touch the host: they return outcomes for the dialog holding the frame
+  to toast (app-users), or take that frame's `notify` as an argument (app-applications).
+- Which section a mount is comes off the last segment of `host.baseUrl`, the extension key
+  `<app>:<name>` (`app/section.ts` in app-users). `mount` is told nothing else.
+- Event reaction splits the same way: refreshing a cache is the module's, "the item you have open
+  was deleted elsewhere — close it and say so" is the mount's, because it needs that section's
+  `closeItem` and `notify`.
+
+A single section is the degenerate case of this shape, not a different one. app-applications was
+built before the shape settled and held the host in module state (`setHost/getHost`, one `$path`,
+commands that notified themselves) until app-applications#2322 brought it to the same frame, so that
+the toolkit's section runtime is extracted from two identical implementations.
+
+## app-applications
+
+One section, `applications` (`order: 10`, `allow: role:system.admin`). Its schema serves the
+applications list, Enonic Market and the install flow; core api urls it needs (`server:app`) are
+built by its own controller with `portal.apiUrl` and answered on the `config` root as
+`serverAppUrl` — a request to an extension keeps the hosting tool's `baseUri`, so the url anchors at
+the host page. It subscribes the hub's `applications` and `application-progress` topics. Jar upload
+is the one `XMLHttpRequest` in the two providers, kept for progress events.
 
 ## app-users
 
-Not started. It mirrors app-applications with four descriptors — users, groups, roles, id-providers,
-spaced `order` 20–23, each with its own `allow` — all pointing at one module: one shared controller
-body in `lib/` that each `admin/extensions/<name>/<name>.ts` is two one-liners over, one schema
-answering from every prefix, and a switch on which section a mount is, read off the end of
-`host.baseUrl` (`<app>:<name>`) since `mount` is not told. The host imports one module for all of
-an app's sections, so `mount` runs once per section from one instance: anything derived from `host`
-must live per mount, never at module level. Copy `shared/{api,config,i18n,sections,styles}`, `lib/i18n.ts`,
-`types/graphql.d.ts`, `src/test/mocks/`, the Vite and Gradle wiring and the `@enonic/ui` dependency
-(`^1.2.0`); `shared/sections/contract.ts` stays byte-identical with the host's. The auth schema
-moves per `docs.md` 4.2.
-
-## Platform facts (verified against XP 8.1 source)
-
-- An admin tool path is `/admin/<app>/<tool>`; a wrong base fails `verifyPathMountedOnAdminTool` with
-  the misleading "API [admin:extension] is not mounted".
-- Controller dispatch is `<METHOD>` → `<method>` → `all`, else 405. `request.body` is read for
-  `text/*` and `application/json` before any handler runs.
-- `AdminExtensionApiHandler`: the extension's `allow`, then the interface/mount check (skipped for
-  interface `generic`), then `admin/extensions/<name>/<name>.js` with
-  `contextPath = <toolBase>/_/admin:extension/<app>:<name>`.
-- A universal API under a tool page resolves only if the host tool's descriptor lists it.
-- A discovery row always has `config` (`{}`) and `interfaces` (`[]`); `title`/`description` are
-  re-localized only when i18n keys are given, from `Accept-Language` against the provider's bundles;
-  `iconUrl` falls back descriptor svg → application icon → XP's default.
-- `allow` is tri-state: omitted = everyone past the tool, `[]` = admin only, listed = admin or listed.
-- A GraalJS app serves text only; `.js` must be `text/javascript`.
-- lib-graphql's `Json` scalar survives GraalJS; graphql-java rejects an object type with no fields at
-  schema build and occupies `graphql/**` in the jar.
+Four sections, `users`, `groups`, `roles`, `id-providers` (`order` 20–23, each with its own
+`allow`), one module. One controller body in `extensions/endpoint.ts` that each
+`admin/extensions/<name>/<name>.ts` re-exports; one schema answering from every prefix. The
+principals GraphQL layer and the `lib/auth/**` java beans moved here from the host with #2639;
+`docs/unified-api.md` there is its design. It subscribes the hub's `principals` topic, keyed by
+section, so one section's stop does not silence the others.
