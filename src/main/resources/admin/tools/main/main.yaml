@@ -5,11 +5,19 @@ title:
 description:
   text: "Manage applications, users, groups, roles and ID providers"
   i18n: "admin.tool.description"
+# Everyone who can reach XP admin: which sections they then see is each extension's own `allow`,
+# filtered server-side by the platform.
 allow:
   - "role:system.admin"
+  - "role:system.user.admin"
+  - "role:system.user.app"
+interfaces:
+  - "settings.section"
+# XP checks a universal-api mount against the *page*, so this list covers what a section calls from
+# this tool as much as what the shell calls. `server:app` is here for the Applications section alone —
+# nothing in this app calls it, and the section builds its own urls off its `config` root field.
 apis:
-  - "graphql"
   - "server:app"
-  - "admin:event"
+  - "admin:events"
   - "admin:extension"
   - "com.enonic.xp.app.main:events"

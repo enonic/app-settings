@@ -8,9 +8,11 @@ implementation, and most of it was learned the expensive way.
 names the class and, where it matters, the line — so checking a claim against a newer XP is reading
 one file, not repeating the investigation.
 
-This file outlives any single issue. `docs/unified-api.md` holds the plan and the decisions that
-follow from these facts; when a phase there is finished the plan ages, but nothing here does until XP
-itself changes.
+This file outlives any single issue, and it outlived the code most of it was learned on: the
+sections that hit these facts now live in app-applications and app-users, whose `CLAUDE.md` point
+back here rather than carry their own copy. `docs/extensions/docs.md` holds the shell's decisions;
+app-users' `docs/unified-api.md` the GraphQL layer's. Plans age when their phases finish, but nothing
+here does until XP itself changes.
 
 ## `lib-schema` reaches static descriptors in a normal app jar
 
@@ -136,12 +138,34 @@ dropped into `deploy/` is both — `ApplicationServiceSystemAppGuardsTest` cover
 Neither flag can be derived from the other, and `isUninstallable` in `application-lifecycle.ts` refuses
 on each separately for that reason.
 
-## Our existing websocket already carries application events
+## Application lifecycle and install progress ride the admin events hub, on a topic each
 
-`server:app/events` SSE is **redundant for us**. `admin:event` forwards _every_ event unfiltered
-(`EventApiHandler.onEvent` → `sendToGroup`), and XP publishes app lifecycle as
-`EVENT_TYPE = "application"` with `eventType ∈ { INSTALLED, STARTED, STOPPED, UNINSTALLED }`
-(`ApplicationEvents.java`) — which is what `shared/server-events/server-events.ts` already filters on.
+XP publishes app lifecycle as `EVENT_TYPE = "application"` with
+`eventType ∈ { INSTALLED, STARTED, STOPPED, UNINSTALLED }` (`ApplicationEvents.java`); the hub's
+server listener republishes it on the `applications` topic (`lib/events/applications.ts`). The legacy
+`admin:event` socket still exists in XP but forwards _every_ event unfiltered
+(`EventApiHandler.onEvent` → `sendToGroup`) and is no longer mounted on the tool.
+
+Per-percent install progress **is** an `application` event too — `ApplicationLoader.progress()`
+publishes `eventType: "PROGRESS"` with `applicationUrl` and `progress` onto the ordinary event bus
+— and that bus is its _only_ route toward a browser: `server:app`'s `GET /events` SSE stream does
+**not** carry it (`ApplicationApiHandler.onEvent` reacts solely to `application.cluster`
+lifecycle events — `installed`/`state`/`uninstalled`). The hub republishes it on its own
+`application-progress` topic as `{url, percent}`, keyed by the download url because the event
+carries no application key; why it is not a row on `applications` is in `extensions/docs.md`.
+
+**Progress is node-local at both ends, and nothing makes it otherwise.** The core event is
+`distributed(false)`, and `AdminEventHubImpl` "delivers to the sockets on this node and does not
+distribute over the cluster". So a clustered instance shows a download only to a browser whose
+websocket happens to sit on the node that served the `installUrl` request — the same limitation the
+legacy `admin:event` socket had.
+
+Lifecycle events reach every node all the same, but **not because XP distributes them**: every
+`application` event `ApplicationEvents` builds is `distributed(false)` too, progress and lifecycle
+alike. What crosses the cluster is `application.cluster` (`distributed(true)`), on which each node's
+`ApplicationServiceImpl.onEvent` installs, starts or stops the application locally — and each of
+those local calls publishes that node's own `application` event. A download has no such counterpart:
+only the node that served the request ever reads the jar.
 
 ## Coverage: what JS can and cannot reach
 
@@ -152,7 +176,7 @@ on each separately for that reason.
 | pages, parts, layouts, content types, mixins, form fragments, site form | `lib-schema`                                                           |
 | id providers _using_ an app                                             | `lib-auth.getIdProviders`, filter on `idProviderConfig.applicationKey` |
 | install / start / stop / uninstall                                      | `server:app`                                                           |
-| lifecycle events                                                        | existing `admin:event` websocket                                       |
+| lifecycle events                                                        | the hub's `applications` topic (`HUB_TOPICS`, `admin:events`)          |
 | available version                                                       | Market GraphQL                                                         |
 | icon                                                                    | ✅ Java — our `/lib/icon`; base64, because GraalJS cannot serve bytes  |
 | task descriptors                                                        | ✅ Java — our `/lib/task`; `taskLib.list()` is _running_ instances     |
@@ -517,16 +541,91 @@ ships with the distribution and shares its version. This app is versioned separa
 comparing against the running platform — the market filter is the case — has to call
 `getVersion()` from `/lib/xp/admin`. It carries the build suffix (`8.1.0-SNAPSHOT`).
 
+## Admin access: four gates, and `system.admin` walks through all of them
+
+The shell hands out no section access of its own — every gate below is the platform's, verified in
+`../xp`:
+
+- **The floor.** `AdminExtensionDispatcherApiHandler:19` and `EventApiHandler:22` both declare
+  `allowedPrincipals=role:system.admin.login`, and app-main's `menu`/`menu-loader` extensions allow
+  `role:system.admin` **and** `role:system.admin.login`. So an admin tool open to `admin.login` is
+  fully functional for a non-admin: menu, event socket, discovery and mounting all answer.
+- **Discovery is filtered server-side, per caller.** `GetListAllowedAdminExtensionsHandler:58-62`
+  reads the principals off the current context and keeps only rows whose
+  `isAccessAllowed(principals)` passes; `AdminExtensionApiHandler:71` runs the same check again on
+  every request to the extension's own prefix. Menu and access therefore cannot disagree — they are
+  one check — and **a client must never re-filter the list it is given.**
+- **`AdminExtensionDescriptor.isAccessAllowed:88-92`**: `allowedPrincipals == null` (no `allow` in
+  the descriptor) → everyone past the tool; `[]` → nobody but admin; listed → admin or listed. In
+  every branch **`RoleKeys.ADMIN` short-circuits the check**, so a `system.admin` sees every section
+  whatever its descriptor says. Testing that an `allow` excludes someone requires a non-admin
+  account; as an admin the section is always there.
+- **`AdminToolDescriptor.isAccessAllowed:80-83` is asymmetric with the above**: there is no null
+  branch, so an `AdminTool` with no `allow` admits admin alone, and a listed principal is admitted
+  _in addition to_ admin — never instead of.
+
+## The tool page's CSP is the whole policy, and admin extensions extend it
+
+Nothing in XP seeds a `Content-Security-Policy` for admin pages — whatever the tool controller
+declares is the entire policy, and declaring nothing means no header at all.
+
+- **The policy is request-scoped, mutable and merged by union.** `csp()` (lib-portal 8.1,
+  `modules/lib/lib-portal/.../lib/xp/portal.ts:1313`) hands every contributor the same object, and
+  each directive's source list is the union of what all of them added, serialized at response-flush
+  time (`web-impl/.../ResponseSerializer.java:57`) — so additions late in rendering still land.
+  `strict()` seeds `default-src 'none'; base-uri 'none'; frame-ancestors 'none'`; `merge(header)`
+  unions a serialized policy on top, skipping invalid tokens; `override`, `reset` and `resetTo`
+  replace rather than extend, and **any** contributor can reach them (`addPolicy` — an extra
+  enforced policy, which can only restrict — is Java-only; there is no member for it on `Csp`). CSP
+  is a list of reachable endpoints, not a boundary against code already on the page.
+- **`strict()` is additive, not a reset**, despite reading like one. It `add()`s `'none'` into those
+  three directives (`ContentSecurityPolicy.java:348`), and `serialize()` drops `'none'` the moment a
+  directive carries a real source (`:625`). So it denies anything only when it runs first on a clean
+  policy, and **nothing can tighten a directive additively** — only `override`/`reset` can. It is
+  also why a `'none'` extended later serializes as, say, `form-action 'self'` rather than invalid
+  CSP: naming a directive to close it is a hook for whoever contributes next, not a lock.
+- **A directive nobody names cannot be opened by a later contributor.** `directive(name)` answers
+  empty for it, so the `isPresent()` guard an extension processor must use fails, and `default-src`
+  keeps denying it. Leaving a directive to the fallback is therefore stricter than closing it
+  explicitly.
+- **An admin extension contributes through `AdminExtensionResponseProcessor`**
+  (`admin-api/.../extension/`), a Java OSGi service registered with `property = "key=<app>:<extension>"`.
+  `AdminExtensionResponseProcessorExecutor` runs the chain after the tool controller
+  (`AdminToolHandlerWorker`), for every extension that shares an interface with the rendered tool —
+  or declares `generic` — and whose `allow` the caller passes. That last filter is free per-visitor
+  least privilege: someone who cannot see a section never gets its sources opened on their page.
+  There is no JS equivalent; XP #12211 notes one could be added on the same chain later.
+- **The header is final before the browser fetches anything from a section.** A policy cannot be
+  assembled from client-side discovery, an extension endpoint's own response headers are too late,
+  and `<meta http-equiv>` is honoured only while parsing and cannot carry `frame-ancestors`. Render
+  time on the tool page is the only place this can happen.
+
+Three browser rules the API deliberately does not arbitrate, all load-bearing here: a nonce or hash
+sharing `style-src` makes the browser **ignore** `'unsafe-inline'`; `'strict-dynamic'` makes it
+ignore `'self'` and host sources, fatal for a shell that mounts sections with `import(moduleUrl)`;
+and `form-action` has no `default-src` fallback, so closing it has to be said.
+
+What `style-src` governs is narrower than it looks, and it decides whether `'unsafe-inline'` is
+needed at all: `<style>` elements and `<link rel=stylesheet>` (`style-src-elem`) and `style`
+attributes **as written in markup** (`style-src-attr`). Styles set through CSSOM are not governed —
+`element.style.setProperty`, `cssText`, `insertRule` — nor is a constructed `CSSStyleSheet`. Preact's
+`style={{…}}` is CSSOM, so a Preact app needs `'unsafe-inline'` only for the inline `<style>` blocks
+its own template serves, and a section's adopted stylesheet needs nothing.
+
 ## Pin every `@enonic-types` dependency
 
 npm's `latest` tag is **7.16.7** for all of them even though 8.0.3 exists. Unpinned means 7.x types
 (where `lib-schema` still has `XDATA`, and `displayName` instead of `title`) against an 8.x runtime.
 
-The types also lag the runtime, and this app builds against 8.1.0-SNAPSHOT. `lib-auth` is the case:
-`getIdProviders()` and `createIdProvider()` exist in the 8.1 lib but are declared in no stable types
-release, so `@enonic-types/lib-auth` is pinned to **`8.0.4-B1`** — exact, no caret, because it is a
-prerelease. **Read the lib's own `.ts` in `../xp/modules/lib/`, not `node_modules`, before concluding a
-function does not exist.** Doing the reverse produced a wrong "this needs Java" call once already.
+The types also lag the runtime, and this app builds against 8.1.0-SNAPSHOT, so the whole
+`@enonic-types/*` set is pinned to the **`8.1.0-B2`** prerelease — exact, no caret, because a caret
+range does not match a prerelease. It has to move as a set: each `lib-*` package depends on
+`@enonic-types/core` at its own exact version, so bumping one alone leaves two copies of `core` in
+the tree. What the prereleases carry that no stable release does: `getIdProviders()` and
+`createIdProvider()` in `lib-auth`, the `csp()` API in `lib-portal`, the events-hub `setTopic` /
+`sendToTopic` in `lib-admin`. **Read the lib's own `.ts` in `../xp/modules/lib/`, not `node_modules`,
+before concluding a function does not exist.** Doing the reverse produced a wrong "this needs Java"
+call once already.
 
 ## Adding Java to this repo is nearly free
 
@@ -543,3 +642,24 @@ compiles and bnd derives `Import-Package` with no extra plugin and no manifest w
 Two consequences: `pnpm check` no longer covers the whole server, so `./gradlew compileJava` is the fast
 check for a bean; and IDE Java support shadow-compiles the whole resources tree into `bin/`, which is
 gitignored and excluded from `lint`/`fmt` — without that, oxlint type-checks the copy and reports every
+
+## Admin extensions, as the providers met them
+
+Verified against the XP 8.1 source while building the first providers; the host-side facts are in
+`extensions/docs.md` § Platform facts.
+
+- An admin tool path is `/admin/<app>/<tool>`; a wrong base fails `verifyPathMountedOnAdminTool` with
+  the misleading "API [admin:extension] is not mounted".
+- Controller dispatch is `<METHOD>` → `<method>` → `all`, else 405. `request.body` is read for
+  `text/*` and `application/json` before any handler runs.
+- `AdminExtensionApiHandler`: the extension's `allow`, then the interface/mount check (skipped for
+  interface `generic`), then `admin/extensions/<name>/<name>.js` with
+  `contextPath = <toolBase>/_/admin:extension/<app>:<name>`.
+- A universal API under a tool page resolves only if the host tool's descriptor lists it.
+- A discovery row always has `config` (`{}`) and `interfaces` (`[]`); `title`/`description` are
+  re-localized only when i18n keys are given, from `Accept-Language` against the provider's bundles;
+  `iconUrl` falls back descriptor svg → application icon → XP's default.
+- `allow` is tri-state: omitted = everyone past the tool, `[]` = admin only, listed = admin or listed.
+- A GraalJS app serves text only; `.js` must be `text/javascript`.
+- lib-graphql's `Json` scalar survives GraalJS; graphql-java rejects an object type with no fields at
+  schema build and occupies `graphql/**` in the jar.

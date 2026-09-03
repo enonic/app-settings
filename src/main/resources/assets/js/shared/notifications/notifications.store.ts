@@ -30,9 +30,9 @@ let lastId = 0;
  * already up comes back instead, so the caller can still take that one down.
  */
 export function notify(options: NotificationOptions): number {
-  const { tone = 'info', text, autoHide = true, lifetimeMs, actions = [] } = options;
+  const { tone = 'info', text, autoHide = true, lifetimeMs, actions = [], owner } = options;
 
-  const duplicate = findDuplicate($state.get(), { tone, text });
+  const duplicate = findDuplicate($state.get(), { tone, text, owner });
   if (duplicate != null) {
     return duplicate.id;
   }
@@ -45,6 +45,7 @@ export function notify(options: NotificationOptions): number {
     autoHide,
     lifetimeMs: lifetimeFor(tone, lifetimeMs),
     actions,
+    owner,
   };
 
   $state.set(admit($state.get(), notification));
@@ -72,6 +73,15 @@ export function notifyError(text: string, options: ToneOptions = {}): number {
 export function dismissNotification(id: number): void {
   $state.set(remove($state.get(), id));
   syncTimers();
+}
+
+/** Takes down everything one owner raised — a section mount being revoked. */
+export function dismissNotifications(owner: string): void {
+  const { visible, queued } = $state.get();
+
+  [...visible, ...queued]
+    .filter((notification) => notification.owner === owner)
+    .forEach(({ id }) => dismissNotification(id));
 }
 
 export function clearNotifications(): void {

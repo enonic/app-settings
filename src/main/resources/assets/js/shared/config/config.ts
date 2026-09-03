@@ -1,24 +1,18 @@
 import { AppError } from '../api';
 
 export type ApiUrls = {
-  events: string;
-  graphql: string;
-  serverApp: {
-    start: string;
-    stop: string;
-    uninstall: string;
-    install: string;
-    installUrl: string;
-  };
+  /** The hub endpoint: `client.js` under it is the client, the endpoint itself the socket. */
+  adminEvents: string;
+  extensions: string;
 };
 
 export type ToolConfig = {
   appId: string;
   appVersion: string;
   locale: string;
+  isAdmin?: boolean;
   assetsUrl: string;
   menuLoaderUrl?: string;
-  appsManagedMode?: boolean;
   phrases: Readonly<Record<string, string>>;
   apis: ApiUrls;
 };
@@ -34,14 +28,8 @@ function isToolConfig(value: unknown): value is ToolConfig {
     phrases != null &&
     typeof phrases === 'object' &&
     apis != null &&
-    typeof apis.events === 'string' &&
-    typeof apis.graphql === 'string' &&
-    apis.serverApp != null &&
-    typeof apis.serverApp.start === 'string' &&
-    typeof apis.serverApp.stop === 'string' &&
-    typeof apis.serverApp.uninstall === 'string' &&
-    typeof apis.serverApp.install === 'string' &&
-    typeof apis.serverApp.installUrl === 'string'
+    typeof apis.adminEvents === 'string' &&
+    typeof apis.extensions === 'string'
   );
 }
 

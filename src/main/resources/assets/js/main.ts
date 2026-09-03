@@ -1,6 +1,6 @@
 import { h, render } from 'preact';
 
-import { App } from './app/App';
+import { App } from './app/ui/App';
 import { readConfig, setConfig } from './shared/config';
 import { setPhrases } from './shared/i18n';
 

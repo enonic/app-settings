@@ -56,20 +56,3 @@ export function requestJson<T>(
     toAppError,
   );
 }
-
-/** Like `requestJson`, but HTTP 204 and a null JSON body resolve to `undefined`. */
-export function requestOptionalJson<T>(
-  url: string,
-  options: RequestOptions = {},
-): ResultAsync<T | undefined, AppError> {
-  return ResultAsync.fromPromise(
-    requestRaw(url, options).then(async (response) => {
-      if (response.status === 204) {
-        return undefined;
-      }
-      const json = (await response.json()) as T | null;
-      return json ?? undefined;
-    }),
-    toAppError,
-  );
-}

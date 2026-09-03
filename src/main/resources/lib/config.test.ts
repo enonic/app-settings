@@ -1,4 +1,5 @@
 import { extensionUrl } from '/lib/xp/admin';
+import { hasRole } from '/lib/xp/auth';
 import { getPhrases } from '/lib/xp/i18n';
 import { apiUrl, assetUrl } from '/lib/xp/portal';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,20 +10,13 @@ const config: ToolConfig = {
   appId: 'com.enonic.xp.app.settings',
   appVersion: '1.0.0',
   locale: 'en',
+  isAdmin: true,
   assetsUrl: '/admin/tool/_/asset/com.enonic.xp.app.settings',
   menuLoaderUrl: '/admin/tool/_/admin:extension/com.enonic.xp.app.main:menu-loader',
-  appsManagedMode: false,
   phrases: { 'nav.users': 'Users' },
   apis: {
-    events: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:events',
-    graphql: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:graphql',
-    serverApp: {
-      start: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/start',
-      stop: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/stop',
-      uninstall: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/uninstall',
-      install: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/install',
-      installUrl: '/admin/tool/com.enonic.xp.app.settings/main/_/server:app/installUrl',
-    },
+    adminEvents: '/admin/tool/com.enonic.xp.app.settings/main/_/admin:events',
+    extensions: '/admin/tool/com.enonic.xp.app.settings/main/_/admin:extension',
   },
 };
 
@@ -38,6 +32,7 @@ describe('getConfig', () => {
   beforeEach(() => {
     withAppConfig({});
     vi.mocked(getPhrases).mockReturnValue({ 'nav.users': 'Users' });
+    vi.mocked(hasRole).mockReturnValue(true);
     vi.mocked(assetUrl).mockReturnValue('/assets');
     vi.mocked(extensionUrl).mockImplementation(
       ({ application, extension }) => `/_/admin:extension/${application}:${extension}`,
@@ -71,48 +66,21 @@ describe('getConfig', () => {
     });
   });
 
-  it('points at the built-in admin:event api as a websocket url', () => {
-    expect(getConfig(['en']).apis.events).toBe('ws:/_/admin:event');
-    expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'admin:event', type: 'websocket' });
+  it('points at the admin events hub, whose endpoint serves its own client', () => {
+    expect(getConfig(['en']).apis.adminEvents).toBe('/_/admin:events');
+    expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'admin:events' });
   });
 
-  it('addresses the app-owned graphql api by its qualified key', () => {
-    expect(getConfig(['en']).apis.graphql).toBe('/_/com.enonic.xp.app.settings:graphql');
-    expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'com.enonic.xp.app.settings:graphql' });
+  it('points at the built-in admin:extension api, which serves the section extensions', () => {
+    expect(getConfig(['en']).apis.extensions).toBe('/_/admin:extension');
+    expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'admin:extension' });
   });
 
-  it('reports managed mode where the install configured it', () => {
-    withAppConfig({ 'applications.managedMode': 'true' });
+  it('reports whether the visitor is a system admin', () => {
+    vi.mocked(hasRole).mockReturnValue(false);
 
-    expect(getConfig(['en']).appsManagedMode).toBe(true);
-  });
-
-  it('leaves managed mode off where nothing is configured', () => {
-    expect(getConfig(['en']).appsManagedMode).toBe(false);
-  });
-
-  it('reads managed mode through the whitespace a cfg value keeps', () => {
-    withAppConfig({ 'applications.managedMode': ' true ' });
-
-    expect(getConfig(['en']).appsManagedMode).toBe(true);
-  });
-
-  it('takes only the exact string true as managed mode', () => {
-    for (const value of ['True', 'TRUE', '1', 'yes', '']) {
-      withAppConfig({ 'applications.managedMode': value });
-
-      expect(getConfig(['en']).appsManagedMode).toBe(false);
-    }
-  });
-
-  it('points at the lifecycle endpoints of the built-in server:app api', () => {
-    expect(getConfig(['en']).apis.serverApp).toEqual({
-      start: '/_/server:app/start',
-      stop: '/_/server:app/stop',
-      uninstall: '/_/server:app/uninstall',
-      install: '/_/server:app/install',
-      installUrl: '/_/server:app/installUrl',
-    });
+    expect(getConfig(['en']).isAdmin).toBe(false);
+    expect(vi.mocked(hasRole)).toHaveBeenCalledWith('role:system.admin');
   });
 });
 

@@ -1,3 +1,4 @@
+import { isAdmin } from '/lib/auth';
 import { getAllPhrases } from '/lib/i18n';
 import { extensionUrl } from '/lib/xp/admin';
 import { apiUrl, assetUrl } from '/lib/xp/portal';
@@ -10,20 +11,15 @@ export type ToolConfig = {
   appId: string;
   appVersion: string;
   locale: string;
+  /** Whether the visitor holds `role:system.admin`, which no section's `allow` can exclude. */
+  isAdmin: boolean;
   assetsUrl: string;
   menuLoaderUrl: string;
-  appsManagedMode: boolean;
   phrases: Record<string, string>;
   apis: {
-    events: string;
-    graphql: string;
-    serverApp: {
-      start: string;
-      stop: string;
-      uninstall: string;
-      install: string;
-      installUrl: string;
-    };
+    /** The hub endpoint: `client.js` under it is the client, the endpoint itself the socket. */
+    adminEvents: string;
+    extensions: string;
   };
 };
 
@@ -32,20 +28,13 @@ export function getConfig(locales: string[]): ToolConfig {
     appId: app.name,
     appVersion: app.version,
     locale: locales[0],
+    isAdmin: isAdmin(),
     assetsUrl: assetUrl({ path: '' }),
     menuLoaderUrl: extensionUrl({ application: ADMIN_APP, extension: 'menu-loader' }),
-    appsManagedMode: app.config['applications.managedMode']?.trim() === 'true',
     phrases: getAllPhrases(locales),
     apis: {
-      events: apiUrl({ api: 'admin:event', type: 'websocket' }),
-      graphql: apiUrl({ api: `${app.name}:graphql` }),
-      serverApp: {
-        start: apiUrl({ api: 'server:app', path: 'start' }),
-        stop: apiUrl({ api: 'server:app', path: 'stop' }),
-        uninstall: apiUrl({ api: 'server:app', path: 'uninstall' }),
-        install: apiUrl({ api: 'server:app', path: 'install' }),
-        installUrl: apiUrl({ api: 'server:app', path: 'installUrl' }),
-      },
+      adminEvents: apiUrl({ api: 'admin:events' }),
+      extensions: apiUrl({ api: 'admin:extension' }),
     },
   };
 }

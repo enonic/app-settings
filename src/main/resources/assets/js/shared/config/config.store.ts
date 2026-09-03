@@ -10,7 +10,10 @@ export function setConfig(config: ToolConfig): void {
   $config.set(config);
 }
 
-/** Managed mode, where the tool shows what is installed and offers nothing that changes it */
-export function isAppsManagedMode(): boolean {
-  return $config.get()?.appsManagedMode === true;
+/**
+ * Whether the visitor holds `role:system.admin`. Says nothing about which sections they may open —
+ * the platform decides that per extension — only that no section's `allow` can shut them out.
+ */
+export function isSystemAdmin(): boolean {
+  return $config.get()?.isAdmin === true;
 }
