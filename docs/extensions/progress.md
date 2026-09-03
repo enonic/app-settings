@@ -74,12 +74,12 @@ reactions to principal events (#2656).
 
 ## Phase 5 — the host becomes a shell: 5.1 and most of 5.2 done
 
-| `docs.md` | What                                                                   | State                                                                                   |
-| --------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| 5.1       | delete `pages/`, `entities/`, `features/`; drop the host's GraphQL API | done — #134                                                                             |
+| `docs.md` | What                                                                   | State                                                                                                       |
+| --------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 5.1       | delete `pages/`, `entities/`, `features/`; drop the host's GraphQL API | done — #134                                                                                                 |
 | 5.2       | harden shell-only concerns                                             | rail reaction, `allow` union, empty and failed states, CSP baseline done (#113, #129, #132); the rest below |
-| 5.3       | freeze contract v1, write the upgrade policy                           | contract trimmed by #134; freezes when `ui-types` publishes it                          |
-| 5.4       | optional: a documented sample extension                                | not started                                                                             |
+| 5.3       | freeze contract v1, write the upgrade policy                           | contract trimmed by #134; freezes when `ui-types` publishes it                                              |
+| 5.4       | optional: a documented sample extension                                | not started                                                                                                 |
 
 ### What #134 did — Clean up and sync
 
