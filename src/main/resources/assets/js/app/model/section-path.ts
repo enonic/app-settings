@@ -103,6 +103,53 @@ export function createSectionPath({
   };
 }
 
+export type SectionVisibleOptions = {
+  isActive: () => boolean;
+  onUrlChange: (cb: () => void) => () => void;
+};
+
+/** A section's `visible`: whether it is the one showing, emitted as that changes with the url. */
+export function createSectionVisible({
+  isActive,
+  onUrlChange,
+}: SectionVisibleOptions): Readable<boolean> & { dispose(): void } {
+  let lastEmitted = isActive();
+  let stop: (() => void) | undefined;
+  const listeners = new Set<(value: boolean) => void>();
+
+  const emit = (): void => {
+    const next = isActive();
+    if (next === lastEmitted) {
+      return;
+    }
+
+    lastEmitted = next;
+    listeners.forEach((listener) => listener(next));
+  };
+
+  return {
+    dispose: () => {
+      listeners.clear();
+      stop?.();
+      stop = undefined;
+    },
+    get: isActive,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      stop ??= onUrlChange(emit);
+
+      return () => {
+        listeners.delete(listener);
+
+        if (listeners.size === 0) {
+          stop?.();
+          stop = undefined;
+        }
+      };
+    },
+  };
+}
+
 //
 // * Internal
 //

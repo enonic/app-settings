@@ -16,7 +16,6 @@ const config: ToolConfig = {
   apis: {
     adminEvents: '/_/admin:events',
     extensions: '/_/admin:extension',
-    graphql: '/_/app:graphql',
   },
 };
 

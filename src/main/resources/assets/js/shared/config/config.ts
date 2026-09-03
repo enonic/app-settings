@@ -4,7 +4,6 @@ export type ApiUrls = {
   /** The hub endpoint: `client.js` under it is the client, the endpoint itself the socket. */
   adminEvents: string;
   extensions: string;
-  graphql: string;
 };
 
 export type ToolConfig = {
@@ -30,8 +29,7 @@ function isToolConfig(value: unknown): value is ToolConfig {
     typeof phrases === 'object' &&
     apis != null &&
     typeof apis.adminEvents === 'string' &&
-    typeof apis.extensions === 'string' &&
-    typeof apis.graphql === 'string'
+    typeof apis.extensions === 'string'
   );
 }
 

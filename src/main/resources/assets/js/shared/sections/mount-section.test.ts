@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Host, Unmount } from './contract';
+import type { SectionHost, Unmount } from './contract';
 import { mountSection, type MountSectionOptions } from './mount-section';
 
 // None of these is read by the sequence under test: the container is the guest's business, the host
 // object is passed through untouched, and the element only reaches `openContainer`.
 const element = {} as HTMLElement;
 const container = {} as HTMLElement;
-const host = {} as Host;
+const host = {} as SectionHost;
 
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 

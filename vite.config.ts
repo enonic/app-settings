@@ -31,15 +31,7 @@ export default defineConfig(({ mode }) => {
     options: { typeAware: true, typeCheck: true },
     // admin/** are CJS + XP globals (outside tsconfig); build/** and bin/** are generated output
     // (bin/ is the Java language server's shadow copy of the whole resources tree).
-    ignorePatterns: [
-      'build/**',
-      'bin/**',
-      'src/main/resources/admin/**',
-      '**/*.d.ts',
-      // TODO: [extensions] Dormant while `app/model/router.ts` registers no section: nothing imports
-      // `pages/`, and the typed route paths those pages navigate by no longer exist.
-      'src/main/resources/assets/js/pages/**',
-    ],
+    ignorePatterns: ['build/**', 'bin/**', 'src/main/resources/admin/**', '**/*.d.ts'],
   };
 
   const fmt = {
@@ -86,18 +78,13 @@ export default defineConfig(({ mode }) => {
       // both — reached through the entity barrels — require `react`, not installed.
       'lucide-react': join(import.meta.dirname, 'src/test/mocks/lucide-react.ts'),
       '@enonic/ui': join(import.meta.dirname, 'src/test/mocks/enonic-ui.ts'),
-      '/lib/graphql': join(import.meta.dirname, 'src/test/mocks/lib-graphql.ts'),
       '/lib/mustache': join(import.meta.dirname, 'src/test/mocks/lib-mustache.ts'),
       '/lib/xp/portal': join(import.meta.dirname, 'src/test/mocks/lib-xp-portal.ts'),
       '/lib/xp/admin': join(import.meta.dirname, 'src/test/mocks/lib-xp-admin.ts'),
-      '/lib/xp/app': join(import.meta.dirname, 'src/test/mocks/lib-xp-app.ts'),
       '/lib/xp/auth': join(import.meta.dirname, 'src/test/mocks/lib-xp-auth.ts'),
-      '/lib/xp/project': join(import.meta.dirname, 'src/test/mocks/lib-xp-project.ts'),
       '/lib/xp/i18n': join(import.meta.dirname, 'src/test/mocks/lib-xp-i18n.ts'),
       '/lib/xp/event': join(import.meta.dirname, 'src/test/mocks/lib-xp-event.ts'),
       '/lib/events': join(import.meta.dirname, 'src/main/resources/lib/events/index.ts'),
-      '/lib/idprovider': join(import.meta.dirname, 'src/test/mocks/lib-idprovider.ts'),
-      '/lib/publickey': join(import.meta.dirname, 'src/test/mocks/lib-publickey.ts'),
       '/lib/auth': join(import.meta.dirname, 'src/main/resources/lib/auth.ts'),
       '/lib/config': join(import.meta.dirname, 'src/main/resources/lib/config.ts'),
       '/lib/i18n': join(import.meta.dirname, 'src/main/resources/lib/i18n.ts'),

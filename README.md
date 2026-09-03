@@ -3,14 +3,17 @@
 [![Actions Status](https://github.com/enonic/app-settings/workflows/Gradle%20Build/badge.svg)](https://github.com/enonic/app-settings/actions)
 [![License][license-image]][license-url]
 
-A unified frame for the administration sections of [Enonic XP](https://github.com/enonic/xp): Applications, Users, Groups, Roles and ID Providers.
+The Settings admin tool of [Enonic XP](https://github.com/enonic/xp): one page that discovers the
+administration sections other applications provide and hosts them side by side. Applications comes
+from `app-applications`; Users, Groups, Roles and ID Providers come from `app-users`. This app owns
+the frame — the app bar, the section rail, the theme, notifications, the url — and renders nothing
+of a section itself.
 
-The app is a system app, and its admin tool is restricted to `role:system.admin`.
+A section is an admin extension on the `settings.section` interface. How one is discovered, mounted,
+routed and revoked is documented in [`docs/extensions/`](docs/extensions/docs.md).
 
-> **Status.** This app is becoming a hub: sections are discovered at runtime as `settings.section`
-> admin extensions provided by other apps, and the Applications, Users, Groups, Roles and ID
-> Providers code still in this repo moves out to `app-applications` and `app-users`. The layout and
-> routing described below is the pre-extension picture and is being rewritten as that lands.
+The app is a system app. Its admin tool is open to everyone who can reach XP admin; which sections a
+visitor sees is decided by each extension's own access rules, server-side.
 
 ## Requirements
 
@@ -27,6 +30,9 @@ Copy the built JAR to `$XP_HOME/deploy`, or let Gradle do it:
 ./gradlew deploy
 ```
 
+Nothing shows until a provider is installed: with none, the tool reports that no administration
+applications are available.
+
 ## Configuration
 
 Optional, in `$XP_HOME/config/com.enonic.xp.app.settings.cfg`:
@@ -39,9 +45,8 @@ Optional, in `$XP_HOME/config/com.enonic.xp.app.settings.cfg`:
 Both values are trimmed, so trailing whitespace in the file is harmless.
 
 The header this tool sends is the whole policy for the page, and a section that needs a remote source
-adds it itself — so turning the switch off turns off every section's contribution with it. Each
-section's own settings live in the app that provides it: `marketApiUrl` and `applications.managedMode`
-moved to `com.enonic.xp.app.applications.cfg`.
+adds it itself — so turning the switch off turns off every section's contribution with it. A section's
+own settings live in the app that provides it.
 
 ## Building
 
@@ -96,15 +101,14 @@ pnpm test:watch
 
 ## Source layout
 
-The frontend under `src/main/resources/assets/js` follows a Feature-Sliced-like layout, modelled on Content Studio v6:
+The frontend under `src/main/resources/assets/js`:
 
 ```
-app/         application shell and router
-pages/       one slice per section
-widgets/     composite blocks
-features/    user-facing actions
-entities/    domain models
-shared/      api client, stores, reusable utilities
+app/                 shell, router, the host object handed to each section, section mounting
+widgets/             the rail, the mount slot, the empty state, the toast list
+features/            theme switcher
+entities/extension/  discovery of the sections and their live rediscovery
+shared/              api client, config, i18n, admin events, notifications, the mount contract
 ```
 
 Tests live next to the code they cover, as `*.test.ts`.
@@ -113,8 +117,8 @@ The server side of `src/main/resources`:
 
 ```
 admin/tools/main/   the single admin tool: descriptor, controller, page template
-lib/                shared server modules (auth guard, i18n, tool config)
-i18n/               phrase bundles
+lib/                tool config, i18n, the admin guard, the CSP baseline, and the hub topics the shell publishes
+i18n/               the shell's phrases
 ```
 
 ## Routing

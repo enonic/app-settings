@@ -46,16 +46,20 @@ the contract being "HTML whose scripts must find themselves in a foreign documen
 contract removes that root cause: the host hands the guest a container; the guest never searches
 for itself.
 
-**The component kit**, referenced throughout: the npm package extracted from app-settings in
+**The component kit**, referenced throughout: the npm packages extracted from the providers in
 Phase 2 — the browse framework (`browse-layout`, `browse-list`, `browse-toolbar`, `browse-search`,
 `details-panel`), dialog and form shells, the GraphQL transport, format helpers and the i18n hook.
 It sits on top of `@enonic/ui` (base components: buttons, dialogs, selects) and is what makes a
 section a section. Since the runtime is not shared, the kit is the only mechanism by which sections
 from different providers look and behave the same: every provider depends on it at build time and
-compiles it into its own bundle. **It is `@enonic/toolkit`: a standalone repository
-(`npm-enonic-toolkit`) publishing an npm package, like `@enonic/ui`** — app-settings and Content
-Studio are both consumers, neither owns it. Content Studio v6 solves the same browse-screen problem
-with the same widgets and is the kit's likely third consumer.
+compiles it into its own bundle. **It is the `npm-enonic-ui-toolkit` repository, a standalone
+monorepo publishing four packages like `@enonic/ui` does one** — app-settings and Content Studio are
+both consumers, neither owns it: `@enonic/ui-types` (types only; the mount contract lands here),
+`@enonic/ui-utils` (transport, format, i18n core — no view layer), `@enonic/ui-kit` (the browse
+framework, dialog shells, the section runtime) and `@enonic/input-types` (XP input types as
+components). The host consumes only `ui-types`; the providers consume all but `input-types` until a
+form needs it. Content Studio v6 solves the same browse-screen problem with the same widgets and is
+the kit's likely third consumer.
 
 Two of the kit's pieces are mechanisms rather than components, and they travel with a reason. The
 **i18n slice** (`useI18n` hook + phrase store) is mechanism only — phrases always come from the
@@ -100,8 +104,9 @@ to components from another — two copies means overlays silently lose their lay
    license 30…).
 5. `<extensionApi>/<app>:<name>` is a URL prefix the provider owns completely. The host imports
    the module entry from the contract-fixed path under it — `await import(prefix + '/_static/main.js')`.
-   The entry name is stable (unhashed) so the host never needs a lookup; hashed chunks and CSS sit
-   beside it and resolve relatively. The host calls `mount(...)`; the returned unmount runs when
+   The entry name is stable (unhashed) so the host never needs a lookup; hashed chunks sit beside
+   it and resolve relatively, and the stylesheet is an unhashed `_static/main.css` the guest
+   resolves relative to its module url. The host calls `mount(...)`; the returned unmount runs when
    the section leaves the rail (its app is uninstalled or stopped), not on section switching — see
    Lifecycle.
 6. The rail reacts to application server events (installed/started/stopped/uninstalled) by
@@ -181,8 +186,10 @@ What it does **not** remove:
 - **Sections are subscribers only, the menu in app-admin-home being the pattern**: the section's
   own `config` root field hands it `eventsUrl` (`portal.apiUrl({api: 'admin:events'})`), its client
   imports `${eventsUrl}/client.js` and calls `connect({onEvent, onLoss}).subscribe(topic)` with the
-  canonical topic name — a contract constant from the table below. Nothing crosses the host object:
-  the contract carries no event member. The platform's client rides a shared worker keyed by its
+  canonical topic name, copied from the table below into the provider's own
+  `shared/admin-events/topics.ts`. The table is the source of truth; the names are the host's and
+  are not part of the mount contract, so `@enonic/ui-types` never carries them. Nothing crosses the
+  host object: the contract carries no event member. The platform's client rides a shared worker keyed by its
   url, so the shell, the menu and every section share one socket per browser anyway.
 - A subscription outlives a revoked mount (the platform client's `connect` facade has no
   unsubscribe), and the hub's topics outlive any provider — so a dead section's handler keeps
@@ -225,22 +232,23 @@ What it does **not** remove:
   is ruled out: they would clip against the section's shadow root and column, and stacks would
   compete on section switches.
 - `message` arrives **already localized** by the guest; no i18n keys cross the boundary.
-- Shape: `{level, message, autoClose?, action?: {label, onAction}}` — `action` covers the
-  "Deleted — Undo" pattern. Dedup, stacking and `aria-live` are done once, host-side.
+- Shape: `{level, message, autoClose?}`. Dedup, stacking and `aria-live` are done once, host-side.
+  An `action` member (the "Deleted — Undo" pattern) was in v1 and removed unused before the contract
+  was published; it returns additively when a section asks for it.
 - A hidden section may notify — with keep-alive its mount and host object stay live, so
   "install finished while you were in Users" produces a toast. Only real unmount (the app leaving
   the rail) revokes the host object and ends delivery.
 
 ### Routing
 
-- Host owns the URL, real history (TanStack Router), splat route per section:
-  `<toolBase>/<slug>/$`. Guests **never** touch `window.history`/`location`.
+- Host owns the URL — hash history through TanStack Router, one splat route template
+  `$slug/$`. Guests **never** touch `window.history`/`location`.
 - `path` on the host object is a subscription and includes search params; back/forward arrive
   through it. Upstream: `host.navigate(subPath, {replace?})`.
 - Slug from `config.path`; key is the identity, path is cosmetic; on collision the loser (by
   `(order, key)` — deterministic) falls back to its full key as segment, with a warning.
 - Deep link before discovery resolves: hold the pending path, resolve after; unknown section →
-  redirect to the first available with a notice.
+  redirect to the first available, silently.
 - Host remembers the last subPath per section and restores it on return; clicking the active rail
   icon resets to the section root. `document.title` is set by the host from the section title.
 
@@ -251,14 +259,17 @@ What it does **not** remove:
   half-filled dialog are exactly where the user left them. Unmount runs only when the section
   leaves the rail (its app is uninstalled or stopped).
 - Hidden sections stay live: their subscriptions keep firing, so they stay fresh and may `notify`.
-  This is the accepted cost of keep-alive (see the watch list). If a section ever needs to pause
-  expensive work while hidden, optional visibility hooks are an additive contract change.
+  This is the accepted cost of keep-alive (see the watch list). `host.visible` tells a section when it
+  is hidden, so it can pause what only a viewer needs — measuring, polling — and resume on return.
 - **The switch policy is host-side and contract-free.** `mount`/unmount expresses both worlds:
   guests must survive unmount regardless (uninstall already forces that path), so if DOM
   accumulation ever hurts, the host moves to unmount-on-switch without touching a provider.
-- The host shows a skeleton until `mount` returns, wraps import + mount in an error boundary with
-  an import timeout, and **keeps the section host element mounted in every state** (spike lesson:
-  rendering an error instead drops the ref and nothing can mount afterwards).
+- The host wraps import + mount in an error boundary with an import timeout, names the failed stage
+  in the console (could not be imported, exports no `mount`, threw while mounting) behind one phrase
+  on screen, and **keeps the section host element mounted in every state** (spike lesson: rendering
+  an error instead drops the ref and nothing can mount afterwards). There is no host-side skeleton:
+  the guest's own is what shows between import and its first paint, and a module that loaded but
+  cannot reach its data is the guest's failure to render.
 - `unmount` is idempotent and must not throw; the host wraps it anyway. Shadow root teardown makes
   style cleanup automatic — nothing of the guest's ever entered `document.head`.
 - **At unmount the host revokes that mount's host object**: event and store subscriptions handed to
@@ -267,14 +278,13 @@ What it does **not** remove:
 ### Contract ownership, distribution, versioning
 
 - **The host owns the contract** and the `settings.*` interface namespace; providers follow.
-- **v1: types are duplicated in both repos**, with a dev-mode stub extension in the host as the
-  cheap drift guard. The duplication window is short by construction — the kit is extracted in
-  Phase 2, _before any section moves_, and the contract types move in then as the
-  `@enonic/toolkit/section` subpath: the **generic** host↔section contract (`mount`, `Host`,
-  `Readable`), with nothing hub-specific in it. Interface names (`settings.section`) are not
-  exported as constants — they live in documentation and in descriptors, so the package stays
-  hub-agnostic and Content Studio can adopt the same contract with its own interface name and an
-  extended host object.
+- **v1: types are duplicated in every repo**, byte-identical, until `@enonic/ui-types` publishes
+  them as its first contract: the **generic** host↔mount contract (`mount`, `Host`, `Routed`,
+  `Readable`), with nothing hub-specific in it beyond `SectionHost` naming what `settings.section`
+  hands over. Interface names (`settings.section`) and the hub's topic names are
+  not exported — they live in documentation and in descriptors, so the package stays hub-agnostic and
+  Content Studio can adopt the same contract with its own interface name and an extended host
+  object.
 - `mount({container, host})` — object argument, extendable without breaking anyone.
 - **No runtime contract versioning.** A `contractVersion` handshake was considered and dropped as
   overkill: every provider is ours, so a contract change ships as a coordinated release of host
@@ -283,8 +293,7 @@ What it does **not** remove:
   which the platform itself enforces — not as a runtime check.
 - The object argument keeps the contract **additively extendable**: a new optional host-object
   member breaks nobody. Ideas parked here, none likely while the providers are 2–3 internal apps:
-  host-owned confirms/dialogs, wizard-level `document.title`, a busy/progress signal, visibility
-  hooks for hidden sections.
+  host-owned confirms/dialogs, wizard-level `document.title`, a busy/progress signal.
 
 ### Security and access
 
@@ -369,14 +378,15 @@ config:
 | Request                | Serves                                                                  |
 | ---------------------- | ----------------------------------------------------------------------- |
 | `GET /_static/main.js` | the section's ES module entry — stable unhashed name, `text/javascript` |
-| `GET /_static/*`       | hashed chunks and CSS beside the entry (text only)                      |
+| `GET /_static/*`       | hashed chunks and the unhashed `main.css` beside the entry (text only)  |
 | `POST /graphql`        | the section's data plane; client config and phrases as root fields      |
 
-**Types** — the whole client-side contract, shipped as the types-only
-`@enonic/toolkit/mount-contract` subpath (duplicated files until the package exists in Phase 2).
-The types are deliberately dumb — names and one-line docs; behaviour lives in the rules below.
-Everything mutable is a subscription (`{get, subscribe}`; nanostores atoms satisfy the shape
-structurally, but the contract never names them):
+**Types** — the whole client-side contract, shipped by the types-only `@enonic/ui-types`
+(duplicated files until the package publishes it). The types are deliberately dumb — names and
+one-line docs; behaviour lives in the rules below. Everything mutable is a subscription
+(`{get, subscribe}`): `get()` is the current value and `subscribe` reports changes only, never
+calling back on subscribe — a nanostores atom satisfies the shape through `listen`, and the contract
+never names it:
 
 ```ts
 export type Readable<T> = { get(): T; subscribe(cb: (v: T) => void): () => void };
@@ -385,39 +395,53 @@ export type Notification = {
   level: 'info' | 'success' | 'warning' | 'error';
   message: string; // already localized by the guest
   autoClose?: number | false;
-  action?: { label: string; onAction(): void };
 };
 
+/** What every host hands every mount: a section, a panel widget, a menu item. */
 export type Host = {
-  /** The mounted module's own extension prefix — its data plane lives under it. */
+  /**
+   * The mounted module's own extension prefix — its data plane lives under it. Its last segment is
+   * the extension key `<app>:<name>`, which is how a module serving several mounts tells them apart.
+   */
   baseUrl: string;
   /** Resolved page locale; a locale change reloads the page, so it never changes mid-mount. */
   locale: string;
   /** Resolved theme; the guest applies it inside its shadow root (via AppRoot). */
   theme: Readable<'light' | 'dark'>;
-  /** SubPath incl. search params; back/forward arrive here. */
-  path: Readable<string>;
-  /** Programmatic navigation within the module's own segment. */
-  navigate(subPath: string, opts?: { replace?: boolean }): void;
-  /** Href builder for real anchors within the module's own segment. */
-  url(subPath: string): string;
+  /** Whether this mount is on screen; a hidden mount may pause what only a viewer needs. */
+  visible: Readable<boolean>;
   /** Toast on the host's stack; returns dismiss. */
   notify(n: Notification): () => void;
 };
 
-export type MountOptions = {
+/** What a host adds for a mount that owns a segment of its url. */
+export type Routed = {
+  /** SubPath incl. search params; back/forward arrive here. */
+  path: Readable<string>;
+  /** Programmatic navigation within the module's own segment. */
+  navigate(subPath: string, opts?: { replace?: boolean }): void;
+};
+
+/** What `settings.section` hands a section. */
+export type SectionHost = Host & Routed;
+
+export type MountOptions<H extends Host = Host> = {
   container: HTMLElement; // inside an open shadow root the host created
-  host: Host; // valid until unmount, then revoked
+  host: H; // valid until unmount, then revoked
 };
 
 export type Unmount = () => void; // idempotent, must not throw
 
-export type SectionModule = { mount(opts: MountOptions): Unmount };
+export type SectionModule<H extends Host = Host> = { mount(opts: MountOptions<H>): Unmount };
 ```
 
-Every member answers a question the guest cannot answer on its own, because the host owns the
-answer: where my data lives (`baseUrl`), which language and theme (`locale`, `theme`), where I am and
-how to move (`path`, `navigate`, `url`), and how to speak to the user outside my column (`notify`).
+`Host` is what every kind of mount gets; `Routed` is the capability a mount with a url segment adds,
+and each interface name fixes its host type — `settings.section` hands a `SectionHost`. A future host
+whose mounts own no segment (a context panel, a dashboard) hands a `Host` extended with its own
+capability, and a section module written against `SectionHost` is unaffected. Every member answers a
+question the guest cannot answer on its own, because the host owns the answer: where my data lives and which section I am (`baseUrl`), which language and theme (`locale`,
+`theme`), whether anyone is looking (`visible`), where I am and how to move (`path`, `navigate`), and
+how to speak to the user outside my column (`notify`).
 Anything absent from the list the guest either knows itself or asks its own server. Events are not on
 it: a section subscribes to the hub itself. Nor are core api urls: the provider's own controller
 builds them with `portal.apiUrl`.
@@ -429,17 +453,16 @@ builds them with `portal.apiUrl`.
   in it: selection and dialog mode as segments (`/u123/edit`), filters and search as query params
   navigated with `{replace: true}` so typing does not pollute history. What deserves a URL is the
   guest's call; the kit's browse screens should follow one convention.
-- Both `navigate` and `url` are **scoped to the caller's own segment by construction** — the host
-  prefixes the calling section's slug, so `'/groups'` from the Users section is `/users/groups`,
-  a subPath inside Users. Cross-section navigation is deliberately out of v1: membership lists
-  render names as text, not links; the user switches sections through the rail. If real usage
-  hurts, an additive `url(subPath, extension)` overload (returning `undefined` for a missing or
-  forbidden target) is the designed comeback — and its absence keeps descriptor keys out of the
-  cross-repo API surface.
+- `navigate` is **scoped to the caller's own segment by construction** — the host prefixes the
+  calling section's slug, so `'/groups'` from the Users section is `/users/groups`, a subPath inside
+  Users. Cross-section navigation is deliberately out of v1: membership lists render names as text,
+  not links; the user switches sections through the rail. If real usage hurts, an additive
+  `url(subPath, extension?)` member (returning `undefined` for a missing or forbidden target) is the
+  designed comeback — a same-section `url(subPath)` was in v1 and removed unused, since a section
+  has no anchors of its own to build.
 - `navigate` is called only from user intent, never from a `path` subscription — except
-  normalization with `{replace: true}`. Guests render cross-linkable UI as real anchors with
-  `href={host.url(...)}`; the host intercepts composed left-clicks on anchors under its base path
-  and routes them SPA-style, modified clicks (middle, ctrl/cmd) fall through to the browser.
+  normalization with `{replace: true}`. The history is hash-based, so the host intercepts no clicks;
+  a section's rows are not anchors.
 - While a mount is hidden (keep-alive), its `path` is frozen — it never emits another section's
   subPath — and its `navigate` is a no-op. On being shown again it emits only if the sub-path moved
   while it was away: coming back to where the user left needs no emit, because the guest is already
@@ -449,6 +472,10 @@ builds them with `portal.apiUrl`.
 
 - Guests never touch `window.history`/`location`, never write outside their container, never write
   to `document.head`. All user-visible strings cross the boundary localized.
+- A `Readable` never calls back on subscribe: read `get()` first, then subscribe for changes.
+- A module serving several sections tells them apart by the last segment of `baseUrl`, the
+  extension key `<app>:<name>`; `mount` is told nothing else, and anything derived from `host` lives
+  with the mount, never at module level.
 - Guest CSS attaches inside the shadow root (via `@enonic/ui`'s `AppRoot`); fonts come from the host;
   overlays stay under the host's reserved z-band.
 - Events carry IDs, not sensitive payloads; data is re-read through the section's gateway.
@@ -459,18 +486,20 @@ builds them with `portal.apiUrl`.
 
 **Parked, additive when a phase proves the need** (each is a non-breaking addition):
 
-- `visible: Readable<boolean>` — when the browse list gains virtualization or other
-  measurement-dependent UI that must re-measure after `display`-level hiding.
 - `connected: Readable<boolean>` (or a reconnect epoch) — when stale-after-reconnect starts
   hurting; XP does not replay events missed while the socket is down.
-- `url(subPath, extension)` — cross-section links, if their absence proves painful in practice.
+- `url(subPath, extension?)` — anchors and cross-section links, if their absence proves painful in
+  practice.
+- `Notification.action` — a button on the toast, the "Deleted — Undo" pattern; removed unused from
+  v1.
 
 ---
 
 ## 3. `@enonic/ui` workstream — shadow root support (parallel to Phase 1)
 
 The condition attached to the shadow DOM decision. All four items live in `npm-enonic-ui`
-(tracked as npm-enonic-ui#533) — the component kit consumes them, it does not implement them.
+(tracked as npm-enonic-ui#533, shipped in 1.2.0) — the component kit consumes them, it does not
+implement them.
 Scope:
 
 1. **`PortalProvider`** — a context carrying the portal container for all overlays (dialogs,
@@ -496,9 +525,12 @@ recorded fallback is light DOM; nothing else in the plan changes.
 
 ## 4. Migration plan
 
-Sequencing rule: **the kit is extracted before any section moves out** — otherwise the first
-section to leave immediately needs the browse widgets and copies them. The shadow-DOM
-workstream in `@enonic/ui` (section 3) runs in parallel with Phase 1 and gates the Phase 1.2 exit.
+Sequencing rule, as planned: **the kit is extracted before any client slice moves out** — otherwise
+the first section to leave needs the browse widgets and copies them. That is what happened: Phases 3
+and 4 ran before Phase 2, and both providers carry a copy of the widgets that Phase 2 now extracts
+from them rather than from the host. Server-side moves (3.2, 4.2) never depended on the kit. The
+shadow-DOM workstream in `@enonic/ui` (section 3) ran in parallel with Phase 1 and gated the Phase
+1.2 exit.
 
 ### Phase 0 — enough contract to start
 
@@ -526,22 +558,25 @@ DOM condition is proven in code; the contract stops being provisional.
 
 ### Phase 2 — extract the component kit
 
-- 2.1 Create `npm-enonic-toolkit` publishing `@enonic/toolkit`; the generic contract moves in as
-  the `./section` subpath; release process.
-- 2.2 Browse framework widgets out of `widgets/` — host-free, props only. Known unwind: today's
-  `widgets/` import `@tanstack/react-router` in three places, and routing is the host's — those
-  become props/callbacks before the move.
-- 2.3 Request plumbing, format helpers, i18n hook, dialog/form shells out of `shared/`.
-- 2.4 app-settings consumes the kit while still owning all five sections (portability proven with
-  no migration in flight).
-- 2.5 The scratch provider renders a real browse screen from the kit — inside its shadow root.
-- 2.6 Content Studio v6 as a second consumer — a conversation, not a blocker. The `PortalProvider`
+- 2.1 `npm-enonic-ui-toolkit` publishing `@enonic/ui-types`, `ui-utils`, `ui-kit` and
+  `input-types` (scaffolding done, npm-enonic-ui-toolkit#1); the generic contract moves into
+  `ui-types`; the host and both providers delete their copies.
+- 2.2 Browse framework widgets out of the providers' `widgets/` into `ui-kit` — host-free, props
+  only (`activeKey`, `detailsShown`); the two provider copies are resynced to one canonical form
+  first, so the move is a move.
+- 2.3 Transport, format helpers, i18n core and form helpers into `ui-utils`; dialog shells and the
+  section runtime (`createHostFrame`, its provider and hooks, from app-users' `shared/host`) into
+  `ui-kit`. The transport becomes a factory over an endpoint, not a module singleton.
+- 2.4 Both providers consume the kit; the host consumes `ui-types` alone.
+- 2.5 Content Studio v6 as a further consumer — a conversation, not a blocker. The `PortalProvider`
   default keeps it unaffected.
 
 ### Phase 3 — Applications moves out (into app-applications)
 
 - 3.1 Skeleton: descriptor, controller, `_static`, Gradle wiring — copied from the scratch provider.
-- 3.2 Move the applications GraphQL schema and beans.
+- 3.2 Move the applications GraphQL schema and beans. One field short of literal in the event:
+  `idProviderApplications` stayed with the ID Providers editor until 4.2, and the id-provider
+  descriptor bean was duplicated rather than moved.
 - 3.3 Move the client slices (`entities/application`, `pages/applications`, install/uninstall
   features, market fetching).
 - 3.4 Wire upload/lifecycle calls: `server:app` mounted on the host, provider proxies where cheap
@@ -595,5 +630,5 @@ DOM condition is proven in code; the contract stops being provisional.
   section error state must name which of those failed, not show a generic message.
 - **E2E through shadow boundaries** — WebdriverIO deep selectors; factor into the test
   consolidation work (#9).
-- **Test-fixture debt** — 14 test files each build a `ToolConfig`; one added field breaks them all.
-  No issue tracks it yet; file one before Phase 1 makes it worse.
+- **Test-fixture debt** — five test files each build a `ToolConfig`; one added field breaks them
+  all. Down from fifteen with Phase 5.1, and still without a shared fixture.

@@ -1,4 +1,0 @@
-kind: 'API'
-title: 'GraphQL API'
-allow:
-  - 'role:system.admin'
