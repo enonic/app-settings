@@ -68,7 +68,7 @@ src/main/java/          script beans, one package per lib/*.ts that wraps them â
 src/main/resources/
   admin/tools/main/     the single admin tool: descriptor, controller, page template
   apis/                 app-owned HTTP APIs, one folder per api (added when a section needs one)
-  lib/                  server modules (auth guard, i18n, tool config, bean wrappers)
+  lib/                  server modules (auth guard, i18n, tool config, csp baseline, bean wrappers)
   types/                hand-written declarations for XP libs without a type package
   i18n/phrases.properties
   assets/js/

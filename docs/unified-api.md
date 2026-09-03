@@ -839,8 +839,9 @@ patterns are visible. None of them blocks Phase 3.
 - ~~**Market call placement.**~~ **Done in #39**, behind the schema — see the market notes under Phase 2.
   What is left of the Applications data gap is UI, not data: the row's available-version cell and the
   install dialog both read `marketApplications`, and neither exists yet. The market's own icons stay
-  remote urls, so the dialog will need a `Content-Security-Policy` with `img-src` on the tool
-  controller, which today sets no CSP header at all.
+  remote urls; the tool page now carries a strict CSP baseline (`lib/csp.ts`) and the Applications
+  section opens `img-src` for the market origin itself, through XP's extension response processor —
+  `docs/platform-facts.md` and `docs/extensions/provider-facts.md`.
 - **Extraction to a shared library.** Request plumbing, formatting helpers and parts of this API surface
   are the same problem Content Studio v6 solves separately (`CLAUDE.md`). Keep anything written here
   portable in the meantime — no reaching into this app's config, stores or i18n keys beyond what props
