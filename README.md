@@ -33,6 +33,21 @@ Copy the built JAR to `$XP_HOME/deploy`, or let Gradle do it:
 Nothing shows until a provider is installed: with none, the tool reports that no administration
 applications are available.
 
+## Configuration
+
+Optional, in `$XP_HOME/config/com.enonic.xp.app.settings.cfg`:
+
+| Key                             | Default | Effect                                                                                                                                     |
+| ------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `contentSecurityPolicy.enabled` | on      | `false` sends no `Content-Security-Policy` header at all, for the sections too. Any other value is on.                                     |
+| `contentSecurityPolicy.header`  | none    | A raw header value unioned onto the policy last, so a directive can be widened without restating the baseline. Invalid tokens are skipped. |
+
+Both values are trimmed, so trailing whitespace in the file is harmless.
+
+The header this tool sends is the whole policy for the page, and a section that needs a remote source
+adds it itself — so turning the switch off turns off every section's contribution with it. A section's
+own settings live in the app that provides it.
+
 ## Building
 
 ```
@@ -102,7 +117,7 @@ The server side of `src/main/resources`:
 
 ```
 admin/tools/main/   the single admin tool: descriptor, controller, page template
-lib/                tool config, i18n, the admin guard, and the admin events hub topics the shell publishes
+lib/                tool config, i18n, the admin guard, the CSP baseline, and the hub topics the shell publishes
 i18n/               the shell's phrases
 ```
 

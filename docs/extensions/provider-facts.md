@@ -68,6 +68,32 @@ built before the shape settled and held the host in module state (`setHost/getHo
 commands that notified themselves) until app-applications#2322 brought it to the same frame, so that
 the toolkit's section runtime is extracted from two identical implementations.
 
+## Contributing a CSP source
+
+A section's own resources are same-origin, so the host baseline (`host-facts.md`) already covers
+them: a provider needs nothing here unless it loads something genuinely remote. When it does, the
+channel is XP's `AdminExtensionResponseProcessor` — a Java OSGi service in the provider's jar,
+`property = "key=<app>:<extension>"`, run by the platform after the host's tool controller and only
+for a caller who passes that extension's `allow`. It extends the same request-scoped policy the host
+seeded, and the platform unions the contributions into one header.
+
+**The invariant, and it is not optional: extend a directive that is already there, never create
+one.** A processor that sets `img-src <host>` on a request carrying no policy produces a page whose
+only allowed images are that host's — every same-origin image blocked. It is also what makes the
+host's `contentSecurityPolicy.enabled=false` switch turn off the whole chain instead of leaving
+half-policies behind. So guard on `policy.directive(CspDirective.IMG_SRC).isPresent()` before
+adding, and keep to additive methods — `override`, `reset`, `resetTo` and `addPolicy` are reachable
+but replace the host's work.
+
+Which means a directive the host does not name is one no section can open: the host closes only
+`form-action`, which has no `default-src` fallback, and leaves `object-src`, `frame-src`,
+`media-src` and the rest denied by `default-src 'none'`. A section that genuinely needs one of them
+is a conversation with the host, not something a processor can add.
+
+Worked example: `../app-applications` `csp/ApplicationsSectionCspProcessor`, which opens `img-src`
+for the market origin its icons come from, derived from the app's own `marketApiUrl` config so a
+self-hosted market moves with it.
+
 ## app-applications
 
 One section, `applications` (`order: 10`, `allow: role:system.admin`). Its schema serves the

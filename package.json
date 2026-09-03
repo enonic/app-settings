@@ -30,12 +30,12 @@
     "preact": "^10.29.8"
   },
   "devDependencies": {
-    "@enonic-types/core": "^8.0.4",
-    "@enonic-types/global": "^8.0.4",
-    "@enonic-types/lib-admin": "^8.0.4",
-    "@enonic-types/lib-auth": "8.0.4",
-    "@enonic-types/lib-i18n": "^8.0.4",
-    "@enonic-types/lib-portal": "^8.0.4",
+    "@enonic-types/core": "8.1.0-B2",
+    "@enonic-types/global": "8.1.0-B2",
+    "@enonic-types/lib-admin": "8.1.0-B2",
+    "@enonic-types/lib-auth": "8.1.0-B2",
+    "@enonic-types/lib-i18n": "8.1.0-B2",
+    "@enonic-types/lib-portal": "8.1.0-B2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.3.0",
     "@types/react": "^19.2.18",

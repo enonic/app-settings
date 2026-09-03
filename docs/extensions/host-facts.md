@@ -9,12 +9,42 @@ design; this is what stands. `provider-facts.md` is the other side of the bounda
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `admin/tools/main/main.yaml`                         | `interfaces: [settings.section]`; `apis: server:app, admin:events, admin:extension, com.enonic.xp.app.main:events` — the shell owns no api of its own; `allow:` the union of the section audiences (`system.admin`, `system.user.admin`, `system.user.app`) |
 | `lib/config.ts` → `apis.extensions`                  | the discovery endpoint: `admin:extension` under the tool                                                                                                                                                                                                    |
+| `lib/csp.ts`                                         | the page's `Content-Security-Policy` baseline, and the two operator config keys |
 | `entities/extension/`                                | discovery, sorting, slugs, the rediscovery service                                                                                                                                                                                                          |
 | `app/model/createSectionHost.ts`                     | the `Host` object, one per mounted section, with its `revoke`                                                                                                                                                                                               |
 | `app/model/router.ts`, `section-path.ts`             | the url scheme, and the `path` signal a hidden section stops tracking                                                                                                                                                                                       |
 | `app/ui/SectionMounts.tsx`, `widgets/section-mount/` | one slot per visited section; the shadow host element and the failure phrase                                                                                                                                                                                |
 | `shared/sections/`                                   | `contract.ts`, `mountSection`, `isSectionModule`, the shadow container                                                                                                                                                                                      |
 | `shared/admin-events/topics.ts`                      | the hub topic names the shell publishes and subscribes; `lib/events/index.test.ts` pins them against what `lib/events/` registers                                                                                                                           |
+
+## Content security policy
+
+- `lib/csp.ts`, called first thing in the tool controller: `strict()` — `default-src 'none'`,
+  `base-uri 'none'`, `frame-ancestors 'none'` — then `script-src 'self'`,
+  `style-src 'self' 'unsafe-inline'`, `img-src 'self' data:`, `font-src 'self'`,
+  `connect-src 'self'` and `form-action 'none'`. Everything a section serves is same-origin under
+  this page, so `'self'` is what makes sections work at all and the baseline covers a well-behaved
+  section whole.
+- **Nothing else is named, deliberately.** `default-src 'none'` denies `object-src`, `frame-src`,
+  `media-src` and the rest by fallback, and naming one to close it would insert the directive key —
+  which is exactly what a section processor's `directive(…).isPresent()` guard tests. An unnamed
+  directive is one a section cannot open. `form-action` is the single exception, and it has to be
+  named: it has no `default-src` fallback.
+- `'unsafe-inline'` on `style-src` is here for one thing, the page's `@font-face` block in
+  `main.html`. Preact and `@enonic/ui` write element styles through CSSOM (`setProperty`,
+  `cssText`), which CSP does not govern at all, and a section's adopted stylesheet is a constructed
+  `CSSStyleSheet`, equally ungoverned — so this is retirable, not permanent: `nonceStyleSrcElem()`
+  on that block plus `styleSrcElem(SELF, nonce)`, since declaring `style-src-elem` takes over the
+  fallback for the `main.css` link. Until then it is the loosest source in the policy. No
+  `'strict-dynamic'` either — it would make `'self'` ignored, and every section is mounted by
+  `import(moduleUrl)`.
+- Two keys in `com.enonic.xp.app.settings.cfg`: `contentSecurityPolicy.enabled=false` removes the
+  header, `contentSecurityPolicy.header` is unioned in last so an operator can widen a directive
+  without restating the baseline. Both are read trimmed — a `.cfg` value keeps its trailing
+  whitespace, and `false ` has to mean off.
+- **A section adds a remote source itself**, through the platform's SPI, and the host never names
+  another app's hosts — see `provider-facts.md`. Disabling the header here disables the whole chain,
+  because a section processor only extends directives that are already declared.
 
 ## Discovery and the rail
 

@@ -27,6 +27,12 @@ The decisions below are agreed; the watch list at the end tracks the risks that 
   a discovery row (JSON), a module URL, and the host object handed to `mount`.
 - **The provider owns the section's content area.** The host owns the app bar, section rail,
   theme, notifications, the event socket and the URL. It knows nothing about what a section renders.
+- **The host owns the page's `Content-Security-Policy`**, seeded as a strict baseline at render time
+  — but it never names another app's hosts. A section needing a remote source contributes it itself
+  through XP's `AdminExtensionResponseProcessor`, and the platform unions the contributions into one
+  header. The invariant on that side: **extend a directive the host declared, never create one** —
+  creating `img-src <host>` alone blocks every same-origin image on the page, and it is what keeps
+  the host's kill switch meaningful. Details in `host-facts.md` and `provider-facts.md`.
 - **Preact is not shared.** Each provider bundles its own. Visual consistency comes from the shared
   component kit, not a shared runtime.
 - No module federation, no iframes, no fetched-HTML injection.
@@ -341,7 +347,9 @@ Verified against XP 8.1 source and a live spike:
   delivers socket events to an extension controller.
 - `X-Frame-Options: DENY` is a global default web filter on all responses, including same-origin.
 - `pageContributions` returned by an extension controller are silently dropped (tool controllers
-  only). The `AdminExtensionResponseProcessor` SPI (8.1) exists but is Java/OSGi-only.
+  only). The `AdminExtensionResponseProcessor` SPI (8.1) is Java/OSGi-only, and is what a section
+  uses to contribute to the page's CSP — the one thing an extension can add to the host's response.
+  Response headers an extension endpoint sets on its own responses come too late for the page.
 - Descriptor `config` is **not** localized; only `title`/`description` are.
 - `allow` on an extension is tri-state: omitted = everyone (who passed the tool), `[]` =
   `system.admin` only, populated = admin or listed. Note the asymmetry with `AdminTool`, where
@@ -609,6 +617,10 @@ DOM condition is proven in code; the contract stops being provisional.
 - **Keep-alive accumulates** — every visited section keeps its DOM and live subscriptions until its
   app leaves the rail. Fine at first-party scale; if it ever hurts, unmount-on-switch is a
   host-only policy change.
+- **The loosest section sets the page's policy.** CSP has no per-subtree scope, so every remote
+  source any visible section opens is open to all of them. Per-visitor `allow` filtering keeps the
+  blast radius to the sections a caller can see; nothing narrows it further, and a section can
+  reach `override`/`reset` if it means to.
 - **Event stream is coarse-grained** — no per-role filtering; keep payloads to IDs. If a genuinely
   sensitive event type ever appears, that is a platform conversation.
 - **Contract churn is expensive** — every breaking change means re-releasing every provider. Keep

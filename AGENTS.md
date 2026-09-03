@@ -54,7 +54,8 @@ There is no Java in this app.
 ```
 src/main/resources/
   admin/tools/main/     the single admin tool: descriptor, controller, page template
-  lib/                  server modules: tool config, i18n, the admin guard, the hub topics (`events/`)
+  lib/                  server modules: tool config, i18n, the admin guard, the CSP baseline, the hub
+                        topics (`events/`)
   types/                hand-written declarations for XP libs without a type package
   i18n/phrases.properties
   assets/js/

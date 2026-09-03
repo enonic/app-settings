@@ -564,16 +564,68 @@ The shell hands out no section access of its own — every gate below is the pla
   branch, so an `AdminTool` with no `allow` admits admin alone, and a listed principal is admitted
   _in addition to_ admin — never instead of.
 
+## The tool page's CSP is the whole policy, and admin extensions extend it
+
+Nothing in XP seeds a `Content-Security-Policy` for admin pages — whatever the tool controller
+declares is the entire policy, and declaring nothing means no header at all.
+
+- **The policy is request-scoped, mutable and merged by union.** `csp()` (lib-portal 8.1,
+  `modules/lib/lib-portal/.../lib/xp/portal.ts:1313`) hands every contributor the same object, and
+  each directive's source list is the union of what all of them added, serialized at response-flush
+  time (`web-impl/.../ResponseSerializer.java:57`) — so additions late in rendering still land.
+  `strict()` seeds `default-src 'none'; base-uri 'none'; frame-ancestors 'none'`; `merge(header)`
+  unions a serialized policy on top, skipping invalid tokens; `override`, `reset` and `resetTo`
+  replace rather than extend, and **any** contributor can reach them (`addPolicy` — an extra
+  enforced policy, which can only restrict — is Java-only; there is no member for it on `Csp`). CSP
+  is a list of reachable endpoints, not a boundary against code already on the page.
+- **`strict()` is additive, not a reset**, despite reading like one. It `add()`s `'none'` into those
+  three directives (`ContentSecurityPolicy.java:348`), and `serialize()` drops `'none'` the moment a
+  directive carries a real source (`:625`). So it denies anything only when it runs first on a clean
+  policy, and **nothing can tighten a directive additively** — only `override`/`reset` can. It is
+  also why a `'none'` extended later serializes as, say, `form-action 'self'` rather than invalid
+  CSP: naming a directive to close it is a hook for whoever contributes next, not a lock.
+- **A directive nobody names cannot be opened by a later contributor.** `directive(name)` answers
+  empty for it, so the `isPresent()` guard an extension processor must use fails, and `default-src`
+  keeps denying it. Leaving a directive to the fallback is therefore stricter than closing it
+  explicitly.
+- **An admin extension contributes through `AdminExtensionResponseProcessor`**
+  (`admin-api/.../extension/`), a Java OSGi service registered with `property = "key=<app>:<extension>"`.
+  `AdminExtensionResponseProcessorExecutor` runs the chain after the tool controller
+  (`AdminToolHandlerWorker`), for every extension that shares an interface with the rendered tool —
+  or declares `generic` — and whose `allow` the caller passes. That last filter is free per-visitor
+  least privilege: someone who cannot see a section never gets its sources opened on their page.
+  There is no JS equivalent; XP #12211 notes one could be added on the same chain later.
+- **The header is final before the browser fetches anything from a section.** A policy cannot be
+  assembled from client-side discovery, an extension endpoint's own response headers are too late,
+  and `<meta http-equiv>` is honoured only while parsing and cannot carry `frame-ancestors`. Render
+  time on the tool page is the only place this can happen.
+
+Three browser rules the API deliberately does not arbitrate, all load-bearing here: a nonce or hash
+sharing `style-src` makes the browser **ignore** `'unsafe-inline'`; `'strict-dynamic'` makes it
+ignore `'self'` and host sources, fatal for a shell that mounts sections with `import(moduleUrl)`;
+and `form-action` has no `default-src` fallback, so closing it has to be said.
+
+What `style-src` governs is narrower than it looks, and it decides whether `'unsafe-inline'` is
+needed at all: `<style>` elements and `<link rel=stylesheet>` (`style-src-elem`) and `style`
+attributes **as written in markup** (`style-src-attr`). Styles set through CSSOM are not governed —
+`element.style.setProperty`, `cssText`, `insertRule` — nor is a constructed `CSSStyleSheet`. Preact's
+`style={{…}}` is CSSOM, so a Preact app needs `'unsafe-inline'` only for the inline `<style>` blocks
+its own template serves, and a section's adopted stylesheet needs nothing.
+
 ## Pin every `@enonic-types` dependency
 
 npm's `latest` tag is **7.16.7** for all of them even though 8.0.3 exists. Unpinned means 7.x types
 (where `lib-schema` still has `XDATA`, and `displayName` instead of `title`) against an 8.x runtime.
 
-The types also lag the runtime, and this app builds against 8.1.0-SNAPSHOT. `lib-auth` is the case:
-`getIdProviders()` and `createIdProvider()` exist in the 8.1 lib but are declared in no stable types
-release, so `@enonic-types/lib-auth` is pinned to **`8.0.4-B1`** — exact, no caret, because it is a
-prerelease. **Read the lib's own `.ts` in `../xp/modules/lib/`, not `node_modules`, before concluding a
-function does not exist.** Doing the reverse produced a wrong "this needs Java" call once already.
+The types also lag the runtime, and this app builds against 8.1.0-SNAPSHOT, so the whole
+`@enonic-types/*` set is pinned to the **`8.1.0-B2`** prerelease — exact, no caret, because a caret
+range does not match a prerelease. It has to move as a set: each `lib-*` package depends on
+`@enonic-types/core` at its own exact version, so bumping one alone leaves two copies of `core` in
+the tree. What the prereleases carry that no stable release does: `getIdProviders()` and
+`createIdProvider()` in `lib-auth`, the `csp()` API in `lib-portal`, the events-hub `setTopic` /
+`sendToTopic` in `lib-admin`. **Read the lib's own `.ts` in `../xp/modules/lib/`, not `node_modules`,
+before concluding a function does not exist.** Doing the reverse produced a wrong "this needs Java"
+call once already.
 
 ## Adding Java to this repo is nearly free
 

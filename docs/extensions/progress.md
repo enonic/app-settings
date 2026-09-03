@@ -77,7 +77,7 @@ reactions to principal events (#2656).
 | `docs.md` | What                                                                   | State                                                                                   |
 | --------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | 5.1       | delete `pages/`, `entities/`, `features/`; drop the host's GraphQL API | done — #134                                                                             |
-| 5.2       | harden shell-only concerns                                             | rail reaction, `allow` union, empty and failed states done (#113, #129); the rest below |
+| 5.2       | harden shell-only concerns                                             | rail reaction, `allow` union, empty and failed states, CSP baseline done (#113, #129, #132); the rest below |
 | 5.3       | freeze contract v1, write the upgrade policy                           | contract trimmed by #134; freezes when `ui-types` publishes it                          |
 | 5.4       | optional: a documented sample extension                                | not started                                                                             |
 
