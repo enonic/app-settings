@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { requestJson, requestOptionalJson } from './client';
+import { requestJson } from './client';
 import { AppError } from './errors';
 
 const mockFetch = vi.fn<typeof fetch>();
@@ -81,31 +81,5 @@ describe('requestJson', () => {
 
     expect(result.isErr()).toBe(true);
     expect(result._unsafeUnwrapErr()).toBeInstanceOf(AppError);
-  });
-});
-
-describe('requestOptionalJson', () => {
-  it('resolves 204 to undefined without parsing', async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
-
-    const result = await requestOptionalJson('/api/apps/1');
-
-    expect(result._unsafeUnwrap()).toBeUndefined();
-  });
-
-  it('resolves a null body to undefined', async () => {
-    mockFetch.mockResolvedValue(jsonResponse(null));
-
-    const result = await requestOptionalJson('/api/apps/1');
-
-    expect(result._unsafeUnwrap()).toBeUndefined();
-  });
-
-  it('still resolves a present body', async () => {
-    mockFetch.mockResolvedValue(jsonResponse({ id: 'x' }));
-
-    const result = await requestOptionalJson<{ id: string }>('/api/apps/1');
-
-    expect(result._unsafeUnwrap()).toEqual({ id: 'x' });
   });
 });

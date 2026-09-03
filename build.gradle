@@ -15,39 +15,15 @@ app {
     systemApp = true
 }
 
-// The xp.app plugin applies the java plugin, so src/main/java compiles with no further setup —
-// but it inherits whatever JDK runs Gradle. Pin it to the one XP itself builds with
-// (xp/gradle/java.gradle), so a contributor on another JDK cannot emit bytecode XP rejects.
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
-}
-
 dependencies {
-    implementation xplibs.api.core
-    implementation xplibs.api.portal
-    implementation xplibs.api.script
-    implementation xplibs.api.admin // AdminToolDescriptorService, AdminExtensionDescriptorService
     include xplibs.portal
     include xplibs.admin
-    include xplibs.app
     include xplibs.auth
     include xplibs.i18n
-    include xplibs.project
-    include 'com.enonic.lib:lib-graphql:3.0.0'
+    include xplibs.event
     include 'com.enonic.lib:lib-mustache:3.0.0'
 
-    // ScriptTestSupport runs a bean on the engine XP runs it on, through the JS that calls it.
-    testImplementation "com.enonic.xp:testing:${xpVersion}"
-    testImplementation platform( 'org.junit:junit-bom:6.1.3' )
-    testImplementation platform( 'org.mockito:mockito-bom:5.23.0' )
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testImplementation 'org.mockito:mockito-junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
     // Optional XP libs — uncomment as features need them.
-    include xplibs.event
     //include xplibs.context
     //include xplibs.sse
     //include xplibs.io
@@ -143,20 +119,6 @@ tasks.register('pnpmPack', PnpmTask) {
             exclude 'assets/**'
         }
     }
-}
-
-tasks.named('test', Test) {
-    useJUnitPlatform()
-
-    // ! The fixtures require `/lib/idprovider`, which is TypeScript until vp pack emits it onto the
-    // ! test classpath.
-    dependsOn tasks.named('pnpmPack')
-}
-
-// build/resources/main is on the test compile classpath, so Gradle wants the ordering spelled out.
-tasks.named('compileTestJava') {
-    mustRunAfter tasks.named('pnpmPack')
-    mustRunAfter tasks.named('pnpmBuild')
 }
 
 tasks.named('jar') {

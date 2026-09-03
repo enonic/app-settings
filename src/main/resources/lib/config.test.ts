@@ -17,7 +17,6 @@ const config: ToolConfig = {
   apis: {
     adminEvents: '/admin/tool/com.enonic.xp.app.settings/main/_/admin:events',
     extensions: '/admin/tool/com.enonic.xp.app.settings/main/_/admin:extension',
-    graphql: '/admin/tool/com.enonic.xp.app.settings/main/_/com.enonic.xp.app.settings:graphql',
   },
 };
 
@@ -75,11 +74,6 @@ describe('getConfig', () => {
   it('points at the built-in admin:extension api, which serves the section extensions', () => {
     expect(getConfig(['en']).apis.extensions).toBe('/_/admin:extension');
     expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'admin:extension' });
-  });
-
-  it('addresses the app-owned graphql api by its qualified key', () => {
-    expect(getConfig(['en']).apis.graphql).toBe('/_/com.enonic.xp.app.settings:graphql');
-    expect(vi.mocked(apiUrl)).toHaveBeenCalledWith({ api: 'com.enonic.xp.app.settings:graphql' });
   });
 
   it('reports whether the visitor is a system admin', () => {
