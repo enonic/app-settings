@@ -243,6 +243,15 @@ obvious tie-break candidates both fail, and neither failure is loud:
 Ordering by a string is case-insensitive for free: `OrderByValueResolver.getOrderbyValueForString`
 lowercases what it writes to `_orderby`, truncating at 1024 characters.
 
+**`userStoreKey` is orderable, and what says so is that the property is written.**
+`IndexItemFactory.createItems` calls `createOrderBy` for every config that is `enabled`, whatever else it
+asks for — `IndexConfig.MINIMAL` is enabled, so a `MINIMAL` property gets its `_orderby` item like any
+other. `toCreateNodeParams` writes `userStoreKey` for every user and group, which is what makes
+`userStoreKey ASC, displayName ASC, _path ASC` a real order and lets the Users list group by ID provider
+server-side. It carries the provider's **name**, though: the display name is on the provider's own node,
+nothing joins the two, and no sort expression can reach it — so a list grouped this way is grouped by a
+string it does not show.
+
 ## Paging stops at the result window
 
 Elasticsearch refuses a query whose `from + size` passes `index.max_result_window` — 10 000 by default,

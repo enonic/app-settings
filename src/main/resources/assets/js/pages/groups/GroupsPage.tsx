@@ -2,12 +2,11 @@ import { useStore } from '@nanostores/preact';
 import { Outlet, useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'preact/hooks';
 
-import { useGroups, useIdProviderName } from '../../entities/principal';
+import { useGroups, useIdProviderName, type PrincipalSort } from '../../entities/principal';
 import { PrincipalIcon } from '../../entities/principal/ui/PrincipalIcon';
 import { GroupEditorDialog } from '../../features/group-editor/GroupEditorDialog';
 import { useI18n } from '../../shared/i18n';
 import { visibleEntries } from '../../widgets/browse-list/browse-filter';
-import { sortByDisplayName, type SortDirection } from '../../widgets/browse-list/browse-sort';
 import { BrowseFilter } from '../../widgets/browse-list/BrowseFilter';
 import { BrowseSort } from '../../widgets/browse-list/BrowseSort';
 import { BrowseScreen } from '../../widgets/browse-screen/BrowseScreen';
@@ -18,6 +17,7 @@ import { GROUP_ACTIONS } from './model/groups.actions';
 import { filterByIdProvider, idProviderEntries, searchGroups } from './model/groups.filter';
 import { toGroupRow } from './model/groups.rows';
 import { loadGroupsScreen } from './model/groups.screen';
+import { sortGroups } from './model/groups.sort';
 import { groupsSearch } from './model/search.store';
 import { groupsSelection } from './model/selection.store';
 import { $groupsSort, setGroupsSort } from './model/sort.store';
@@ -34,24 +34,28 @@ export function GroupsPage() {
   const selectedProviders = useStore(groupsFilter.$selected);
   const sort = useStore($groupsSort);
 
-  const sortAscLabel = useI18n('groups.sort.nameAsc');
-  const sortDescLabel = useI18n('groups.sort.nameDesc');
+  const sortNameAscLabel = useI18n('groups.sort.nameAsc');
+  const sortNameDescLabel = useI18n('groups.sort.nameDesc');
+  const sortProviderAscLabel = useI18n('groups.sort.idProviderAsc');
+  const sortProviderDescLabel = useI18n('groups.sort.idProviderDesc');
   const emptyLabel = useI18n('groups.list.empty');
 
   const sortOptions = useMemo(
     () => [
-      { id: 'asc', label: sortAscLabel },
-      { id: 'desc', label: sortDescLabel },
+      { id: 'displayNameAsc', label: sortNameAscLabel },
+      { id: 'displayNameDesc', label: sortNameDescLabel },
+      { id: 'idProviderAsc', label: sortProviderAscLabel },
+      { id: 'idProviderDesc', label: sortProviderDescLabel },
     ],
     [],
-  ) satisfies readonly { id: SortDirection; label: string }[];
+  ) satisfies readonly { id: PrincipalSort; label: string }[];
 
   // Shared with the filter entries below, so the query runs once per render rather than twice.
   const searched = useMemo(() => searchGroups(items, query), [items, query]);
 
   // Narrow first, order last.
   const visible = useMemo(
-    () => sortByDisplayName(filterByIdProvider(searched, selectedProviders), sort),
+    () => sortGroups(filterByIdProvider(searched, selectedProviders), sort),
     [searched, selectedProviders, sort],
   );
 
