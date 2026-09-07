@@ -21,4 +21,4 @@ peerDependencyRules:
 minimumReleaseAge: 4320 # 3 days
 minimumReleaseAgeExclude:
   - '@enonic-types/*'
-  - '@enonic/ui'
+  - '@enonic/*'

@@ -16,8 +16,9 @@ const router = vi.hoisted(() => {
 vi.mock('./router', () => ({ router }));
 vi.mock('../../entities/extension', () => ({ sectionExtensionByKey: () => undefined }));
 vi.mock('../../shared/config', () => ({ $config: atom(undefined) }));
+const notify = vi.hoisted(() => vi.fn(() => 'id'));
 vi.mock('../../shared/notifications', () => ({
-  notify: vi.fn(() => 'id'),
+  notify,
   dismissNotification: vi.fn(),
   dismissNotifications: vi.fn(),
 }));
@@ -31,6 +32,51 @@ const section = { key: 'com.enonic.app.users:users', slug: 'users', url: '/x' } 
 afterEach(() => {
   setTheme('system');
   router.history.location.pathname = '/users';
+  notify.mockClear();
+});
+
+describe('host.extension', () => {
+  it('is the descriptor key of the section this mount is', () => {
+    const { host } = createSectionHost(section);
+
+    expect(host.extension).toBe('com.enonic.app.users:users');
+  });
+});
+
+describe('host.notify', () => {
+  it('raises the toast on the shell stack under this section, auto-hiding by default', () => {
+    const { host } = createSectionHost(section);
+
+    host.notify('error', 'It broke');
+
+    expect(notify).toHaveBeenCalledWith({
+      tone: 'error',
+      text: 'It broke',
+      autoHide: true,
+      lifetimeMs: undefined,
+      owner: 'com.enonic.app.users:users',
+    });
+  });
+
+  it('passes on the lifetime and the choice to stay', () => {
+    const { host } = createSectionHost(section);
+
+    host.notify('warning', 'Still here', { autoHide: false, lifetimeMs: 9000 });
+
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({ autoHide: false, lifetimeMs: 9000 }),
+    );
+  });
+
+  it('does nothing once revoked', () => {
+    const { host, revoke } = createSectionHost(section);
+    revoke();
+
+    const dismiss = host.notify('info', 'Too late');
+
+    expect(notify).not.toHaveBeenCalled();
+    expect(dismiss).toBeTypeOf('function');
+  });
 });
 
 describe('host.theme', () => {
@@ -40,7 +86,7 @@ describe('host.theme', () => {
     const { host } = createSectionHost(section);
     const cb = vi.fn();
 
-    host.theme.subscribe(cb);
+    host.theme.listen(cb);
 
     expect(cb).not.toHaveBeenCalled();
   });
@@ -48,7 +94,7 @@ describe('host.theme', () => {
   it('reports a change', () => {
     const { host } = createSectionHost(section);
     const cb = vi.fn();
-    host.theme.subscribe(cb);
+    host.theme.listen(cb);
 
     setTheme('dark');
 
@@ -59,13 +105,13 @@ describe('host.theme', () => {
   it('stops reporting once revoked', () => {
     const { host, revoke } = createSectionHost(section);
     const cb = vi.fn();
-    host.theme.subscribe(cb);
+    host.theme.listen(cb);
 
     revoke();
     setTheme('dark');
 
     expect(cb).not.toHaveBeenCalled();
-    expect(host.theme.subscribe(cb)).toBeTypeOf('function');
+    expect(host.theme.listen(cb)).toBeTypeOf('function');
   });
 });
 
@@ -83,7 +129,7 @@ describe('host.visible', () => {
   it('reports a switch away and back, without calling back on subscribe', () => {
     const { host } = createSectionHost(section);
     const cb = vi.fn();
-    host.visible.subscribe(cb);
+    host.visible.listen(cb);
 
     expect(cb).not.toHaveBeenCalled();
 
@@ -98,7 +144,7 @@ describe('host.visible', () => {
   it('stops reporting once revoked', () => {
     const { host, revoke } = createSectionHost(section);
     const cb = vi.fn();
-    host.visible.subscribe(cb);
+    host.visible.listen(cb);
 
     revoke();
     router.history.location.pathname = '/roles';

@@ -1,13 +1,16 @@
 export type {
   Host,
+  Module,
+  Mount,
   MountOptions,
-  Notification,
+  NavigateOptions,
+  NotifyOptions,
   Readable,
   Routed,
-  SectionHost,
-  SectionModule,
+  RoutedHost,
+  ToastTone,
   Unmount,
-} from './contract';
+} from '@enonic/ui-types';
 export { mountSection } from './mount-section';
 export type { MountSectionOptions } from './mount-section';
 export { isSectionModule } from './section-module';

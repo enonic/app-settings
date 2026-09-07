@@ -169,7 +169,7 @@ describe('createSectionPath', () => {
   it('says nothing while the section is hidden', () => {
     const seen: string[] = [];
     const { path, go } = harness('/u1');
-    path.subscribe((value) => seen.push(value));
+    path.listen((value) => seen.push(value));
 
     go('/r1', false);
     go('/r1/edit', false);
@@ -180,7 +180,7 @@ describe('createSectionPath', () => {
   it('speaks up again when the section is shown with a different sub-path', () => {
     const seen: string[] = [];
     const { path, go } = harness('/u1');
-    path.subscribe((value) => seen.push(value));
+    path.listen((value) => seen.push(value));
 
     go('/r1', false);
     go('/u2', true);
@@ -191,7 +191,7 @@ describe('createSectionPath', () => {
   it('stays quiet when the section comes back to where it was left', () => {
     const seen: string[] = [];
     const { path, go } = harness('/u1');
-    path.subscribe((value) => seen.push(value));
+    path.listen((value) => seen.push(value));
 
     go('/r1', false);
     go('/u1', true);
@@ -202,7 +202,7 @@ describe('createSectionPath', () => {
   it('emits only what changed while the section is showing', () => {
     const seen: string[] = [];
     const { path, go } = harness('/u1');
-    path.subscribe((value) => seen.push(value));
+    path.listen((value) => seen.push(value));
 
     go('/u2');
     go('/u2');
@@ -214,7 +214,7 @@ describe('createSectionPath', () => {
   it('still tells listeners about a change a get() already saw', () => {
     const seen: string[] = [];
     const { path, go, drift } = harness('/u1');
-    path.subscribe((value) => seen.push(value));
+    path.listen((value) => seen.push(value));
 
     // The url moves, a render reads it before the router notifies, then the notification lands.
     drift('/u2');
@@ -226,8 +226,8 @@ describe('createSectionPath', () => {
 
   it('lets go of the url once its last listener has', () => {
     const { path, listenerCount } = harness('/u1');
-    const first = path.subscribe(() => {});
-    const second = path.subscribe(() => {});
+    const first = path.listen(() => {});
+    const second = path.listen(() => {});
 
     expect(listenerCount()).toBe(1);
 
@@ -263,7 +263,7 @@ describe('createSectionVisible', () => {
     const { visible } = harness(true);
     const seen: boolean[] = [];
 
-    visible.subscribe((value) => seen.push(value));
+    visible.listen((value) => seen.push(value));
 
     expect(seen).toEqual([]);
   });
@@ -271,7 +271,7 @@ describe('createSectionVisible', () => {
   it('emits once per change, not per url move', () => {
     const { state, visible } = harness(true);
     const seen: boolean[] = [];
-    visible.subscribe((value) => seen.push(value));
+    visible.listen((value) => seen.push(value));
 
     state.notify();
     state.active = false;
@@ -286,12 +286,25 @@ describe('createSectionVisible', () => {
   it('stops emitting once disposed', () => {
     const { state, visible } = harness(true);
     const seen: boolean[] = [];
-    visible.subscribe((value) => seen.push(value));
+    visible.listen((value) => seen.push(value));
 
     visible.dispose();
     state.active = false;
     state.notify();
 
     expect(seen).toEqual([]);
+  });
+
+  it('takes no listener once disposed, and re-arms nothing', () => {
+    const { state, visible } = harness(true);
+    visible.dispose();
+    const armed = state.notify;
+
+    const unlisten = visible.listen(() => undefined);
+    state.active = false;
+    state.notify();
+
+    expect(state.notify).toBe(armed);
+    expect(unlisten).toBeTypeOf('function');
   });
 });

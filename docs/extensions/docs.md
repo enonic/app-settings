@@ -232,7 +232,8 @@ What it does **not** remove:
   is ruled out: they would clip against the section's shadow root and column, and stacks would
   compete on section switches.
 - `message` arrives **already localized** by the guest; no i18n keys cross the boundary.
-- Shape: `{level, message, autoClose?}`. Dedup, stacking and `aria-live` are done once, host-side.
+- Shape: `notify(tone, message, {autoHide?, lifetimeMs?})`. Dedup, stacking and `aria-live` are done
+  once, host-side.
   An `action` member (the "Deleted — Undo" pattern) was in v1 and removed unused before the contract
   was published; it returns additively when a section asks for it.
 - A hidden section may notify — with keep-alive its mount and host object stay live, so
@@ -278,9 +279,9 @@ What it does **not** remove:
 ### Contract ownership, distribution, versioning
 
 - **The host owns the contract** and the `settings.*` interface namespace; providers follow.
-- **v1: types are duplicated in every repo**, byte-identical, until `@enonic/ui-types` publishes
-  them as its first contract: the **generic** host↔mount contract (`mount`, `Host`, `Routed`,
-  `Readable`), with nothing hub-specific in it beyond `SectionHost` naming what `settings.section`
+- **v1: the types are `@enonic/ui-types`**, published as its first contract and imported by the host
+  and every provider — no copies: the **generic** host↔mount contract (`mount`, `Host`, `Routed`,
+  `Readable`), with nothing hub-specific in it beyond `RoutedHost` naming what `settings.section`
   hands over. Interface names (`settings.section`) and the hub's topic names are
   not exported — they live in documentation and in descriptors, so the package stays hub-agnostic and
   Content Studio can adopt the same contract with its own interface name and an extended host
@@ -381,37 +382,33 @@ config:
 | `GET /_static/*`       | hashed chunks and the unhashed `main.css` beside the entry (text only)  |
 | `POST /graphql`        | the section's data plane; client config and phrases as root fields      |
 
-**Types** — the whole client-side contract, shipped by the types-only `@enonic/ui-types`
-(duplicated files until the package publishes it). The types are deliberately dumb — names and
+**Types** — the whole client-side contract, shipped by the types-only `@enonic/ui-types` (0.2.0;
+the host and the providers import it, no copy remains). The types are deliberately dumb — names and
 one-line docs; behaviour lives in the rules below. Everything mutable is a subscription
-(`{get, subscribe}`): `get()` is the current value and `subscribe` reports changes only, never
-calling back on subscribe — a nanostores atom satisfies the shape through `listen`, and the contract
-never names it:
+(`{get, listen}`): `get()` is the current value and `listen` reports changes only, never calling back
+on subscribe — a nanostores atom satisfies the shape as it is, and the contract never names it:
 
 ```ts
-export type Readable<T> = { get(): T; subscribe(cb: (v: T) => void): () => void };
+export type Readable<T> = { get(): T; listen(listener: (value: T) => void): () => void };
 
-export type Notification = {
-  level: 'info' | 'success' | 'warning' | 'error';
-  message: string; // already localized by the guest
-  autoClose?: number | false;
-};
+export type ToastTone = 'info' | 'success' | 'warning' | 'error';
+export type NotifyOptions = { autoHide?: boolean; lifetimeMs?: number };
+export type NavigateOptions = { replace?: boolean };
 
-/** What every host hands every mount: a section, a panel widget, a menu item. */
+/** What every host hands every mount. */
 export type Host = {
-  /**
-   * The mounted module's own extension prefix — its data plane lives under it. Its last segment is
-   * the extension key `<app>:<name>`, which is how a module serving several mounts tells them apart.
-   */
+  /** The mounted module's own extension prefix — its data plane lives under it. */
   baseUrl: string;
+  /** The extension this mount is, as the descriptor key `<app>:<name>`. */
+  extension: string;
   /** Resolved page locale; a locale change reloads the page, so it never changes mid-mount. */
   locale: string;
   /** Resolved theme; the guest applies it inside its shadow root (via AppRoot). */
   theme: Readable<'light' | 'dark'>;
   /** Whether this mount is on screen; a hidden mount may pause what only a viewer needs. */
   visible: Readable<boolean>;
-  /** Toast on the host's stack; returns dismiss. */
-  notify(n: Notification): () => void;
+  /** A toast on the host's stack, `message` already localized; returns dismiss. */
+  notify(tone: ToastTone, message: string, options?: NotifyOptions): () => void;
 };
 
 /** What a host adds for a mount that owns a segment of its url. */
@@ -419,27 +416,28 @@ export type Routed = {
   /** SubPath incl. search params; back/forward arrive here. */
   path: Readable<string>;
   /** Programmatic navigation within the module's own segment. */
-  navigate(subPath: string, opts?: { replace?: boolean }): void;
+  navigate(subPath: string, options?: NavigateOptions): void;
 };
 
 /** What `settings.section` hands a section. */
-export type SectionHost = Host & Routed;
+export type RoutedHost = Host & Routed;
 
 export type MountOptions<H extends Host = Host> = {
   container: HTMLElement; // inside an open shadow root the host created
   host: H; // valid until unmount, then revoked
 };
 
-export type Unmount = () => void; // idempotent, must not throw
+export type Unmount = () => void; // idempotent, must not throw, synchronous for good
 
-export type SectionModule<H extends Host = Host> = { mount(opts: MountOptions<H>): Unmount };
+export type Mount<H extends Host = Host> = (options: MountOptions<H>) => Unmount;
+export type Module<H extends Host = Host> = { mount: Mount<H> }; // a property: method params are bivariant
 ```
 
 `Host` is what every kind of mount gets; `Routed` is the capability a mount with a url segment adds,
-and each interface name fixes its host type — `settings.section` hands a `SectionHost`. A future host
+and each interface name fixes its host type — `settings.section` hands a `RoutedHost`. A future host
 whose mounts own no segment (a context panel, a dashboard) hands a `Host` extended with its own
-capability, and a section module written against `SectionHost` is unaffected. Every member answers a
-question the guest cannot answer on its own, because the host owns the answer: where my data lives and which section I am (`baseUrl`), which language and theme (`locale`,
+capability, and a section module written against `RoutedHost` is unaffected. Every member answers a
+question the guest cannot answer on its own, because the host owns the answer: where my data lives (`baseUrl`) and which section I am (`extension`), which language and theme (`locale`,
 `theme`), whether anyone is looking (`visible`), where I am and how to move (`path`, `navigate`), and
 how to speak to the user outside my column (`notify`).
 Anything absent from the list the guest either knows itself or asks its own server. Events are not on
@@ -472,10 +470,12 @@ builds them with `portal.apiUrl`.
 
 - Guests never touch `window.history`/`location`, never write outside their container, never write
   to `document.head`. All user-visible strings cross the boundary localized.
-- A `Readable` never calls back on subscribe: read `get()` first, then subscribe for changes.
-- A module serving several sections tells them apart by the last segment of `baseUrl`, the
-  extension key `<app>:<name>`; `mount` is told nothing else, and anything derived from `host` lives
-  with the mount, never at module level.
+- A `Readable` never calls back on subscribe: read `get()` first, then `listen` for changes. After
+  revocation `listen` hands back an unsubscribe that does nothing.
+- A module serving several sections tells them apart by `host.extension`, the descriptor key
+  `<app>:<name>`; anything derived from `host` lives with the mount, never at module level. A
+  module annotates its entry with `Mount<RoutedHost>`, which is what makes the host type a
+  compile-time check.
 - Guest CSS attaches inside the shadow root (via `@enonic/ui`'s `AppRoot`); fonts come from the host;
   overlays stay under the host's reserved z-band.
 - Events carry IDs, not sensitive payloads; data is re-read through the section's gateway.
