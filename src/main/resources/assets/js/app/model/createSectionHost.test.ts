@@ -16,6 +16,10 @@ const router = vi.hoisted(() => {
 vi.mock('./router', () => ({ router }));
 vi.mock('../../entities/extension', () => ({ sectionExtensionByKey: () => undefined }));
 vi.mock('../../shared/config', () => ({ $config: atom(undefined) }));
+vi.mock('../../shared/app-state', async () => {
+  const { atom } = await import('nanostores');
+  return { $resolvedTheme: atom<'light' | 'dark'>('light') };
+});
 const notify = vi.hoisted(() => vi.fn(() => 'id'));
 vi.mock('../../shared/notifications', () => ({
   notify,
@@ -24,13 +28,13 @@ vi.mock('../../shared/notifications', () => ({
 }));
 
 import type { SectionExtension } from '../../entities/extension';
-import { setTheme } from '../../shared/app-state';
+import { $resolvedTheme } from '../../shared/app-state';
 import { createSectionHost } from './createSectionHost';
 
 const section = { key: 'com.enonic.app.users:users', slug: 'users', url: '/x' } as SectionExtension;
 
 afterEach(() => {
-  setTheme('system');
+  $resolvedTheme.set('light');
   router.history.location.pathname = '/users';
   notify.mockClear();
 });
@@ -96,7 +100,7 @@ describe('host.theme', () => {
     const cb = vi.fn();
     host.theme.listen(cb);
 
-    setTheme('dark');
+    $resolvedTheme.set('dark');
 
     expect(cb).toHaveBeenCalledExactlyOnceWith('dark');
     expect(host.theme.get()).toBe('dark');
@@ -108,7 +112,7 @@ describe('host.theme', () => {
     host.theme.listen(cb);
 
     revoke();
-    setTheme('dark');
+    $resolvedTheme.set('dark');
 
     expect(cb).not.toHaveBeenCalled();
     expect(host.theme.listen(cb)).toBeTypeOf('function');
