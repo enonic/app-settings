@@ -48,6 +48,9 @@ There is no Java in this app.
   **and** a double in `src/test/mocks/` plus an alias in the `test.alias` block of `vite.config.ts`.
   Not every XP lib has a published type package — hand-write a minimal declaration under
   `src/main/resources/types/` instead of downgrading, as `event.d.ts` and `mustache.d.ts` do.
+  Libraries outside `xplibs` (`lib-asset`, `lib-mustache`) are included by Maven coordinate and
+  required under their own prefix (`/lib/enonic/asset`, `/lib/mustache`), each with its own `paths`
+  entry; `lib-asset` also needs its `asset` api listed in the tool descriptor.
 
 ## Structure
 

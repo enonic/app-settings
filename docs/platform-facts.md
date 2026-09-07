@@ -169,24 +169,24 @@ only the node that served the request ever reads the jar.
 
 ## Coverage: what JS can and cannot reach
 
-| Data                                                                    | Source                                                                 |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| key, version, min/max system version, state, `modifiedTime`, system     | `lib-app.get` / `.list`                                                |
-| title, description, vendor, url                                         | `lib-app.getDescriptor`                                                |
-| pages, parts, layouts, content types, mixins, form fragments, site form | `lib-schema`                                                           |
-| id providers _using_ an app                                             | `lib-auth.getIdProviders`, filter on `idProviderConfig.applicationKey` |
-| install / start / stop / uninstall                                      | `server:app`                                                           |
-| lifecycle events                                                        | the hub's `applications` topic (`HUB_TOPICS`, `admin:events`)          |
-| available version                                                       | Market GraphQL                                                         |
-| icon                                                                    | ✅ Java — our `/lib/icon`; base64, because GraalJS cannot serve bytes  |
-| task descriptors                                                        | ✅ Java — our `/lib/task`; `taskLib.list()` is _running_ instances     |
-| admin tools                                                             | ✅ Java — our `/lib/admin-tool`; the url comes from `lib-admin`        |
-| admin extensions / widgets                                              | ✅ Java — our `/lib/admin-extension`                                   |
-| macros                                                                  | ✅ Java — our `/lib/macro`; no `lib-macro` exists                      |
-| api descriptors                                                         | ✅ Java — our `/lib/api`                                               |
-| id-provider descriptor (mode + config form)                             | ✅ Java — our `/lib/idprovider`; `IdProviderDescriptorService`         |
-| id provider read-one, update, delete, permissions                       | ✅ Java — our `/lib/idprovider`; `lib-auth` has only list + create     |
-| webapp deployment url                                                   | ✅ Java — our `/lib/webapp`; JS cannot read another app's resources    |
+| Data                                                                    | Source                                                                   |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| key, version, min/max system version, state, `modifiedTime`, system     | `lib-app.get` / `.list`                                                  |
+| title, description, vendor, url                                         | `lib-app.getDescriptor`                                                  |
+| pages, parts, layouts, content types, mixins, form fragments, site form | `lib-schema`                                                             |
+| id providers _using_ an app                                             | `lib-auth.getIdProviders`, filter on `idProviderConfig.applicationKey`   |
+| install / start / stop / uninstall                                      | `server:app`                                                             |
+| lifecycle events                                                        | the hub's `applications` topic (`HUB_TOPICS`, `admin:events`)            |
+| available version                                                       | Market GraphQL                                                           |
+| icon                                                                    | ✅ Java — our `/lib/icon`; base64, from before GraalJS could serve bytes |
+| task descriptors                                                        | ✅ Java — our `/lib/task`; `taskLib.list()` is _running_ instances       |
+| admin tools                                                             | ✅ Java — our `/lib/admin-tool`; the url comes from `lib-admin`          |
+| admin extensions / widgets                                              | ✅ Java — our `/lib/admin-extension`                                     |
+| macros                                                                  | ✅ Java — our `/lib/macro`; no `lib-macro` exists                        |
+| api descriptors                                                         | ✅ Java — our `/lib/api`                                                 |
+| id-provider descriptor (mode + config form)                             | ✅ Java — our `/lib/idprovider`; `IdProviderDescriptorService`           |
+| id provider read-one, update, delete, permissions                       | ✅ Java — our `/lib/idprovider`; `lib-auth` has only list + create       |
+| webapp deployment url                                                   | ✅ Java — our `/lib/webapp`; JS cannot read another app's resources      |
 
 Grepped all 25 XP libs for all 13 `*DescriptorService` interfaces. **One is reachable:**
 `lib-app` uses `ApplicationDescriptorService` in `GetApplicationDescriptorHandler`, which is what
@@ -195,9 +195,10 @@ ContentTypeService, MixinService and CmsService, and `lib-schema` uses DynamicSc
 four are not `*DescriptorService` types and are not part of the thirteen.
 
 That one hit is why `/lib/icon` is a different case from the other seven beans: the binding exists
-and `application.source.ts` already uses it. It is Java because GraalJS cannot put bytes on the wire
-(see _GraalJS_), not because nothing else can reach the descriptor. **Decision 2 therefore has a
-second clause: Java is also warranted where the engine will not carry the type.**
+and `application.source.ts` already uses it. It is Java because GraalJS could not put bytes on the wire
+when it was written (see _GraalJS_ — fixed since), not because nothing else can reach the descriptor.
+**Decision 2 therefore has a second clause: Java is also warranted where the engine will not carry the
+type.**
 
 The parse-the-YAML-ourselves escape hatch is closed — `ResourceKey.resolve()` never changes the app
 key (`ResourceKey.java:62`), so `io.getResource()` cannot read another app's files.
@@ -446,23 +447,27 @@ section other than Users that ever needs paging has to go to `lib-node` by hand.
 `QueryExpr`. Searching `UserQuery.java` for the word finds nothing and reads as proof of absence; it
 is not, and that mistake was made here once already.
 
-## GraalJS serves no bytes, and gives an app one JS thread
+## GraalJS serves bytes only since 2026-08-03, and gives an app one JS thread
 
 `build.gradle` pins `scriptEngine = 'GraalJS'`. Two consequences, both found the hard way building the
-icon endpoint, and both applying to **any** app-owned api here.
+icon endpoint, and both applying to **any** app-owned api here — the first is fixed in XP now, and is
+kept because code and notes written against it are still around.
 
-**A response body cannot be a Java object.** `PortalResponseSerializer.populateBody` asks
-`ScriptValue.isObject()` before `getValue()`, and `GraalScriptValueFactory.newValue` wraps every host
-object in `GraalObjectScriptValue`, whose `isObject()` is hardcoded `true`
-(`GraalObjectScriptValue.java:31`) — so a `ByteSource` body reaches the serializer as
-`GraalObjectConverter.toMap` of the host object, a map of its own method names, and is JSON-stringified.
-Nashorn sent any non-`JSObject` to `ScalarScriptValue` and streamed the real thing, which is why XP's own
-documented idiom (`lib-content/.../examples/content/getType.js:104`, `body: icon.data`) works only on the
-engine XP is leaving. A string body is no escape for images either: `ResponseSerializer:105` re-encodes
+**A response body could not be a Java object before XP `941ad59fb6` (GraalJS Preview #8714).**
+`PortalResponseSerializer.populateBody` asks `ScriptValue.isObject()` before `getValue()`, and
+`GraalScriptValueFactory.newValue` used to wrap every host object in `GraalObjectScriptValue`, whose
+`isObject()` is hardcoded `true` (`GraalObjectScriptValue.java:31`) — so a `ByteSource` body reached the
+serializer as `GraalObjectConverter.toMap` of the host object, a map of its own method names, and was
+JSON-stringified. Since 2026-08-03 the factory routes `Value.isHostObject()` to `GraalScalarScriptValue`
+first (`GraalScriptValueFactory.java:81`), the way Nashorn always did, and `body: resource.getStream()`
+streams the real bytes. That is what lets `lib-asset` serve this app's font and favicons from the tool's
+own `asset` api. app-applications' `/lib/icon` (base64 in Java) and both providers' text-only `_static`
+handlers, with their `// !` notes that lib-static cannot serve from a GraalJS app, predate the fix.
+What still holds: a **string** body is no escape for images, because `ResponseSerializer` re-encodes
 with `Charset.forName(response.getCharacterEncoding())` and Jetty assigns no encoding to a mime type it
 treats as binary, so `image/*` dies on `IllegalArgumentException: Null charset name` even with
-`; charset=` spelled out. **Binary has to be encoded in Java and travel as a string.** A `Map` under
-`application/json` — what the GraphQL controller returns — is fine.
+`; charset=` spelled out. A `Map` under `application/json` — what the GraphQL controller returns — is
+fine.
 
 **One single-threaded JS context per application.** `GraalJSContextFactory.create()` builds one `Context`
 per app (`ScriptRuntimeFactoryImpl.java:173`). XP guards the entry points it owns with
