@@ -136,7 +136,7 @@ What it does **not** remove:
 - **Fonts** — `@font-face` does not work inside a shadow root. The host guarantees the font at
   document level; guests do not ship fonts.
 - **Theme tokens** — CSS custom properties inherit through the shadow boundary; the host owns
-  `:root` token values and the theme toggle; guest palettes reference the tokens. Instant,
+  `:root` token values and the resolved theme; guest palettes reference the tokens. Instant,
   flicker-free switching falls out of centralizing values, with rules decentralized.
 - **Inheritance leak** — inheritable properties (`font-family`, `color`, `line-height`) flow from
   the host's `body` into the root. `@enonic/ui`'s `AppRoot` component applies a `:host` reset once,
