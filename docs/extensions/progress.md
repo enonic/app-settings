@@ -34,13 +34,13 @@ Every repo takes it from the registry.
 
 ## Phase 2 — extract the component kit: in progress
 
-| `docs.md` | What                                                                                             | State                                                                                                 |
-| --------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| 2.1       | `npm-enonic-ui-toolkit`, four packages; the contract into `@enonic/ui-types`                     | scaffolding done (npm-enonic-ui-toolkit#1); contract not moved yet                                    |
-| 2.2       | browse framework widgets out of the providers into `ui-kit`                                      | not started; the two provider copies are being resynced first (app-applications#2322, app-users#2688) |
-| 2.3       | transport, format, i18n, form helpers into `ui-utils`; dialogs and section runtime into `ui-kit` | not started                                                                                           |
-| 2.4       | providers consume the kit; the host consumes `ui-types` alone                                    | not started                                                                                           |
-| 2.5       | Content Studio v6 as a further consumer                                                          | not started                                                                                           |
+| `docs.md` | What                                                                                             | State                                                                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| 2.1       | `npm-enonic-ui-toolkit`, four packages; the contract into `@enonic/ui-types`                     | done — 0.2.0 released 2026-09-07 (npm-enonic-ui-toolkit#5, #8); the host and both providers import it and carry no copy |
+| 2.2       | browse framework widgets out of the providers into `ui-kit`                                      | not started; the two provider copies are being resynced first (app-applications#2322, app-users#2688)                   |
+| 2.3       | transport, format, i18n, form helpers into `ui-utils`; dialogs and section runtime into `ui-kit` | not started                                                                                                             |
+| 2.4       | providers consume the kit; the host consumes `ui-types` alone                                    | not started                                                                                                             |
+| 2.5       | Content Studio v6 as a further consumer                                                          | not started                                                                                                             |
 
 The plan's 2.4 originally had app-settings consume the kit while still owning the sections; the
 sections left first, so that step is gone. `docs/browse-framework.md` moved to the toolkit's `docs/`
@@ -86,11 +86,13 @@ reactions to principal events (#2656).
 The host and both providers were reviewed together before the contract moves to `@enonic/ui-types`;
 the same title runs in app-applications (#2322) and app-users (#2688). In the host:
 
-- **Contract.** `Readable.subscribe` never calls back on subscribe: `theme` wraps
-  `$resolvedTheme.listen`, and `createSectionHost.test.ts` pins it. `Host.url` and
-  `Notification.action` removed — no provider used them; `autoClose` and the dismiss return stay.
+- **Contract.** `Readable.listen` never calls back on subscribe: `theme` wraps
+  `$resolvedTheme.listen`, and `createSectionHost.test.ts` pins it. `Host.url` and the toast
+  `action` removed — no provider used them. Reshaped with the review of npm-enonic-ui-toolkit#8:
+  `notify(tone, message, {autoHide, lifetimeMs})` in place of a notification object, `extension` on
+  the host instead of parsing `baseUrl`, `RoutedHost`, `Mount` and `Module` as the names.
   `Host` split into the base every mount gets and `Routed` (`path`, `navigate`), with
-  `SectionHost = Host & Routed` as what `settings.section` hands over — so a host whose mounts own no
+  `RoutedHost = Host & Routed` as what `settings.section` hands over — so a host whose mounts own no
   url segment can adopt the base unchanged. `visible: Readable<boolean>` added — the shell knows which section shows, and app-users had started
   watching the DOM for it; both providers' frames now read it off the host.
   `HUB_TOPICS` left `contract.ts` for `shared/admin-events/topics.ts`: the contract is types only

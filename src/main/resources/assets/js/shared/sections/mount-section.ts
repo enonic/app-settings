@@ -1,4 +1,5 @@
-import type { MountOptions, SectionHost, Unmount } from './contract';
+import type { MountOptions, RoutedHost, Unmount } from '@enonic/ui-types';
+
 import { isSectionModule } from './section-module';
 import { openShadowContainer } from './shadow-container';
 
@@ -10,7 +11,7 @@ export type MountSectionOptions = {
   moduleUrl: string;
   /** The element the shadow root is opened on. The caller owns it and keeps it mounted. */
   element: HTMLElement;
-  host: SectionHost;
+  host: RoutedHost;
   /** Both injectable so the sequence can be tested without a browser. */
   importModule?: (url: string) => Promise<unknown>;
   openContainer?: (element: HTMLElement) => HTMLElement;
@@ -62,7 +63,7 @@ export function mountSection({
     }
 
     try {
-      unmount = loaded.mount({ container, host } satisfies MountOptions<SectionHost>);
+      unmount = loaded.mount({ container, host } satisfies MountOptions<RoutedHost>);
     } catch (cause) {
       fail('threw while mounting', cause);
     }

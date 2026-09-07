@@ -56,6 +56,7 @@ export function createSectionPath({
   // ! between the url moving and the router's notification must not swallow that change's emission.
   let lastEmitted = current;
   let stop: (() => void) | undefined;
+  let disposed = false;
   const listeners = new Set<(value: string) => void>();
 
   const emit = (): void => {
@@ -76,6 +77,7 @@ export function createSectionPath({
   return {
     /** Beyond the contract: the shell drops the whole signal when it revokes the mount. */
     dispose: () => {
+      disposed = true;
       listeners.clear();
       stop?.();
       stop = undefined;
@@ -87,7 +89,11 @@ export function createSectionPath({
 
       return current;
     },
-    subscribe: (listener) => {
+    listen: (listener) => {
+      if (disposed) {
+        return () => {};
+      }
+
       listeners.add(listener);
       stop ??= onUrlChange(emit);
 
@@ -115,6 +121,7 @@ export function createSectionVisible({
 }: SectionVisibleOptions): Readable<boolean> & { dispose(): void } {
   let lastEmitted = isActive();
   let stop: (() => void) | undefined;
+  let disposed = false;
   const listeners = new Set<(value: boolean) => void>();
 
   const emit = (): void => {
@@ -129,12 +136,17 @@ export function createSectionVisible({
 
   return {
     dispose: () => {
+      disposed = true;
       listeners.clear();
       stop?.();
       stop = undefined;
     },
     get: isActive,
-    subscribe: (listener) => {
+    listen: (listener) => {
+      if (disposed) {
+        return () => {};
+      }
+
       listeners.add(listener);
       stop ??= onUrlChange(emit);
 

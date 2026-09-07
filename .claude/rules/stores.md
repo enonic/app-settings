@@ -59,6 +59,6 @@ one-time initialization.
 ## What crosses the host boundary
 
 A store handed to a section is never the atom itself. `createSectionHost` wraps `$resolvedTheme` into
-the contract's `Readable` — `get` plus a `listen`-backed `subscribe` — so revocation reaches the
-guest's listeners and the guest never holds the shell's `set`. A `Readable` never calls back on
-subscribe; that is the contract, and `createSectionHost.test.ts` pins it.
+the contract's `Readable` — `get` plus a guarded `listen` — so revocation reaches the guest's
+listeners and the guest never holds the shell's `set`. A `Readable` never calls back on `listen`;
+that is the contract, and `createSectionHost.test.ts` pins it.
