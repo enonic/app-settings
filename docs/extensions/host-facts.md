@@ -14,7 +14,7 @@ design; this is what stands. `provider-facts.md` is the other side of the bounda
 | `app/model/createSectionHost.ts`                     | the `Host` object, one per mounted section, with its `revoke`                                                                                                                                                                                               |
 | `app/model/router.ts`, `section-path.ts`             | the url scheme, and the `path` signal a hidden section stops tracking                                                                                                                                                                                       |
 | `app/ui/SectionMounts.tsx`, `widgets/section-mount/` | one slot per visited section; the shadow host element and the failure phrase                                                                                                                                                                                |
-| `shared/sections/`                                   | `contract.ts`, `mountSection`, `isSectionModule`, the shadow container                                                                                                                                                                                      |
+| `shared/sections/`                                   | the `@enonic/ui-types` contract re-exported, `mountSection`, `isSectionModule`, the shadow container                                                                                                                                                        |
 | `shared/admin-events/topics.ts`                      | the hub topic names the shell publishes and subscribes; `lib/events/index.test.ts` pins them against what `lib/events/` registers                                                                                                                           |
 
 ## Content security policy
@@ -98,30 +98,31 @@ design; this is what stands. `provider-facts.md` is the other side of the bounda
 
 ## The host object
 
-Neither `Readable` calls back on subscribe: a guest reads `get()` first. `createSectionHost.test.ts`
+No `Readable` calls back on `listen`: a guest reads `get()` first. `createSectionHost.test.ts`
 pins it for `theme`, `section-path.test.ts` for `path`.
 
-| Member                     | Host-side behaviour                                                                                                                                               |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `baseUrl`                  | the extension prefix, ending in the extension key — how a multi-section module knows which section it is                                                          |
-| `locale`                   | the tool config's locale                                                                                                                                          |
-| `theme`                    | a `listen` wrapper over `$resolvedTheme`; listeners dropped at revoke                                                                                             |
-| `visible`                  | whether the section is the one the url shows, emitted once per switch; disposed at revoke                                                                         |
-| `path`                     | frozen while hidden; on return emits only if the sub-path moved; disposed at revoke                                                                               |
-| `navigate(sub, {replace})` | `router.history.push/replace` of `/<slug><sub>`, search verbatim; no-op with a console warning while hidden or after revoke                                       |
-| `notify`                   | onto the shell's stack with `owner = key`; dedup on tone + text + owner; `autoClose` honoured; returns dismiss; a mount's toasts come down at revoke; no-op after |
+| Member                     | Host-side behaviour                                                                                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `baseUrl`                  | the extension prefix                                                                                                                                                                  |
+| `extension`                | the descriptor key `<app>:<name>` — how a multi-section module knows which section it is                                                                                              |
+| `locale`                   | the tool config's locale                                                                                                                                                              |
+| `theme`                    | a `listen` wrapper over `$resolvedTheme`; listeners dropped at revoke                                                                                                                 |
+| `visible`                  | whether the section is the one the url shows, emitted once per switch; disposed at revoke                                                                                             |
+| `path`                     | frozen while hidden; on return emits only if the sub-path moved; disposed at revoke                                                                                                   |
+| `navigate(sub, {replace})` | `router.history.push/replace` of `/<slug><sub>`, search verbatim; no-op with a console warning while hidden or after revoke                                                           |
+| `notify`                   | `(tone, message, {autoHide, lifetimeMs})` onto the shell's stack with `owner = key`; dedup on tone + text + owner; returns dismiss; a mount's toasts come down at revoke; no-op after |
 
-`autoClose` and the dismiss return are implemented and used by no provider yet. `url` and
-`Notification.action` were in v1 and went unused; #134 removed them before the contract is published.
+`NotifyOptions` and the dismiss return are implemented and used by no provider yet. `url` and a toast
+`action` were in v1 and went unused; #134 removed them before the contract is published.
 
 Revocation runs after the guest's own `unmount()` has returned, so a teardown toast or navigation
 still lands. `mount` is not told which section it is.
 
 ## Contract
 
-`shared/sections/contract.ts` is the `docs.md` § 2 types, byte-identical in the host and both
-providers until `@enonic/ui-types` publishes them. The shell hands a `SectionHost`: the base `Host`
-every kind of mount gets plus `Routed`, the url segment a section owns. Types only: the hub topic names live beside the
+The `docs.md` § 2 types come from `@enonic/ui-types` 0.2.0, re-exported by the `shared/sections`
+barrel; no copy lives here. The shell hands a `RoutedHost`: the base `Host` every kind of mount gets
+plus `Routed`, the url segment a section owns. Types only: the hub topic names live beside the
 subscriber in `shared/admin-events/topics.ts`, and a provider copies the ones it needs from the
 `docs.md` § Events table. No version handshake: a module without a `mount` function is the only
 thing refused.

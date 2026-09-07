@@ -20,13 +20,13 @@ extensions.
   it, renders `App`, and hands back the unmount synchronously. `App` gates on the bootstrap:
   skeleton → failure → screen.
 - `App` renders inside `@enonic/ui`'s `AppRoot` with `theme` read off `host.theme` (`get()` first,
-  then `subscribe`) and `stylesheets` from `shared/styles`: the sheet is `_static/main.css` fetched
+  then `listen`) and `stylesheets` from `shared/styles`: the sheet is `_static/main.css` fetched
   into one `CSSStyleSheet` per module, adopted into the shadow root. Fonts come from the host.
 - `shared/{api,config,i18n,sections}` were copied from the host when the sections moved, and
   `widgets/`, `shared/ui` and the rest of `shared/` with them. **Those copies are now canonical** —
   the host deleted its own in Phase 5.1 — and are being resynced to one form between the two
-  providers before `@enonic/ui-kit` extracts them. `shared/sections/contract.ts` stays byte-identical
-  with the host's until `@enonic/ui-types` publishes it.
+  providers before `@enonic/ui-kit` extracts them. The mount contract is `@enonic/ui-types` 0.2.0,
+  re-exported by each provider's `shared/sections` barrel.
 - Events: the section subscribes the hub itself through `shared/admin-events`, with the topic names
   it needs copied from the table in `docs.md` § Events into `shared/admin-events/topics.ts`. No event
   code on the server. A loss means refetch.
@@ -57,8 +57,8 @@ exactly one of them:
   `notify(level, message)`, `dispose`) and hands it down through a context, the one context in an
   app of stores. Commands never touch the host: they return outcomes for the dialog holding the frame
   to toast (app-users), or take that frame's `notify` as an argument (app-applications).
-- Which section a mount is comes off the last segment of `host.baseUrl`, the extension key
-  `<app>:<name>` (`app/section.ts` in app-users). `mount` is told nothing else.
+- Which section a mount is comes off `host.extension`, the descriptor key `<app>:<name>`
+  (`app/section.ts` in app-users).
 - Event reaction splits the same way: refreshing a cache is the module's, "the item you have open
   was deleted elsewhere — close it and say so" is the mount's, because it needs that section's
   `closeItem` and `notify`.
