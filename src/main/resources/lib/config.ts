@@ -1,7 +1,8 @@
 import { isAdmin } from '/lib/auth';
+import { assetUrl } from '/lib/enonic/asset';
 import { getAllPhrases } from '/lib/i18n';
 import { extensionUrl } from '/lib/xp/admin';
-import { apiUrl, assetUrl } from '/lib/xp/portal';
+import { apiUrl } from '/lib/xp/portal';
 
 export const CONFIG_SCRIPT_ID = 'settings-config-json';
 
