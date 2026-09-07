@@ -17,6 +17,8 @@ interfaces:
 # this tool as much as what the shell calls. `server:app` is here for the Applications section alone —
 # nothing in this app calls it, and the section builds its own urls off its `config` root field.
 apis:
+  # The `asset` api is lib-asset's, not app-defined; it serves the shell's own static assets.
+  - "asset"
   - "server:app"
   - "admin:events"
   - "admin:extension"

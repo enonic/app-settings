@@ -1,7 +1,8 @@
+import { assetUrl } from '/lib/enonic/asset';
 import { extensionUrl } from '/lib/xp/admin';
 import { hasRole } from '/lib/xp/auth';
 import { getPhrases } from '/lib/xp/i18n';
-import { apiUrl, assetUrl } from '/lib/xp/portal';
+import { apiUrl } from '/lib/xp/portal';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getConfig, serializeConfig, type ToolConfig } from './config';
