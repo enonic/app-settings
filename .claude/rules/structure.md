@@ -20,7 +20,7 @@ rather than the widget reaching up into `entities/extension`.
 | -------------------- | -------------------------------------------------------------------------------- | --------------------------------- |
 | `app/`               | shell, router, the host object, section mounting, bootstrap                      | domain logic                      |
 | `widgets/`           | the shell's composite blocks: rail, mount slot, empty state, toast list          | `entities/` imports               |
-| `features/<action>/` | one user action — the theme switcher is the one there is                         | any import to or from `widgets/`  |
+| `features/<action>/` | one user action — the shell has none today                                       | any import to or from `widgets/`  |
 | `entities/<domain>/` | one domain slice: `api/`, `model/` — `extension` is the one domain the shell has | UI beyond a domain-specific badge |
 | `shared/`            | api client, config, i18n, admin events, notifications, app state, sections, menu | importing anything above          |
 
@@ -101,13 +101,13 @@ renders it sees labels.
 may have no key at all (`AppBar`).
 
 Never at module scope: a `const LABEL = i18n('x')` there runs while the module is imported, which is
-before the phrases are set, and would freeze `#x#` for the session. A module constant holds **keys** —
-`STATE_KEYS` in `ThemeSwitcher` — never resolved strings.
+before the phrases are set, and would freeze `#x#` for the session. A module constant holds **keys**,
+never resolved strings.
 
 The shell's keys: `app.*`, `nav.*`, `sections.*` and `sectionMount.*` for the frame's states,
-`notifications.*`, `theme.*`, and `admin.tool.*`, which XP resolves from `main.yaml` rather than the
-UI. A section's phrases are the provider's own: they arrive through its schema and never enter this
-bundle, and nothing here builds a key from a section id.
+`notifications.*` and `admin.tool.*`, which XP resolves from `main.yaml` rather than the UI. A
+section's phrases are the provider's own: they arrive through its schema and never enter this bundle,
+and nothing here builds a key from a section id.
 
 ## Sections
 
