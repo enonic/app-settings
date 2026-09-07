@@ -2,7 +2,7 @@ import { sectionExtensionByKey, type SectionExtension } from '../../entities/ext
 import { $resolvedTheme } from '../../shared/app-state';
 import { $config } from '../../shared/config';
 import { dismissNotification, dismissNotifications, notify } from '../../shared/notifications';
-import type { Notification, SectionHost } from '../../shared/sections';
+import type { NotifyOptions, RoutedHost, ToastTone } from '../../shared/sections';
 import { router } from './router';
 import {
   createSectionPath,
@@ -13,7 +13,7 @@ import {
 } from './section-path';
 
 export type MountedHost = {
-  host: SectionHost;
+  host: RoutedHost;
   /** Run at unmount: the mount is gone, and nothing it kept a reference to may still act. */
   revoke: () => void;
 };
@@ -44,19 +44,20 @@ export function createSectionHost(section: SectionExtension): MountedHost {
     onUrlChange: (cb) => router.subscribe('onResolved', () => cb()),
   });
 
-  const host: SectionHost = {
+  const host: RoutedHost = {
     baseUrl: section.url,
+    extension: section.key,
     locale: $config.get()?.locale ?? 'en',
     // ! Wrapped, not the atom itself: revocation must reach these listeners, and the raw store
     // ! would hand the guest nanostores' `set`/`off` over the shell's own theme.
     theme: {
       get: () => $resolvedTheme.get(),
-      subscribe: (cb) => {
+      listen: (listener) => {
         if (revoked) {
           return () => {};
         }
 
-        const unsubscribe = $resolvedTheme.listen((theme) => cb(theme));
+        const unsubscribe = $resolvedTheme.listen((theme) => listener(theme));
         subscriptions.add(unsubscribe);
 
         return () => {
@@ -89,12 +90,18 @@ export function createSectionHost(section: SectionExtension): MountedHost {
         router.history.push(path);
       }
     },
-    notify: (n) => {
+    notify: (tone: ToastTone, message: string, options?: NotifyOptions) => {
       if (revoked) {
         return () => {};
       }
 
-      const id = notify({ ...toNotificationOptions(n), owner: section.key });
+      const id = notify({
+        tone,
+        text: message,
+        autoHide: options?.autoHide ?? true,
+        lifetimeMs: options?.lifetimeMs,
+        owner: section.key,
+      });
 
       return () => dismissNotification(id);
     },
@@ -110,18 +117,5 @@ export function createSectionHost(section: SectionExtension): MountedHost {
       visible.dispose();
       dismissNotifications(section.key);
     },
-  };
-}
-
-//
-// * Internal
-//
-
-function toNotificationOptions(n: Notification) {
-  return {
-    tone: n.level,
-    text: n.message,
-    autoHide: n.autoClose !== false,
-    lifetimeMs: typeof n.autoClose === 'number' ? n.autoClose : undefined,
   };
 }

@@ -68,9 +68,8 @@ src/main/resources/
 ```
 
 Import direction is one-way: `app → widgets/features → entities → shared`. Details and the
-reasoning are in `.claude/rules/structure.md`. `shared/sections/contract.ts` is the mount contract,
-duplicated byte-identically in every provider until `@enonic/ui-types` publishes it; change every
-copy or none.
+reasoning are in `.claude/rules/structure.md`. The mount contract comes from `@enonic/ui-types`; the
+`shared/sections` barrel re-exports it, and `mountSection` and the host object are typed against it.
 
 ## Reference repositories
 
