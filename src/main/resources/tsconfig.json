@@ -14,6 +14,7 @@
       // No @enonic-types package exists for lib-event at 8.x.
       "/lib/xp/event": ["./types/event.d.ts"],
       "/lib/xp/*": ["../../../node_modules/@enonic-types/lib-*"],
+      "/lib/enonic/asset": ["../../../node_modules/@enonic-types/lib-asset"],
       "/lib/mustache": ["./types/mustache.d.ts"],
       "/lib/*": ["./lib/*"]
     }

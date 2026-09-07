@@ -79,6 +79,7 @@ export default defineConfig(({ mode }) => {
       'lucide-react': join(import.meta.dirname, 'src/test/mocks/lucide-react.ts'),
       '@enonic/ui': join(import.meta.dirname, 'src/test/mocks/enonic-ui.ts'),
       '/lib/mustache': join(import.meta.dirname, 'src/test/mocks/lib-mustache.ts'),
+      '/lib/enonic/asset': join(import.meta.dirname, 'src/test/mocks/lib-enonic-asset.ts'),
       '/lib/xp/portal': join(import.meta.dirname, 'src/test/mocks/lib-xp-portal.ts'),
       '/lib/xp/admin': join(import.meta.dirname, 'src/test/mocks/lib-xp-admin.ts'),
       '/lib/xp/auth': join(import.meta.dirname, 'src/test/mocks/lib-xp-auth.ts'),
