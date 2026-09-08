@@ -14,15 +14,8 @@ const config: ToolConfig = {
   menuLoaderUrl: '/_/admin:extension/com.enonic.xp.app.main:menu-loader',
   phrases: { 'nav.users': 'Users' },
   apis: {
-    events: '/_/app:events',
-    graphql: '/_/app:graphql',
-    serverApp: {
-      start: '/_/server:app/start',
-      stop: '/_/server:app/stop',
-      uninstall: '/_/server:app/uninstall',
-      install: '/_/server:app/install',
-      installUrl: '/_/server:app/installUrl',
-    },
+    adminEvents: '/_/admin:events',
+    extensions: '/_/admin:extension',
   },
 };
 
@@ -100,21 +93,6 @@ describe('readConfig', () => {
     expect(() => readConfig(doc)).toThrow(/does not describe a tool config/);
   });
 
-  it('keeps managed mode as the island reported it', () => {
-    const doc = stubDocument({
-      scriptId: 'config-json',
-      content: JSON.stringify({ ...config, appsManagedMode: true }),
-    });
-
-    expect(readConfig(doc).appsManagedMode).toBe(true);
-  });
-
-  it('still starts the app when managed mode is absent', () => {
-    const doc = stubDocument({ scriptId: 'config-json', content: JSON.stringify(config) });
-
-    expect(readConfig(doc).appsManagedMode).toBeUndefined();
-  });
-
   it('still starts the app when the menu loader url is absent', () => {
     const { menuLoaderUrl: _, ...withoutMenu } = config;
     const doc = stubDocument({ scriptId: 'config-json', content: JSON.stringify(withoutMenu) });
@@ -135,19 +113,7 @@ describe('readConfig', () => {
   it('fails when an api url is missing', () => {
     const doc = stubDocument({
       scriptId: 'config-json',
-      content: JSON.stringify({ ...config, apis: { events: '/_/app:events' } }),
-    });
-
-    expect(() => readConfig(doc)).toThrow(/does not describe a tool config/);
-  });
-
-  it('fails when a lifecycle url is missing', () => {
-    const doc = stubDocument({
-      scriptId: 'config-json',
-      content: JSON.stringify({
-        ...config,
-        apis: { ...config.apis, serverApp: { start: '/_/server:app/start' } },
-      }),
+      content: JSON.stringify({ ...config, apis: { adminEvents: '/_/admin:events' } }),
     });
 
     expect(() => readConfig(doc)).toThrow(/does not describe a tool config/);

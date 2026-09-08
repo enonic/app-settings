@@ -5,6 +5,7 @@ import {
   $notifications,
   clearNotifications,
   dismissNotification,
+  dismissNotifications,
   notify,
   notifyError,
   notifyInfo,
@@ -242,6 +243,40 @@ describe('dismissNotification', () => {
     expect(texts()).toEqual(['Deleted']);
 
     vi.advanceTimersByTime(SHORT_LIFETIME_MS);
+    expect(texts()).toEqual([]);
+  });
+});
+
+describe('owners', () => {
+  it('lets two owners each say the same thing, and keep their own id', () => {
+    const mine = notify({ text: 'Installed', owner: 'app:users' });
+    const theirs = notify({ text: 'Installed', owner: 'app:applications' });
+
+    expect(theirs).not.toBe(mine);
+    expect(texts()).toEqual(['Installed', 'Installed']);
+  });
+
+  it('takes down everything one owner raised, and nothing else', () => {
+    notify({ text: 'Saved', owner: 'app:users' });
+    notify({ text: 'Deleted', owner: 'app:users' });
+    notify({ text: 'Installed', owner: 'app:applications' });
+    notify({ text: 'Unowned' });
+
+    dismissNotifications('app:users');
+
+    expect(texts()).toEqual(['Installed', 'Unowned']);
+  });
+
+  it("reaches an owner's notification still waiting in the queue", () => {
+    for (let index = 0; index < VISIBLE_LIMIT; index++) {
+      show(`message ${index}`);
+    }
+    notify({ text: 'queued', owner: 'app:users', autoHide: false });
+
+    dismissNotifications('app:users');
+    clearNotifications();
+    vi.advanceTimersByTime(SHORT_LIFETIME_MS);
+
     expect(texts()).toEqual([]);
   });
 });
