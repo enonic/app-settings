@@ -8,9 +8,7 @@ description:
 # Everyone who can reach XP admin: which sections they then see is each extension's own `allow`,
 # filtered server-side by the platform.
 allow:
-  - "role:system.admin"
-  - "role:system.user.admin"
-  - "role:system.user.app"
+  - "role:system.admin.login"
 interfaces:
   - "settings.section"
 # XP checks a universal-api mount against the *page*, so this list covers what a section calls from
