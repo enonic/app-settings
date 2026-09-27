@@ -41,26 +41,26 @@ importers:
         version: 10.29.8
     devDependencies:
       '@enonic-types/core':
-        specifier: 8.1.0-B2
-        version: 8.1.0-B2
+        specifier: 8.1.0-RC2
+        version: 8.1.0-RC2
       '@enonic-types/global':
-        specifier: 8.1.0-B2
-        version: 8.1.0-B2
+        specifier: 8.1.0-RC2
+        version: 8.1.0-RC2
       '@enonic-types/lib-admin':
-        specifier: 8.1.0-B2
-        version: 8.1.0-B2
+        specifier: 8.1.0-RC2
+        version: 8.1.0-RC2
       '@enonic-types/lib-asset':
         specifier: 2.0.1
         version: 2.0.1
       '@enonic-types/lib-auth':
-        specifier: 8.1.0-B2
-        version: 8.1.0-B2
+        specifier: 8.1.0-RC2
+        version: 8.1.0-RC2
       '@enonic-types/lib-i18n':
-        specifier: 8.1.0-B2
-        version: 8.1.0-B2
+        specifier: 8.1.0-RC2
+        version: 8.1.0-RC2
       '@enonic-types/lib-portal':
-        specifier: 8.1.0-B2
-        version: 8.1.0-B2
+        specifier: 8.1.0-RC2
+        version: 8.1.0-RC2
       '@enonic/ui-types':
         specifier: 0.2.0
         version: 0.2.0
@@ -115,26 +115,26 @@ packages:
   '@enonic-types/core@8.0.4':
     resolution: {integrity: sha512-8ZNsk4Yb0MZwq2DW9T6XUxKWCIedt0CUR2bCOriUge3LrY0diwJX2QwaZYrQQ7A4bF8g3dTczO3DDnDRQuPhFg==}
 
-  '@enonic-types/core@8.1.0-B2':
-    resolution: {integrity: sha512-Cmg0jGp+ui4SJmJLjo1nwvAmxMKh45sZQ3+U/B1rOvSVslPJXBFl086nNCXxH7Z9cuEZcaDG8oeFE52ZMjJeOg==}
+  '@enonic-types/core@8.1.0-RC2':
+    resolution: {integrity: sha512-dwpgIXosVm9Ia1hnWKmH8XQytKieMO8WPuuuYB+GpC2b8cd0HtyklMIf1JJuCRz9olTeXF4hpRQuMpoDDdCDNQ==}
 
-  '@enonic-types/global@8.1.0-B2':
-    resolution: {integrity: sha512-sRegyeU+mlPDTFTFOLe86HZI1kjnuhhh9m+LtPaV54orQRb+mnUbV6ETQHs6RBrCmNZIR6ixp9XztbB5vSmkbw==}
+  '@enonic-types/global@8.1.0-RC2':
+    resolution: {integrity: sha512-lycAXDHBOGLag3BnDQTeXUDBkM8fFjlRCb48aceCrQ1gOoTKkC3Tm+69eFDzpTKGEaAjhlzShT6OCRL2xiJotQ==}
 
-  '@enonic-types/lib-admin@8.1.0-B2':
-    resolution: {integrity: sha512-1ihgpBb1ZVc11zHZlc0zc8JJOdl2qROtuvO9dRC4ez2P6xwnC1Cv1GdBKoaBzugnOpAiOXo2ZC0UxDs4FIriaQ==}
+  '@enonic-types/lib-admin@8.1.0-RC2':
+    resolution: {integrity: sha512-M9XGmPsUZ8xek7IMF5rFVL0ImhgfsMQhotuPAtrpE1+WTR2GD9MjaAhbb0kzErksSkSRkLmURo6eCEBcXaS/Ug==}
 
   '@enonic-types/lib-asset@2.0.1':
     resolution: {integrity: sha512-+FDCVxM3oy+wGUGyyzsl0QC429CzfCqps9Kn6zehBW3HwB+bABig9jvUHdIBSPnoLBbssoG0ycR0LNn2MKQBnw==}
 
-  '@enonic-types/lib-auth@8.1.0-B2':
-    resolution: {integrity: sha512-X0GKzjxtaVsJRnh7SM8BdCnD4BHnXxkc0tgeN6IXA9LV8qnfFeqbvEZ7S1AWItl545tYjp4acmqkn6D+LVSaXQ==}
+  '@enonic-types/lib-auth@8.1.0-RC2':
+    resolution: {integrity: sha512-M2UkHoUvN1oqvaL4yvVcIQtVh445D5FRLi4HUipX+hPKyWgJ36rWkeWYIfpwEG78fnH1qVZb35T03C2fNcc6zg==}
 
-  '@enonic-types/lib-i18n@8.1.0-B2':
-    resolution: {integrity: sha512-7gB2yvabVIuvfn7nxCvWU+VkW+1WsI6fqAvn08MQTFYIiYSJ4+WxBCq4WiMeBtLo71OimhVp8L/OqkfcrjHpwg==}
+  '@enonic-types/lib-i18n@8.1.0-RC2':
+    resolution: {integrity: sha512-4OvMLc2JGSQkSDvBn4KZp9Frkbs7Y+ckGUhCTgp71TEw7Re0cDCUc/8KWd3MwvQ8k6gsOZHkkjthbs7/N6pRiw==}
 
-  '@enonic-types/lib-portal@8.1.0-B2':
-    resolution: {integrity: sha512-tctMzyIMJlasUF2kR5wdOXP4UUphTSTbQs9z6EpLMRRSk8c42AaG0WQNIFFHMXRLm+qgpTxus8SlTlkdbsxk9g==}
+  '@enonic-types/lib-portal@8.1.0-RC2':
+    resolution: {integrity: sha512-n5cy8Vv0jGi9zZknFPRI7ZDY6ErsyK6tgR0Fxi86mkpuisB+2wRE2nWuKEovlEN9fIuxtExQPMG9wz291UhoZg==}
 
   '@enonic/ui-types@0.2.0':
     resolution: {integrity: sha512-HGVgXKoOtT4HxNW3BQrI2VmuiT9vGPotxAWlBC1W3HCzG+yhU1kq3asDzWNWZEhok4DYEuMH8G2ZJxVZJaFwtw==}
@@ -1575,31 +1575,31 @@ snapshots:
 
   '@enonic-types/core@8.0.4': {}
 
-  '@enonic-types/core@8.1.0-B2': {}
+  '@enonic-types/core@8.1.0-RC2': {}
 
-  '@enonic-types/global@8.1.0-B2':
+  '@enonic-types/global@8.1.0-RC2':
     dependencies:
-      '@enonic-types/core': 8.1.0-B2
+      '@enonic-types/core': 8.1.0-RC2
 
-  '@enonic-types/lib-admin@8.1.0-B2':
+  '@enonic-types/lib-admin@8.1.0-RC2':
     dependencies:
-      '@enonic-types/core': 8.1.0-B2
+      '@enonic-types/core': 8.1.0-RC2
 
   '@enonic-types/lib-asset@2.0.1':
     dependencies:
       '@enonic-types/core': 8.0.4
 
-  '@enonic-types/lib-auth@8.1.0-B2':
+  '@enonic-types/lib-auth@8.1.0-RC2':
     dependencies:
-      '@enonic-types/core': 8.1.0-B2
+      '@enonic-types/core': 8.1.0-RC2
 
-  '@enonic-types/lib-i18n@8.1.0-B2':
+  '@enonic-types/lib-i18n@8.1.0-RC2':
     dependencies:
-      '@enonic-types/core': 8.1.0-B2
+      '@enonic-types/core': 8.1.0-RC2
 
-  '@enonic-types/lib-portal@8.1.0-B2':
+  '@enonic-types/lib-portal@8.1.0-RC2':
     dependencies:
-      '@enonic-types/core': 8.1.0-B2
+      '@enonic-types/core': 8.1.0-RC2
 
   '@enonic/ui-types@0.2.0': {}
 
