@@ -34,7 +34,7 @@ comment is worse than none.
 ## Doc comments
 
 TSDoc where the contract is not obvious from the signature — the field comment on
-`RequestOptions.body` in `shared/api/client.ts` is the pattern, and a module constant whose value
+`TopicHandlers.onLoss` in `shared/admin-events/admin-events.ts` is the pattern, and a module constant whose value
 needs justifying (`RELOAD_DELAY_MS` in `entities/extension/model/extensions.service.ts`) earns one
 too.
 Not on internal helpers whose name already says it, and never `@param` / `@returns` restating types.

@@ -1,6 +1,7 @@
+import { AppError } from '@enonic/ui-utils';
+import { requestJson } from '@enonic/ui-utils/request';
 import { errAsync, type ResultAsync } from 'neverthrow';
 
-import { AppError, requestJson } from '../../../shared/api';
 import { $config } from '../../../shared/config';
 import { DEFAULT_ORDER, type SectionExtension } from '../model/extension.types';
 import { assignSlugs } from '../model/section-slugs';

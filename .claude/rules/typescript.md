@@ -36,9 +36,9 @@ const options = { method: 'POST' } satisfies RequestOptions;
 ```
 
 `as` belongs at the wire boundary only: casting a parsed JSON payload to its expected shape inside
-`shared/api` or the config reader, where the value has just crossed into the app and either a type
-guard follows (`shared/config/config.ts`) or the caller's generic defines the contract
-(`shared/api/client.ts`). Anywhere else, narrow with a guard instead.
+an api segment or the config reader, where the value has just crossed into the app and either a type
+guard follows (`shared/config/config.ts`) or the caller's generic defines the contract (`requestJson<ExtensionDto[]>` in
+`entities/extension/api/extensions.api.ts`). Anywhere else, narrow with a guard instead.
 
 ## Naming
 

@@ -382,7 +382,7 @@ config:
 | `GET /_static/*`       | hashed chunks and the unhashed `main.css` beside the entry (text only)  |
 | `POST /graphql`        | the section's data plane; client config and phrases as root fields      |
 
-**Types** — the whole client-side contract, shipped by the types-only `@enonic/ui-types` (0.2.0;
+**Types** — the whole client-side contract, shipped by the types-only `@enonic/ui-types` (0.4.0;
 the host and the providers import it, no copy remains). The types are deliberately dumb — names and
 one-line docs; behaviour lives in the rules below. Everything mutable is a subscription
 (`{get, listen}`): `get()` is the current value and `listen` reports changes only, never calling back

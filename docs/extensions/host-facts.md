@@ -120,7 +120,7 @@ still lands. `mount` is not told which section it is.
 
 ## Contract
 
-The `docs.md` § 2 types come from `@enonic/ui-types` 0.2.0, re-exported by the `shared/sections`
+The `docs.md` § 2 types come from `@enonic/ui-types` 0.4.0, re-exported by the `shared/sections`
 barrel; no copy lives here. The shell hands a `RoutedHost`: the base `Host` every kind of mount gets
 plus `Routed`, the url segment a section owns. Types only: the hub topic names live beside the
 subscriber in `shared/admin-events/topics.ts`, and a provider copies the ones it needs from the

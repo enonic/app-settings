@@ -22,7 +22,7 @@ rather than the widget reaching up into `entities/extension`.
 | `widgets/`           | the shell's composite blocks: rail, mount slot, empty state, toast list          | `entities/` imports               |
 | `features/<action>/` | one user action — the shell has none today                                       | any import to or from `widgets/`  |
 | `entities/<domain>/` | one domain slice: `api/`, `model/` — `extension` is the one domain the shell has | UI beyond a domain-specific badge |
-| `shared/`            | api client, config, i18n, admin events, notifications, app state, sections, menu | importing anything above          |
+| `shared/`            | config, i18n, admin events, notifications, app state, sections, menu             | importing anything above          |
 
 `app/` is split into two segments: `ui/` for its components, `model/` for everything else — the
 router, the section host object, the shell's hooks.

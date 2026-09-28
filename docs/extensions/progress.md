@@ -34,13 +34,13 @@ Every repo takes it from the registry.
 
 ## Phase 2 — extract the component kit: in progress
 
-| `docs.md` | What                                                                                             | State                                                                                                                   |
-| --------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| 2.1       | `npm-enonic-ui-toolkit`, four packages; the contract into `@enonic/ui-types`                     | done — 0.2.0 released 2026-09-07 (npm-enonic-ui-toolkit#5, #8); the host and both providers import it and carry no copy |
-| 2.2       | browse framework widgets out of the providers into `ui-kit`                                      | not started; the two provider copies are being resynced first (app-applications#2322, app-users#2688)                   |
-| 2.3       | transport, format, i18n, form helpers into `ui-utils`; dialogs and section runtime into `ui-kit` | not started                                                                                                             |
-| 2.4       | providers consume the kit; the host consumes `ui-types` alone                                    | not started                                                                                                             |
-| 2.5       | Content Studio v6 as a further consumer                                                          | not started                                                                                                             |
+| `docs.md` | What                                                                                             | State                                                                                                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2.1       | `npm-enonic-ui-toolkit`, four packages; the contract into `@enonic/ui-types`                     | done — 0.2.0 released 2026-09-07 (npm-enonic-ui-toolkit#5, #8); the host and both providers import it and carry no copy                                                                  |
+| 2.2       | browse framework widgets out of the providers into `ui-kit`                                      | not started; the two provider copies are being resynced first (app-applications#2322, app-users#2688)                                                                                    |
+| 2.3       | transport, format, i18n, form helpers into `ui-utils`; dialogs and section runtime into `ui-kit` | transport and i18n core in `ui-utils` 0.4.0 (npm-enonic-ui-toolkit#11); the host imports them (#164), the providers follow (app-applications#2376, app-users#2778); the rest not started |
+| 2.4       | providers consume the kit; the host consumes `ui-types` alone                                    | not started                                                                                                                                                                              |
+| 2.5       | Content Studio v6 as a further consumer                                                          | not started                                                                                                                                                                              |
 
 The plan's 2.4 originally had app-settings consume the kit while still owning the sections; the
 sections left first, so that step is gone. `docs/browse-framework.md` moved to the toolkit's `docs/`

@@ -65,13 +65,15 @@ src/main/resources/
     app/                shell, router, the host object, section mounting
     widgets/            the rail, the mount slot, the empty state, the toast list
     entities/extension/ discovery: the rows, their sorting and slugs, rediscovery on events
-    shared/             api client, config, i18n, admin events, notifications, app state, sections
+    shared/             config, i18n, admin events, notifications, app state, sections
                         (the mount contract and `mountSection`), menu
 ```
 
 Import direction is one-way: `app → widgets/features → entities → shared`. Details and the
 reasoning are in `.claude/rules/structure.md`. The mount contract comes from `@enonic/ui-types`; the
 `shared/sections` barrel re-exports it, and `mountSection` and the host object are typed against it.
+The request transport (`@enonic/ui-utils/request`), `AppError` and the i18n core (`localize`,
+`fromPhrases`) come from `@enonic/ui-utils` and are imported directly; no copy lives here.
 
 ## Reference repositories
 

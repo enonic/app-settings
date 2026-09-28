@@ -1,7 +1,6 @@
 ---
 paths:
   - '**/*.api.ts'
-  - 'src/main/resources/assets/js/shared/api/**'
 ---
 
 # Requests
@@ -25,8 +24,10 @@ export function fetchSectionExtensions(
 }
 ```
 
-- Everything goes through `shared/api`, which returns `ResultAsync<T, AppError>` — errors are values,
-  not throws. `requestJson` is the one helper; do not add a second http helper.
+- Everything goes through `requestJson` from `@enonic/ui-utils/request`, which returns
+  `ResultAsync<T, AppError>` — errors are values, not throws. An error status is a `RequestError`
+  carrying `status`, an abort a `RequestAbortedError`, both `AppError`s. Do not add a second http
+  helper.
 - Wire DTOs stay inside the api segment. Map to the domain types from `model/<domain>.types.ts` before
   returning; the rest of the app never sees a DTO shape.
 - Api urls come from the tool config (`shared/config`), never hardcoded or assembled from
@@ -47,7 +48,7 @@ Should the shell ever need an api of its own, it goes in `src/main/resources/api
 `<name>.yaml` + `<name>.ts`: `kind: API`, `allow: role:system.admin`, no `mount:`, listed by its bare
 name in `main.yaml`, its url exposed through `lib/config.ts` as
 `apiUrl({ api: `${app.name}:<name>` })`, handlers guarded by `isAdmin()` from `lib/auth.ts`, and a
-JSON body with `{ message }` on failure — `shared/api` reads that field for the error text. Never
+JSON body with `{ message }` on failure — `requestJson` reads that field for the error text. Never
 log or echo secrets.
 
 Adding an XP lib needs `include xplibs.<name>` in `build.gradle`, a double in `src/test/mocks/`, and
