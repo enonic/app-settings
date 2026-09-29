@@ -1,4 +1,4 @@
-import { getPhrases } from '/lib/xp/i18n';
+import { getPhrases, getSupportedLocales } from '/lib/xp/i18n';
 
 export const BUNDLES = ['i18n/phrases'];
 
@@ -6,6 +6,11 @@ export const DEFAULT_LOCALE = 'en';
 
 export function resolveLocales(locales: string[] | undefined): string[] {
   return locales !== undefined && locales.length > 0 ? locales : [DEFAULT_LOCALE];
+}
+
+export function resolvePhrasesLocale(locales: string[], bundles: string[] = BUNDLES): string {
+  const supported = new Set(getSupportedLocales(bundles).map(toLanguage));
+  return locales.map(toLanguage).find((language) => supported.has(language)) ?? DEFAULT_LOCALE;
 }
 
 export function getAllPhrases(
@@ -22,4 +27,12 @@ export function getAllPhrases(
   });
 
   return phrases;
+}
+
+//
+// * Internal
+//
+
+function toLanguage(locale: string): string {
+  return locale.split('-')[0].toLowerCase();
 }
