@@ -10,6 +10,8 @@ import { useSectionRedirect } from '../model/useSectionRedirect';
 import { AppBar } from './AppBar';
 import { SectionMounts } from './SectionMounts';
 
+const APP_SHELL_NAME = 'AppShell';
+
 export function AppShell() {
   useSectionRedirect();
 
@@ -34,7 +36,10 @@ export function AppShell() {
   }));
 
   return (
-    <div className="bg-surface-primary text-main flex h-full overflow-hidden">
+    <div
+      data-component={APP_SHELL_NAME}
+      className="bg-surface-primary text-main flex h-full overflow-hidden"
+    >
       <SectionRail sections={sections} />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -50,6 +55,8 @@ export function AppShell() {
     </div>
   );
 }
+
+AppShell.displayName = APP_SHELL_NAME;
 
 //
 // * Internal

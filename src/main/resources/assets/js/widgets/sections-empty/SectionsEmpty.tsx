@@ -5,10 +5,17 @@ export type SectionsEmptyProps = {
   reason: 'none' | 'failed';
   /** The line telling a visitor what an empty rail may be down to. Ignored on a failure. */
   hint?: boolean;
+  'data-component'?: string;
 };
 
+const SECTIONS_EMPTY_NAME = 'SectionsEmpty';
+
 /** The content area with no section in it — the whole screen the visitor is looking at. */
-export function SectionsEmpty({ reason, hint = false }: SectionsEmptyProps) {
+export function SectionsEmpty({
+  reason,
+  hint = false,
+  'data-component': componentName = SECTIONS_EMPTY_NAME,
+}: SectionsEmptyProps) {
   const noneMessage = useI18n('sections.empty');
   const hintMessage = useI18n('sections.empty.hint');
   const failedMessage = useI18n('sections.failed');
@@ -17,6 +24,7 @@ export function SectionsEmpty({ reason, hint = false }: SectionsEmptyProps) {
 
   return (
     <div
+      data-component={componentName}
       role={failed ? 'alert' : 'status'}
       className="flex flex-1 flex-col items-center justify-center gap-2 px-5 text-center"
     >
@@ -26,3 +34,5 @@ export function SectionsEmpty({ reason, hint = false }: SectionsEmptyProps) {
     </div>
   );
 }
+
+SectionsEmpty.displayName = SECTIONS_EMPTY_NAME;
