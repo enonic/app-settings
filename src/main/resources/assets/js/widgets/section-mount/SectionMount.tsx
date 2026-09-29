@@ -4,7 +4,7 @@ import { useI18n } from '../../shared/i18n';
 import { mountSection, type RoutedHost } from '../../shared/sections';
 
 export type SectionMountProps = {
-  /** The section's key, on the shadow host as `data-section` — how a test picks this mount. */
+  /** The section's key, on the shadow host as `data-section`. */
   sectionKey: string;
   /** The section module's url: the extension prefix plus the contract-fixed entry path. */
   moduleUrl: string;
