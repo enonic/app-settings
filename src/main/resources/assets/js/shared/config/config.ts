@@ -1,4 +1,4 @@
-import { AppError } from '../api';
+import { AppError } from '@enonic/ui-utils';
 
 export type ApiUrls = {
   /** The hub endpoint: `client.js` under it is the client, the endpoint itself the socket. */

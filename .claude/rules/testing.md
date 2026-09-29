@@ -12,7 +12,7 @@ subject as `<file>.test.ts`. Both sides of the app are covered by the same run: 
 
 **The environment is `node`, and no DOM library is installed — by decision, not by omission.**
 Component rendering is not tested. Keep the testable part of a widget in a pure helper next to it (as
-`shared/i18n/i18n.store.ts` keeps `localize`, and `app/model/section-path.ts` keeps the url
+`entities/extension/model/section-slugs.ts` keeps slug resolution, and `app/model/section-path.ts` keeps the url
 arithmetic out of the host object): mapping, sorting and slug resolution belong outside the
 component, where they can be asserted directly. Adding `happy-dom` and a Preact testing library would
 be its own issue, never a line in a feature PR.

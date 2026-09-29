@@ -25,7 +25,7 @@ extensions.
 - `shared/{api,config,i18n,sections}` were copied from the host when the sections moved, and
   `widgets/`, `shared/ui` and the rest of `shared/` with them. **Those copies are now canonical** —
   the host deleted its own in Phase 5.1 — and are being resynced to one form between the two
-  providers before `@enonic/ui-kit` extracts them. The mount contract is `@enonic/ui-types` 0.2.0,
+  providers before `@enonic/ui-kit` extracts them. The mount contract is `@enonic/ui-types` 0.4.0,
   re-exported by each provider's `shared/sections` barrel.
 - Events: the section subscribes the hub itself through `shared/admin-events`, with the topic names
   it needs copied from the table in `docs.md` § Events into `shared/admin-events/topics.ts`. No event

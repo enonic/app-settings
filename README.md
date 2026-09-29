@@ -107,7 +107,7 @@ The frontend under `src/main/resources/assets/js`:
 app/                 shell, router, the host object handed to each section, section mounting
 widgets/             the rail, the mount slot, the empty state, the toast list
 entities/extension/  discovery of the sections and their live rediscovery
-shared/              api client, config, i18n, admin events, notifications, the mount contract
+shared/              config, i18n, admin events, notifications, the mount contract
 ```
 
 Tests live next to the code they cover, as `*.test.ts`.

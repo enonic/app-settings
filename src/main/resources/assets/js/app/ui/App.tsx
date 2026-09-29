@@ -1,3 +1,4 @@
+import { I18nProvider } from '@enonic/ui';
 import { RouterProvider } from '@tanstack/react-router';
 import { useEffect } from 'preact/hooks';
 
@@ -9,6 +10,7 @@ import {
 import { connectAdminEvents } from '../../shared/admin-events';
 import { useTheme } from '../../shared/app-state';
 import type { ToolConfig } from '../../shared/config';
+import { translate } from '../../shared/i18n';
 import { useMenuPanel } from '../../shared/menu';
 import { router } from '../model/router';
 
@@ -34,5 +36,9 @@ export function App({ config }: AppProps) {
     };
   }, []);
 
-  return <RouterProvider router={router} />;
+  return (
+    <I18nProvider translate={translate}>
+      <RouterProvider router={router} />
+    </I18nProvider>
+  );
 }

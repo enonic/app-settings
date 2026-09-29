@@ -23,8 +23,7 @@ cleared, never cached.
 - One domain concept per file. If the file needs "and" to describe it, split it.
 - Mutations are exported functions in the store file (`setConfig`, `setPhrases`), not `.set()` calls
   from components.
-- Keep types out of a store file, except its own state type and types only its own API uses —
-  `i18n.store.ts` carries `PhraseValue` because nothing else does.
+- Keep types out of a store file, except its own state type and types only its own API uses.
 - Reload orchestration and subscriptions go in a sibling `<name>.service.ts` with `start()`/`stop()`,
   started from the app root — not in a component effect. `extensions.service.ts` is the case: it
   follows the hub's `applications` topic and rediscovers.

@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { AppError } from '@enonic/ui-utils';
 import { describe, expect, it } from 'vitest';
 
-import { AppError } from '../api';
 import { readConfig, type ToolConfig } from './config';
 
 const config: ToolConfig = {
