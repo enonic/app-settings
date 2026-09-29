@@ -91,6 +91,12 @@ design; this is what stands. `provider-facts.md` is the other side of the bounda
   15 s timeout → `isSectionModule` → `mount({container, host})`. On failure one phrase on screen
   (`sectionMount.failed`) and the stage in the console — could not be imported, exports no mount
   function, threw while mounting. The host element stays mounted in every state. No host skeleton.
+- The shadow host carries `data-component="SectionMount"`, `data-section="<key>"` and, on the
+  visible one, `data-status="active"` — a test picks a section by these, then queries inside its
+  root with CSS (WebdriverIO's `shadow$`); XPath stops at the boundary. The shell's other parts
+  (`AppShell`, `AppBar`, `SectionRail` with a `SectionRailItem` + `data-section` per link,
+  `SectionsEmpty`, `NotificationList`) are marked the same way, after Content Studio and the
+  providers.
 - An app's sections share one module: the host rewrites the group's `moduleUrl` to its first row's
   (by `(order, key)`), so the browser executes the module once and `mount` runs per section.
   `config.module` names a sharing group within the app — the per-section opt-out. Each section's

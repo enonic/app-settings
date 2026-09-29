@@ -4,6 +4,8 @@ import { useI18n } from '../../shared/i18n';
 import { mountSection, type RoutedHost } from '../../shared/sections';
 
 export type SectionMountProps = {
+  /** The section's key, on the shadow host as `data-section`. */
+  sectionKey: string;
   /** The section module's url: the extension prefix plus the contract-fixed entry path. */
   moduleUrl: string;
   /** Handed to `mount`, and stable per mount: a new object remounts the section. */
@@ -12,9 +14,19 @@ export type SectionMountProps = {
   hidden?: boolean;
   /** Runs after the guest's own unmount returned — where the caller revokes the host. */
   onDisposed?: () => void;
+  'data-component'?: string;
 };
 
-export function SectionMount({ moduleUrl, host, hidden = false, onDisposed }: SectionMountProps) {
+const SECTION_MOUNT_NAME = 'SectionMount';
+
+export function SectionMount({
+  sectionKey,
+  moduleUrl,
+  host,
+  hidden = false,
+  onDisposed,
+  'data-component': componentName = SECTION_MOUNT_NAME,
+}: SectionMountProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
 
@@ -53,7 +65,17 @@ export function SectionMount({ moduleUrl, host, hidden = false, onDisposed }: Se
         </div>
       )}
 
-      <div ref={ref} className="flex min-h-0 flex-1 flex-col" />
+      {/* ? The test attributes sit on the shadow host, not the wrapper: XPath stops at the shadow
+          boundary, so a test finds this element and pierces its root from here. */}
+      <div
+        ref={ref}
+        data-component={componentName}
+        data-section={sectionKey}
+        data-status={hidden ? undefined : 'active'}
+        className="flex min-h-0 flex-1 flex-col"
+      />
     </div>
   );
 }
+
+SectionMount.displayName = SECTION_MOUNT_NAME;

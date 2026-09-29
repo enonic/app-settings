@@ -57,6 +57,12 @@ function SectionSlot({ section, hidden }: SectionSlotState) {
   // ? Revocation rides the mount's own disposal rather than an effect here: parent cleanups run
   // ? before a child's, so an effect would revoke the host before the guest's unmount saw it.
   return (
-    <SectionMount moduleUrl={section.moduleUrl} host={host} hidden={hidden} onDisposed={revoke} />
+    <SectionMount
+      sectionKey={section.key}
+      moduleUrl={section.moduleUrl}
+      host={host}
+      hidden={hidden}
+      onDisposed={revoke}
+    />
   );
 }

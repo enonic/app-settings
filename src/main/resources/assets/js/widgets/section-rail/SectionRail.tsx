@@ -14,19 +14,27 @@ export type SectionRailItem = {
 
 export type SectionRailProps = {
   sections: readonly SectionRailItem[];
+  'data-component'?: string;
 };
+
+const SECTION_RAIL_NAME = 'SectionRail';
+const SECTION_RAIL_ITEM_NAME = 'SectionRailItem';
 
 const ITEM_CLASS =
   'text-main hover:bg-surface-neutral-hover data-[status=active]:bg-btn-active ' +
   'data-[status=active]:text-alt focus-visible:ring-ring flex size-10 items-center justify-center ' +
   'rounded-sm outline-none transition-colors focus-visible:ring-2';
 
-export function SectionRail({ sections }: SectionRailProps) {
+export function SectionRail({
+  sections,
+  'data-component': componentName = SECTION_RAIL_NAME,
+}: SectionRailProps) {
   const railLabel = useI18n('nav.sections');
   const appName = useI18n('app.displayName');
 
   return (
     <nav
+      data-component={componentName}
       aria-label={railLabel}
       className="bg-surface-neutral border-bdr-soft flex h-full w-15 shrink-0 flex-col items-center gap-10 border-r px-1.75 py-2.5"
     >
@@ -42,6 +50,8 @@ export function SectionRail({ sections }: SectionRailProps) {
                 {/* A plain anchor: hash history routes it, and a remembered sub-path carries search
                     params, which a splat param cannot. */}
                 <a
+                  data-component={SECTION_RAIL_ITEM_NAME}
+                  data-section={key}
                   href={href}
                   aria-label={title}
                   aria-current={active ? 'page' : undefined}
@@ -68,3 +78,5 @@ export function SectionRail({ sections }: SectionRailProps) {
     </nav>
   );
 }
+
+SectionRail.displayName = SECTION_RAIL_NAME;
