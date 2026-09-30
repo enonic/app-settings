@@ -8,9 +8,23 @@ export function resolveLocales(locales: string[] | undefined): string[] {
   return locales !== undefined && locales.length > 0 ? locales : [DEFAULT_LOCALE];
 }
 
+/**
+ * Mirrors how XP picks the bundle for `getPhrases` (`LocaleServiceImpl.getSupportedLocale`, which
+ * runs `Locale.lookup` from RFC 4647), so `lang` names the language the phrases are actually in: a
+ * requested tag is truncated (`pt-BR` → `pt`), never widened (`pt` does not match `pt-BR`).
+ */
 export function resolvePhrasesLocale(locales: string[], bundles: string[] = BUNDLES): string {
-  const supported = new Set(getSupportedLocales(bundles).map(toLanguage));
-  return locales.map(toLanguage).find((language) => supported.has(language)) ?? DEFAULT_LOCALE;
+  const supported = new Map(getSupportedLocales(bundles).map((tag) => [tag.toLowerCase(), tag]));
+  for (const locale of locales) {
+    const subtags = locale.toLowerCase().split('-');
+    for (let length = subtags.length; length > 0; length--) {
+      const match = supported.get(subtags.slice(0, length).join('-'));
+      if (match !== undefined) {
+        return match;
+      }
+    }
+  }
+  return DEFAULT_LOCALE;
 }
 
 export function getAllPhrases(
@@ -27,12 +41,4 @@ export function getAllPhrases(
   });
 
   return phrases;
-}
-
-//
-// * Internal
-//
-
-function toLanguage(locale: string): string {
-  return locale.split('-')[0].toLowerCase();
 }

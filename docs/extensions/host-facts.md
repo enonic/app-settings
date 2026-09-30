@@ -97,6 +97,9 @@ design; this is what stands. `provider-facts.md` is the other side of the bounda
   (`AppShell`, `AppBar`, `SectionRail` with a `SectionRailItem` + `data-section` per link,
   `SectionsEmpty`, `NotificationList`) are marked the same way, after Content Studio and the
   providers.
+- `<html lang>` is the language the shell's own phrases resolved to (`resolvePhrasesLocale` in
+  `lib/i18n.ts`, `en` when none matches). A mounted section inherits it unless it sets `lang` on
+  its container.
 - An app's sections share one module: the host rewrites the group's `moduleUrl` to its first row's
   (by `(order, key)`), so the browser executes the module once and `mount` runs per section.
   `config.module` names a sharing group within the app — the per-section opt-out. Each section's

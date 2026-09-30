@@ -36,11 +36,23 @@ describe('resolvePhrasesLocale', () => {
     expect(getSupportedLocalesMock).toHaveBeenCalledWith(BUNDLES);
   });
 
-  it('matches a regional locale by its language', () => {
-    getSupportedLocalesMock.mockReturnValue(['en', 'pt-BR']);
+  it('falls back from a regional locale to its language', () => {
+    getSupportedLocalesMock.mockReturnValue(['en', 'pt']);
 
     expect(resolvePhrasesLocale(['EN-us'])).toBe('en');
     expect(resolvePhrasesLocale(['pt-BR'])).toBe('pt');
+  });
+
+  it('answers with the supported tag as the bundle spells it', () => {
+    getSupportedLocalesMock.mockReturnValue(['en', 'pt-BR']);
+
+    expect(resolvePhrasesLocale(['pt-br'])).toBe('pt-BR');
+  });
+
+  it('does not match a language to a regional bundle', () => {
+    getSupportedLocalesMock.mockReturnValue(['en', 'pt-BR']);
+
+    expect(resolvePhrasesLocale(['pt'])).toBe(DEFAULT_LOCALE);
   });
 
   it('falls back to the default locale when no requested locale has a bundle', () => {
