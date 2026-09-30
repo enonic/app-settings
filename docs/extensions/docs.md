@@ -168,6 +168,12 @@ What it does **not** remove:
   and its own `phrases.properties` via lib-i18n work. The section requests phrases for
   `host.locale` explicitly (a query variable), so it is localized with the same locale as the host
   chrome, not with whatever the browser put in `Accept-Language`.
+- **Whoever renders text declares its language.** The host puts `lang` on `<html>` for the language
+  its own phrases resolved to, and that covers only the host chrome. `lang` inherits through the
+  shadow boundary, so a section whose phrases resolved to another language puts its own `lang` on
+  its container. `host.locale` is the requested locale, not the answer: each provider's bundles
+  decide which language it lands on, and nobody has to keep the translation sets of the host and
+  the providers in step.
 - Locale change is a page-level reload, as elsewhere in the XP admin. No hot language switching in
   the contract.
 

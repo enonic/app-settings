@@ -1,6 +1,6 @@
 import { CONFIG_SCRIPT_ID, getConfig, serializeConfig } from '/lib/config';
 import { applyContentSecurityPolicy } from '/lib/csp';
-import { resolveLocales } from '/lib/i18n';
+import { resolveLocales, resolvePhrasesLocale } from '/lib/i18n';
 import { render } from '/lib/mustache';
 import { assetUrl } from '/lib/enonic/asset';
 
@@ -13,11 +13,13 @@ export function get(request: Request) {
   applyContentSecurityPolicy();
 
   const view = resolve('./main.html');
-  const config = getConfig(resolveLocales(request.locales));
+  const locales = resolveLocales(request.locales);
+  const config = getConfig(locales);
 
   return {
     contentType: 'text/html',
     body: render(view, {
+      lang: resolvePhrasesLocale(locales),
       assetsUrl: config.assetsUrl,
       mainJsUrl: assetUrl({ path: 'js/main.js' }),
       mainCssUrl: assetUrl({ path: 'css/main.css' }),
