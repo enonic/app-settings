@@ -26,7 +26,7 @@ jobs:
 
       - name: Get publishing variables
         id: publish_vars
-        uses: enonic/release-tools/publish-vars@deb6de64d74cbda81a68cddd634af64cce4f1fad # master @ 2026-07-01
+        uses: enonic/release-tools/publish-vars@ac0eb01a76bede49d6044694a95a97cfd7500e96 # master @ 2026-07-01
         env:
           PROPERTIES_PATH: './gradle.properties'
 
