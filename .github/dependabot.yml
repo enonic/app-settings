@@ -16,6 +16,7 @@ updates:
           - '@enonic/*'
           - '@enonic-types/*'
       ui-runtime:
+        update-types: ['minor', 'patch']
         patterns:
           - '@radix-ui/*'
           - 'focus-trap-react'
