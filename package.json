@@ -27,7 +27,7 @@
     "lucide-react": "^1.49.0",
     "nanostores": "^1.5.4",
     "neverthrow": "^8.2.0",
-    "preact": "^10.29.8"
+    "preact": "^11.0.0"
   },
   "devDependencies": {
     "@enonic-types/core": "8.1.0-RC2",
