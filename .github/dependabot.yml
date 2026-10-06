@@ -10,6 +10,11 @@ updates:
       exclude:
         - '@enonic-types/*'
         - '@enonic/ui'
+    ignore:
+      # `.github/pull-merger.yml` auto-merges every update, and Preact 11 breaks refs through
+      # Radix `Slot` in `@enonic/ui`. Lift once `@enonic/ui` supports it.
+      - dependency-name: 'preact'
+        update-types: ['version-update:semver-major']
     groups:
       enonic:
         patterns:
