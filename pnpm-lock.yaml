@@ -13,8 +13,8 @@ importers:
   .:
     dependencies:
       '@enonic/ui':
-        specifier: ^1.2.1
-        version: 1.3.0(@radix-ui/react-slot@1.4.0(@types/react@19.3.0))(@types/react@19.3.0)(focus-trap-react@12.0.3(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0))(preact@10.29.8)(tw-animate-css@1.4.0)
+        specifier: ^1.4.0
+        version: 1.4.0(@radix-ui/react-slot@1.4.0(@types/react@19.3.0))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(preact@10.29.8)(tw-animate-css@1.4.0)
       '@nanostores/preact':
         specifier: ^1.1.0
         version: 1.1.0(nanostores@1.5.4)(preact@10.29.8)
@@ -41,26 +41,26 @@ importers:
         version: 10.29.8
     devDependencies:
       '@enonic-types/core':
-        specifier: 8.1.0-RC2
-        version: 8.1.0-RC2
+        specifier: 8.1.0-RC3
+        version: 8.1.0-RC3
       '@enonic-types/global':
-        specifier: 8.1.0-RC2
-        version: 8.1.0-RC2
+        specifier: 8.1.0-RC3
+        version: 8.1.0-RC3
       '@enonic-types/lib-admin':
-        specifier: 8.1.0-RC2
-        version: 8.1.0-RC2
+        specifier: 8.1.0-RC3
+        version: 8.1.0-RC3
       '@enonic-types/lib-asset':
         specifier: 2.0.1
         version: 2.0.1
       '@enonic-types/lib-auth':
-        specifier: 8.1.0-RC2
-        version: 8.1.0-RC2
+        specifier: 8.1.0-RC3
+        version: 8.1.0-RC3
       '@enonic-types/lib-i18n':
-        specifier: 8.1.0-RC2
-        version: 8.1.0-RC2
+        specifier: 8.1.0-RC3
+        version: 8.1.0-RC3
       '@enonic-types/lib-portal':
-        specifier: 8.1.0-RC2
-        version: 8.1.0-RC2
+        specifier: 8.1.0-RC3
+        version: 8.1.0-RC3
       '@enonic/ui-types':
         specifier: 0.4.0
         version: 0.4.0
@@ -115,45 +115,42 @@ packages:
   '@enonic-types/core@8.0.4':
     resolution: {integrity: sha512-8ZNsk4Yb0MZwq2DW9T6XUxKWCIedt0CUR2bCOriUge3LrY0diwJX2QwaZYrQQ7A4bF8g3dTczO3DDnDRQuPhFg==}
 
-  '@enonic-types/core@8.1.0-RC2':
-    resolution: {integrity: sha512-dwpgIXosVm9Ia1hnWKmH8XQytKieMO8WPuuuYB+GpC2b8cd0HtyklMIf1JJuCRz9olTeXF4hpRQuMpoDDdCDNQ==}
+  '@enonic-types/core@8.1.0-RC3':
+    resolution: {integrity: sha512-oVzVZReg+2k/q/elHBgrgv68V49+NmK9WQTA8vAD7EQMg/TubbxHrGtdQVIu/NR4Xjbpjo3Fmxgde4A8YAaK+Q==}
 
-  '@enonic-types/global@8.1.0-RC2':
-    resolution: {integrity: sha512-lycAXDHBOGLag3BnDQTeXUDBkM8fFjlRCb48aceCrQ1gOoTKkC3Tm+69eFDzpTKGEaAjhlzShT6OCRL2xiJotQ==}
+  '@enonic-types/global@8.1.0-RC3':
+    resolution: {integrity: sha512-jm2HgFsMK+exM1baz9Zhj6sMPAaqS/65uYcqmt2MnNKv7rDkLoVKTViZOPHti0em1wJnbxz4zOjdTQgIgLEbNQ==}
 
-  '@enonic-types/lib-admin@8.1.0-RC2':
-    resolution: {integrity: sha512-M9XGmPsUZ8xek7IMF5rFVL0ImhgfsMQhotuPAtrpE1+WTR2GD9MjaAhbb0kzErksSkSRkLmURo6eCEBcXaS/Ug==}
+  '@enonic-types/lib-admin@8.1.0-RC3':
+    resolution: {integrity: sha512-cch3r5/NLna7XQQK4APirvmmEqxiIPmp5uo6Id0FU4kvM5MeVe/DCMcWYrIoUo66MrMl6TJ28PMvZ7pD4Q+VKQ==}
 
   '@enonic-types/lib-asset@2.0.1':
     resolution: {integrity: sha512-+FDCVxM3oy+wGUGyyzsl0QC429CzfCqps9Kn6zehBW3HwB+bABig9jvUHdIBSPnoLBbssoG0ycR0LNn2MKQBnw==}
 
-  '@enonic-types/lib-auth@8.1.0-RC2':
-    resolution: {integrity: sha512-M2UkHoUvN1oqvaL4yvVcIQtVh445D5FRLi4HUipX+hPKyWgJ36rWkeWYIfpwEG78fnH1qVZb35T03C2fNcc6zg==}
+  '@enonic-types/lib-auth@8.1.0-RC3':
+    resolution: {integrity: sha512-hzRBIXLJ3KGxFuNqfzGlROhX5Fd0ffGT2YC1QcEhpwPXj0YnQr5U48jASYNcQFrRExt6b92vWCDtK9Oc3JCQdA==}
 
-  '@enonic-types/lib-i18n@8.1.0-RC2':
-    resolution: {integrity: sha512-4OvMLc2JGSQkSDvBn4KZp9Frkbs7Y+ckGUhCTgp71TEw7Re0cDCUc/8KWd3MwvQ8k6gsOZHkkjthbs7/N6pRiw==}
+  '@enonic-types/lib-i18n@8.1.0-RC3':
+    resolution: {integrity: sha512-ytWmGgJFzMoGJq9ftIDTn+aiZnEWuY+FZvoHSxmV2IBBvpNEGDJdMUfPiQPDpEFrj2tV124z2PRRo66MEs5NrQ==}
 
-  '@enonic-types/lib-portal@8.1.0-RC2':
-    resolution: {integrity: sha512-n5cy8Vv0jGi9zZknFPRI7ZDY6ErsyK6tgR0Fxi86mkpuisB+2wRE2nWuKEovlEN9fIuxtExQPMG9wz291UhoZg==}
+  '@enonic-types/lib-portal@8.1.0-RC3':
+    resolution: {integrity: sha512-lXuiCf8HTe75KkqKhCGaUED/4gRRb/dwCV1OQmRJAAMkZF5MvL3XTMRX8ow7fm1JuKzFIR8Y8v0cEmtoYP/Z0g==}
 
   '@enonic/ui-types@0.4.0':
     resolution: {integrity: sha512-1/GOqQvGMpAYEkAQKfAJRpaLR9FFap8Ecyy0Vgtb8vXt+4Xmy+iujiON3BGzEVaDWUP6MIKA5jD7c7n4NpW9Zg==}
     engines: {node: '>=22.12.0'}
 
-  '@enonic/ui@1.3.0':
-    resolution: {integrity: sha512-gVSyI6bC5bLcSo5qfJ2XLf4LgQJqA4BTYKCoITKAH+zhVwJAzW7AJGzp+CuX1LuDWJIKydJOerznKhGIUcxQtA==}
+  '@enonic/ui@1.4.0':
+    resolution: {integrity: sha512-0QcU6E2gzFmZvQ5uHhuK/NBUdLxi1G5wX9CDBEUTE5uKtRVEWDtNPqI4CPdSk93l8MAvE0iH7QOgKedfx7HdKg==}
     engines: {node: '>=24.16.0', pnpm: '>=11.4.0'}
     peerDependencies:
       '@radix-ui/react-slot': ^1.2.0
-      focus-trap-react: ^12.0.0
       preact: '>=10.0.0'
       react: ^19.0.0
       react-dom: ^19.0.0
       react-virtuoso: ^4.0.0
       tw-animate-css: ^1.4.0
     peerDependenciesMeta:
-      focus-trap-react:
-        optional: true
       preact:
         optional: true
       react:
@@ -1458,8 +1455,8 @@ packages:
   tabbable@6.5.0:
     resolution: {integrity: sha512-wieBHXygIm7OyQOu5hQlkk62/WyCFYGlWg7L6/ZCUZwx0o398Zkn4pVmMyfYhfMG8kGrj/Krt8eIk6UKC6VzwA==}
 
-  tailwind-merge@3.6.0:
-    resolution: {integrity: sha512-uxL7qAVQriqRQPAyK3pj66VqskWqoZ37PW94jwOTwNfq/z9oyu1V+eqrZqtR2+fCiXdYOZe/Modt8GtvqNzu+w==}
+  tailwind-merge@3.7.0:
+    resolution: {integrity: sha512-XPPUyAc+cvspz3lHTcR/QgPfW2A0lv/xQNIjX3HGhLR+Nq2lHaLq5MtTesHn8GUr3W3DguT2KT5x3NVgRtYwmA==}
 
   tailwindcss@4.3.3:
     resolution: {integrity: sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ==}
@@ -1603,47 +1600,48 @@ snapshots:
 
   '@enonic-types/core@8.0.4': {}
 
-  '@enonic-types/core@8.1.0-RC2': {}
+  '@enonic-types/core@8.1.0-RC3': {}
 
-  '@enonic-types/global@8.1.0-RC2':
+  '@enonic-types/global@8.1.0-RC3':
     dependencies:
-      '@enonic-types/core': 8.1.0-RC2
+      '@enonic-types/core': 8.1.0-RC3
 
-  '@enonic-types/lib-admin@8.1.0-RC2':
+  '@enonic-types/lib-admin@8.1.0-RC3':
     dependencies:
-      '@enonic-types/core': 8.1.0-RC2
+      '@enonic-types/core': 8.1.0-RC3
 
   '@enonic-types/lib-asset@2.0.1':
     dependencies:
       '@enonic-types/core': 8.0.4
 
-  '@enonic-types/lib-auth@8.1.0-RC2':
+  '@enonic-types/lib-auth@8.1.0-RC3':
     dependencies:
-      '@enonic-types/core': 8.1.0-RC2
+      '@enonic-types/core': 8.1.0-RC3
 
-  '@enonic-types/lib-i18n@8.1.0-RC2':
+  '@enonic-types/lib-i18n@8.1.0-RC3':
     dependencies:
-      '@enonic-types/core': 8.1.0-RC2
+      '@enonic-types/core': 8.1.0-RC3
 
-  '@enonic-types/lib-portal@8.1.0-RC2':
+  '@enonic-types/lib-portal@8.1.0-RC3':
     dependencies:
-      '@enonic-types/core': 8.1.0-RC2
+      '@enonic-types/core': 8.1.0-RC3
 
   '@enonic/ui-types@0.4.0': {}
 
-  '@enonic/ui@1.3.0(@radix-ui/react-slot@1.4.0(@types/react@19.3.0))(@types/react@19.3.0)(focus-trap-react@12.0.3(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0))(preact@10.29.8)(tw-animate-css@1.4.0)':
+  '@enonic/ui@1.4.0(@radix-ui/react-slot@1.4.0(@types/react@19.3.0))(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(preact@10.29.8)(tw-animate-css@1.4.0)':
     dependencies:
       '@radix-ui/react-slot': 1.4.0(@types/react@19.3.0)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
-      lucide-react: 1.52.0(@types/react@19.3.0)
-      tailwind-merge: 3.6.0
-    optionalDependencies:
       focus-trap-react: 12.0.3(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)
+      lucide-react: 1.52.0(@types/react@19.3.0)
+      tailwind-merge: 3.7.0
+    optionalDependencies:
       preact: 10.29.8
       tw-animate-css: 1.4.0
     transitivePeerDependencies:
       - '@types/react'
+      - '@types/react-dom'
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -2496,7 +2494,7 @@ snapshots:
 
   tabbable@6.5.0: {}
 
-  tailwind-merge@3.6.0: {}
+  tailwind-merge@3.7.0: {}
 
   tailwindcss@4.3.3: {}
 
