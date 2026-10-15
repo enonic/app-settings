@@ -18,7 +18,7 @@ visitor sees is decided by each extension's own access rules, server-side.
 ## Requirements
 
 - JDK 25
-- Enonic XP 8.1
+- Enonic XP 8.2
 
 Node and pnpm are **not** required: Gradle downloads the pinned versions (Node 24.18.0, pnpm 10.33.4) into `.gradle/` on the first build.
 

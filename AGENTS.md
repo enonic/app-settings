@@ -5,7 +5,7 @@ applications provide and hosts them on one page. A section is an admin extension
 `settings.section` interface — app-applications ships Applications, app-users ships Users, Groups,
 Roles and ID Providers — and this app owns what they share: the app bar, the section rail, the
 theme, the toast stack, the url and the admin events hub topics. It renders nothing of a section
-itself. Single Gradle project, XP 8.1, TypeScript, Preact (React compat), Tailwind CSS v4,
+itself. Single Gradle project, XP 8.2, TypeScript, Preact (React compat), Tailwind CSS v4,
 nanostores, TanStack Router. No `lib-admin-ui`.
 
 **`docs/extensions/` is authoritative on how the shell works** — read `docs.md` before touching the
