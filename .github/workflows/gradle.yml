@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      publish: ${{ steps.publish_vars.outputs.release != 'true' && github.ref == 'refs/heads/master' }}
+      publish: ${{ steps.publish_vars.outputs.release != 'true' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/8.')) }}
       repo: ${{ steps.publish_vars.outputs.repo }}
 
     steps:
@@ -50,7 +50,7 @@ jobs:
 
       - name: Prepare Gradle arguments
         run: |
-          ARGS='build'
+          ARGS='--refresh-dependencies build'
           if [ "${{ needs.publish_vars.outputs.publish }}" = 'true' ]; then
             ARGS="$ARGS publish -Pcom.enonic.xp.app.production=true -PrepoKey=${{ needs.publish_vars.outputs.repo }} -PrepoUser=ci"
           fi
@@ -66,3 +66,18 @@ jobs:
           name: app-settings
           path: build/libs/app-settings.jar
           if-no-files-found: error
+
+  dispatch:
+    runs-on: ubuntu-latest
+
+    needs: [publish_vars, build]
+
+    if: needs.publish_vars.outputs.publish == 'true'
+
+    steps:
+      - name: Rebuild the distribution
+        uses: benc-uk/workflow-dispatch@d004979be141727c7a17c28f603e2facc40d0855 # v1.3.3
+        with:
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+          repo: enonic/xp-distro
+          workflow: gradle.yml
