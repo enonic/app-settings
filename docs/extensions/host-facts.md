@@ -21,7 +21,7 @@ design; this is what stands. `provider-facts.md` is the other side of the bounda
 
 - `lib/csp.ts`, called first thing in the tool controller: `strict()` — `default-src 'none'`,
   `base-uri 'none'`, `frame-ancestors 'none'` — then `script-src 'self'`,
-  `style-src 'self' 'unsafe-inline'`, `img-src 'self' data:`, `font-src 'self'`,
+  `style-src 'self'`, `img-src 'self' data:`, `font-src 'self'`,
   `connect-src 'self'` and `form-action 'none'`. Everything a section serves is same-origin under
   this page, so `'self'` is what makes sections work at all and the baseline covers a well-behaved
   section whole.
@@ -30,14 +30,12 @@ design; this is what stands. `provider-facts.md` is the other side of the bounda
   which is exactly what a section processor's `directive(…).isPresent()` guard tests. An unnamed
   directive is one a section cannot open. `form-action` is the single exception, and it has to be
   named: it has no `default-src` fallback.
-- `'unsafe-inline'` on `style-src` is here for one thing, the page's `@font-face` block in
-  `main.html`. Preact and `@enonic/ui` write element styles through CSSOM (`setProperty`,
-  `cssText`), which CSP does not govern at all, and a section's adopted stylesheet is a constructed
-  `CSSStyleSheet`, equally ungoverned — so this is retirable, not permanent: `nonceStyleSrcElem()`
-  on that block plus `styleSrcElem(SELF, nonce)`, since declaring `style-src-elem` takes over the
-  fallback for the `main.css` link. Until then it is the loosest source in the policy. No
-  `'strict-dynamic'` either — it would make `'self'` ignored, and every section is mounted by
-  `import(moduleUrl)`.
+- No `'unsafe-inline'` anywhere. The page serves no inline `<style>`: the `@font-face` rule lives in
+  `main.css`, whose relative `url()` resolves under the same fingerprinted asset path. Preact and
+  `@enonic/ui` write element styles through CSSOM (`setProperty`, `cssText`), which CSP does not
+  govern at all, and a section's adopted stylesheet is a constructed `CSSStyleSheet`, equally
+  ungoverned. No `'strict-dynamic'` either — it would make `'self'` ignored, and every section is
+  mounted by `import(moduleUrl)`.
 - Two keys in `com.enonic.xp.app.settings.cfg`: `contentSecurityPolicy.enabled=false` removes the
   header, `contentSecurityPolicy.header` is unioned in last so an operator can widen a directive
   without restating the baseline. Both are read trimmed — a `.cfg` value keeps its trailing
