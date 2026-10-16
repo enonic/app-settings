@@ -1,3 +1,4 @@
+import { ThemeSwitcher } from '../../widgets/theme-switcher/ThemeSwitcher';
 import { useActiveSection } from '../model/useActiveSection';
 import { useDocumentTitle } from '../model/useDocumentTitle';
 
@@ -16,6 +17,8 @@ export function AppBar() {
       className="bg-surface-neutral border-bdr-soft flex h-15 shrink-0 items-center border-b py-2 pr-24 pl-5"
     >
       <h2 className="text-lg font-semibold">{title}</h2>
+
+      <ThemeSwitcher className="ml-auto" />
     </header>
   );
 }
