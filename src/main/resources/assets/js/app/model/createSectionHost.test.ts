@@ -1,4 +1,4 @@
-import { atom } from 'nanostores';
+import { atom, type WritableAtom } from 'nanostores';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const router = vi.hoisted(() => {
@@ -28,13 +28,15 @@ vi.mock('../../shared/notifications', () => ({
 }));
 
 import type { SectionExtension } from '../../entities/extension';
-import { $resolvedTheme } from '../../shared/app-state';
+import { $resolvedTheme, type ResolvedTheme } from '../../shared/app-state';
 import { createSectionHost } from './createSectionHost';
 
 const section = { key: 'com.enonic.app.users:users', slug: 'users', url: '/x' } as SectionExtension;
+// The mock above is a writable atom; the real store is a computed.
+const $theme = $resolvedTheme as WritableAtom<ResolvedTheme>;
 
 afterEach(() => {
-  $resolvedTheme.set('light');
+  $theme.set('light');
   router.history.location.pathname = '/users';
   notify.mockClear();
 });
@@ -100,7 +102,7 @@ describe('host.theme', () => {
     const cb = vi.fn();
     host.theme.listen(cb);
 
-    $resolvedTheme.set('dark');
+    $theme.set('dark');
 
     expect(cb).toHaveBeenCalledExactlyOnceWith('dark');
     expect(host.theme.get()).toBe('dark');
@@ -112,7 +114,7 @@ describe('host.theme', () => {
     host.theme.listen(cb);
 
     revoke();
-    $resolvedTheme.set('dark');
+    $theme.set('dark');
 
     expect(cb).not.toHaveBeenCalled();
     expect(host.theme.listen(cb)).toBeTypeOf('function');
