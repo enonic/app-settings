@@ -23,7 +23,6 @@ export function get(request: Request) {
       assetsUrl: config.assetsUrl,
       mainJsUrl: assetUrl({ path: 'js/main.js' }),
       mainCssUrl: assetUrl({ path: 'css/main.css' }),
-      fontUrl: assetUrl({ path: 'fonts/OpenSans.woff2' }),
       configScriptId: CONFIG_SCRIPT_ID,
       configAsJson: serializeConfig(config),
     }),
