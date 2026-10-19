@@ -1,4 +1,4 @@
-# App Settings
+# Settings
 
 Enonic XP's Settings admin tool: the **shell** that discovers administration sections other
 applications provide and hosts them on one page. A section is an admin extension on the

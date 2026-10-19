@@ -1,5 +1,5 @@
 kind: 'Application'
-title: 'App Settings'
+title: 'Settings'
 description: 'Management app for Enonic XP'
 vendorName: 'Enonic AS'
 vendorUrl: 'https://enonic.com'
