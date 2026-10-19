@@ -99,7 +99,7 @@ export default defineConfig(({ mode }) => {
     cacheDir: join(import.meta.dirname, 'node_modules/.vite'),
     base: './', // relative asset URLs — served under XP's asset path, not domain root
     plugins: [...css.plugins, dropCssFacade],
-    resolve: { alias: js.alias, dedupe: ['preact', 'preact/compat'] },
+    resolve: { alias: js.alias, dedupe: ['preact', 'preact/compat', '@enonic/ui'] },
     build: {
       outDir: OUT,
       emptyOutDir: false, // shared with `vp pack` output — don't clear it

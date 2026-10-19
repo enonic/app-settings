@@ -1,4 +1,5 @@
-import { ThemeSwitcher } from '../../widgets/theme-switcher/ThemeSwitcher';
+import { ThemeSwitcher } from '@enonic/ui-kit';
+
 import { useActiveSection } from '../model/useActiveSection';
 import { useDocumentTitle } from '../model/useDocumentTitle';
 

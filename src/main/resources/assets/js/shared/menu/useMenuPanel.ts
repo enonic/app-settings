@@ -1,12 +1,11 @@
-import { useStore } from '@nanostores/preact';
+import { useResolvedTheme } from '@enonic/ui-kit';
 import { useEffect } from 'preact/hooks';
 
-import { $resolvedTheme } from '../app-state';
 import type { ToolConfig } from '../config';
 import { syncMenuPanel } from './menu';
 
 export function useMenuPanel({ appId, menuLoaderUrl }: ToolConfig): void {
-  const theme = useStore($resolvedTheme);
+  const theme = useResolvedTheme();
 
   useEffect(() => {
     syncMenuPanel({ loaderUrl: menuLoaderUrl, appName: appId, theme });
