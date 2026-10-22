@@ -72,6 +72,9 @@ export default defineConfig(({ mode }) => {
     environment: 'node' as const,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     passWithNoTests: true,
+    // Externalized, the kit is loaded by node itself, where neither the react → preact/compat alias
+    // nor the doubles below reach its imports; inlined, it goes through vite like the app's own code.
+    server: { deps: { inline: ['@enonic/ui-kit'] } },
     // XP supplies these at runtime; under vitest they resolve to local doubles.
     alias: {
       // Not XP libs, same problem: externalized CJS bypasses the react → preact/compat alias, and
