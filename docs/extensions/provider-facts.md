@@ -34,7 +34,7 @@ extensions.
   signatures (or the exports are dropped and the host imports an inert module), chunks and assets
   under `_static/`, react → `preact/compat` aliases plus `dedupe`, `@tailwindcss/vite`. `vp pack`
   emits the server `.ts` per file into `build/resources/main`. Gradle: `include xplibs.{admin,portal,
-io,i18n}` and `lib-graphql:3.0.0`, GraalJS pinned, `processResources` excludes the sources.
+  io,i18n}` and `lib-graphql:3.0.0`, GraalJS pinned, `processResources` excludes the sources.
 - `-Penv=dev` deploys with `X-Source-Paths`, so XP reads `src/main/resources` and
   `build/resources/main` live: `pnpm dev` or `pnpm pack:server`, then reload. A descriptor or
   dependency change needs a redeploy.
