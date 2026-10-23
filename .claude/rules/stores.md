@@ -35,8 +35,6 @@ cleared, never cached.
   pure commands over what it holds, nothing that calls an api.
 - **A loader owns the request and the cancelling**, and reports through those two commands:
   `entities/extension/model/extensions.load.ts`.
-- Prefer `onMount` for a store that owns a browser subscription, as `theme.store.ts` does for the
-  system theme.
 - Transport and parsing stay out of the store file: `config.store.ts` holds the `$config` atom and
   its setter, `config.ts` owns reading and validating the JSON island that feeds it.
 

@@ -87,7 +87,7 @@ The host and both providers were reviewed together before the contract moves to 
 the same title runs in app-applications (#2322) and app-users (#2688). In the host:
 
 - **Contract.** `Readable.listen` never calls back on subscribe: `theme` wraps
-  `$resolvedTheme.listen`, and `createSectionHost.test.ts` pins it. `Host.url` and the toast
+  `subscribeResolvedTheme`, and `createSectionHost.test.ts` pins it. `Host.url` and the toast
   `action` removed — no provider used them. Reshaped with the review of npm-enonic-ui-toolkit#8:
   `notify(tone, message, {autoHide, lifetimeMs})` in place of a notification object, `extension` on
   the host instead of parsing `baseUrl`, `RoutedHost`, `Mount` and `Module` as the names.

@@ -63,7 +63,7 @@ src/main/resources/
   i18n/phrases.properties
   assets/js/
     app/                shell, router, the host object, section mounting
-    widgets/            the rail, the theme switcher, the mount slot, the empty state, the toast list
+    widgets/            the rail, the mount slot, the empty state, the toast list
     entities/extension/ discovery: the rows, their sorting and slugs, rediscovery on events
     shared/             api client, config, i18n, admin events, notifications, app state, sections
                         (the mount contract and `mountSection`), menu
@@ -95,8 +95,10 @@ sections moved and are now the canonical copies of that code; nothing here mirro
 - Every user-visible string goes through `shared/i18n`: a component names its strings at the top with
   the `useI18n(key)` hook and renders them by name, and `i18n(key)` is the plain function for where a
   hook cannot go. Phrases live in `i18n/phrases.properties`, sentence-case. The shell's keys are
-  `app.*`, `nav.*`, `theme.*`, `sections.*`, `sectionMount.*`, `notifications.*` and `admin.tool.*`,
-  which XP resolves from `main.yaml`. A section's phrases are the provider's own and never enter this bundle.
+  `app.*`, `nav.*`, `sections.*`, `sectionMount.*`, `notifications.*` and `admin.tool.*`, which XP
+  resolves from `main.yaml`. A section's phrases are the provider's own and never enter this bundle.
+  The `enonic.uiKit.*` block holds `@enonic/ui-kit`'s own labels, which reach the kit through the
+  `translate` handed to `I18nProvider`; `ui-kit-phrases.test.ts` keeps it complete.
 - Tests sit next to the code as `*.test.ts(x)`. The vitest environment is `node` and no DOM library
   is installed, so component rendering is not tested — keep testable logic in pure helpers.
 - `AGENTS.md` is a copy of this file for agents that read that name. Edit both, keep them identical.

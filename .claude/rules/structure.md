@@ -16,13 +16,13 @@ No exceptions. A widget that needs app-level data takes it as a prop and declare
 for it — `SectionRail` owns `SectionRailItem` and `AppShell` maps the discovered sections into it,
 rather than the widget reaching up into `entities/extension`.
 
-| Layer                | Holds                                                                                   | Never                             |
-| -------------------- | --------------------------------------------------------------------------------------- | --------------------------------- |
-| `app/`               | shell, router, the host object, section mounting, bootstrap                             | domain logic                      |
-| `widgets/`           | the shell's composite blocks: rail, theme switcher, mount slot, empty state, toast list | `entities/` imports               |
-| `features/<action>/` | one user action — the shell has none today                                              | any import to or from `widgets/`  |
-| `entities/<domain>/` | one domain slice: `api/`, `model/` — `extension` is the one domain the shell has        | UI beyond a domain-specific badge |
-| `shared/`            | api client, config, i18n, admin events, notifications, app state, sections, menu        | importing anything above          |
+| Layer                | Holds                                                                            | Never                             |
+| -------------------- | -------------------------------------------------------------------------------- | --------------------------------- |
+| `app/`               | shell, router, the host object, section mounting, bootstrap                      | domain logic                      |
+| `widgets/`           | the shell's composite blocks: rail, mount slot, empty state, toast list          | `entities/` imports               |
+| `features/<action>/` | one user action — the shell has none today                                       | any import to or from `widgets/`  |
+| `entities/<domain>/` | one domain slice: `api/`, `model/` — `extension` is the one domain the shell has | UI beyond a domain-specific badge |
+| `shared/`            | api client, config, i18n, admin events, notifications, app state, sections, menu | importing anything above          |
 
 `app/` is split into two segments: `ui/` for its components, `model/` for everything else — the
 router, the section host object, the shell's hooks.
@@ -104,10 +104,12 @@ Never at module scope: a `const LABEL = i18n('x')` there runs while the module i
 before the phrases are set, and would freeze `#x#` for the session. A module constant holds **keys**,
 never resolved strings.
 
-The shell's keys: `app.*`, `nav.*`, `theme.*`, `sections.*` and `sectionMount.*` for the frame's
-states, `notifications.*` and `admin.tool.*`, which XP resolves from `main.yaml` rather than the UI. A
+The shell's keys: `app.*`, `nav.*`, `sections.*` and `sectionMount.*` for the frame's states,
+`notifications.*` and `admin.tool.*`, which XP resolves from `main.yaml` rather than the UI. A
 section's phrases are the provider's own: they arrive through its schema and never enter this bundle,
-and nothing here builds a key from a section id.
+and nothing here builds a key from a section id. The `enonic.uiKit.*` block holds `@enonic/ui-kit`'s
+own labels, which reach the kit through the `translate` handed to `I18nProvider`;
+`ui-kit-phrases.test.ts` keeps it complete.
 
 ## Sections
 
