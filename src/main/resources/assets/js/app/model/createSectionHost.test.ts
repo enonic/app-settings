@@ -1,4 +1,5 @@
-import { atom, type WritableAtom } from 'nanostores';
+import type { ResolvedTheme } from '@enonic/ui-types';
+import { atom } from 'nanostores';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const router = vi.hoisted(() => {
@@ -16,10 +17,27 @@ const router = vi.hoisted(() => {
 vi.mock('./router', () => ({ router }));
 vi.mock('../../entities/extension', () => ({ sectionExtensionByKey: () => undefined }));
 vi.mock('../../shared/config', () => ({ $config: atom(undefined) }));
-vi.mock('../../shared/app-state', async () => {
-  const { atom } = await import('nanostores');
-  return { $resolvedTheme: atom<'light' | 'dark'>('light') };
+// The stored theme, standing in for `localStorage` and the OS, which a node run has neither of.
+const theme = vi.hoisted(() => {
+  let current: ResolvedTheme = 'light';
+  const listeners = new Set<(theme: ResolvedTheme) => void>();
+  return {
+    read: () => current,
+    subscribe: (listener: (theme: ResolvedTheme) => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    /** The user switched: what `subscribeResolvedTheme` would report. */
+    set: (next: ResolvedTheme) => {
+      current = next;
+      listeners.forEach((listener) => listener(next));
+    },
+  };
 });
+vi.mock('@enonic/ui-utils', () => ({
+  readResolvedTheme: theme.read,
+  subscribeResolvedTheme: theme.subscribe,
+}));
 const notify = vi.hoisted(() => vi.fn(() => 'id'));
 vi.mock('../../shared/notifications', () => ({
   notify,
@@ -28,15 +46,12 @@ vi.mock('../../shared/notifications', () => ({
 }));
 
 import type { SectionExtension } from '../../entities/extension';
-import { $resolvedTheme, type ResolvedTheme } from '../../shared/app-state';
 import { createSectionHost } from './createSectionHost';
 
 const section = { key: 'com.enonic.app.users:users', slug: 'users', url: '/x' } as SectionExtension;
-// The mock above is a writable atom; the real store is a computed.
-const $theme = $resolvedTheme as WritableAtom<ResolvedTheme>;
 
 afterEach(() => {
-  $theme.set('light');
+  theme.set('light');
   router.history.location.pathname = '/users';
   notify.mockClear();
 });
@@ -102,7 +117,7 @@ describe('host.theme', () => {
     const cb = vi.fn();
     host.theme.listen(cb);
 
-    $theme.set('dark');
+    theme.set('dark');
 
     expect(cb).toHaveBeenCalledExactlyOnceWith('dark');
     expect(host.theme.get()).toBe('dark');
@@ -114,7 +129,7 @@ describe('host.theme', () => {
     host.theme.listen(cb);
 
     revoke();
-    $theme.set('dark');
+    theme.set('dark');
 
     expect(cb).not.toHaveBeenCalled();
     expect(host.theme.listen(cb)).toBeTypeOf('function');

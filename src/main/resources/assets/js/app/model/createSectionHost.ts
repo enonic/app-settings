@@ -1,5 +1,6 @@
+import { readResolvedTheme, subscribeResolvedTheme } from '@enonic/ui-utils';
+
 import { sectionExtensionByKey, type SectionExtension } from '../../entities/extension';
-import { $resolvedTheme } from '../../shared/app-state';
 import { $config } from '../../shared/config';
 import { dismissNotification, dismissNotifications, notify } from '../../shared/notifications';
 import type { NotifyOptions, RoutedHost, ToastTone } from '../../shared/sections';
@@ -48,16 +49,15 @@ export function createSectionHost(section: SectionExtension): MountedHost {
     baseUrl: section.url,
     extension: section.key,
     locale: $config.get()?.locale ?? 'en',
-    // ! Wrapped, not the atom itself: revocation must reach these listeners, and the raw store
-    // ! would hand the guest nanostores' `set`/`off` over the shell's own theme.
+    // ! Wrapped, not the subscription itself: revocation must reach these listeners.
     theme: {
-      get: () => $resolvedTheme.get(),
+      get: () => readResolvedTheme(),
       listen: (listener) => {
         if (revoked) {
           return () => {};
         }
 
-        const unsubscribe = $resolvedTheme.listen((theme) => listener(theme));
+        const unsubscribe = subscribeResolvedTheme((theme) => listener(theme));
         subscriptions.add(unsubscribe);
 
         return () => {

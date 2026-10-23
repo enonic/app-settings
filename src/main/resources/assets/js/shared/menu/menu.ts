@@ -1,4 +1,4 @@
-import type { ResolvedTheme } from '../app-state';
+import type { ResolvedTheme } from '@enonic/ui-types';
 
 type MenuMountOptions = {
   appName?: string;

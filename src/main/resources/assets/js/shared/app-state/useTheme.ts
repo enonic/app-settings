@@ -1,10 +1,8 @@
-import { useStore } from '@nanostores/preact';
+import { useResolvedTheme } from '@enonic/ui-kit';
 import { useEffect } from 'preact/hooks';
 
-import { $resolvedTheme } from './theme.store';
-
 export function useTheme(): void {
-  const theme = useStore($resolvedTheme);
+  const theme = useResolvedTheme();
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');

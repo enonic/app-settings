@@ -41,4 +41,4 @@ the `dark` class does not, which is why a section applies the resolved theme its
   raw palette values like `bg-gray-100`.
 - Class order is enforced by oxfmt (`sortTailwindcss`) — let `pnpm check:fix` sort it.
 - No inline `style` for anything a token or utility can express.
-- Both light and dark themes must work; theme comes from `shared/app-state/theme.store.ts`.
+- Both light and dark themes must work; paint from `useResolvedTheme()` in `@enonic/ui-kit`.
