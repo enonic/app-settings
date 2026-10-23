@@ -21,9 +21,9 @@ export default defineConfig(({ mode }) => {
   };
 
   const css = {
-    // Entry name differs from output key so css/main.css has no src/ twin; lets XP dev
+    // Entry name differs from the source so css/main.css has no src/ twin; lets XP dev
     // mode serve the compiled build/ copy, not the raw source (same as .ts → .js).
-    input: { 'css/main': join(ASSETS, 'css/index.css') },
+    input: { main: join(ASSETS, 'css/index.css') },
     plugins: [tailwindcss()],
   };
 
@@ -114,7 +114,7 @@ export default defineConfig(({ mode }) => {
           format: 'es',
           entryFileNames: '[name].js', // js/main → js/main.js
           chunkFileNames: 'js/chunks/[name]-[hash].js',
-          assetFileNames: '[name][extname]', // css entry chunk → css/main.css
+          assetFileNames,
         },
       },
     },
@@ -144,6 +144,18 @@ function silenceTanStackUseWarning(
     return;
   }
   handler(level, log);
+}
+
+// ? The directory is part of the pattern, not the name: Vite resolves a relative url() in the css
+// ? against dirname(assetFileNames(css)), so a name-borne css/ leaves the font url one level off.
+function assetFileNames({ names }: Rolldown.PreRenderedAsset): string {
+  if (names.some((name) => name.endsWith('.css'))) {
+    return 'css/[name][extname]';
+  }
+  if (names.some((name) => name.endsWith('.woff2'))) {
+    return 'fonts/[name][extname]';
+  }
+  return '[name][extname]';
 }
 
 // A CSS-only rollup entry emits an empty JS facade (css/main.js); drop it.
