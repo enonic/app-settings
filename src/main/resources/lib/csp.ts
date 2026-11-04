@@ -18,7 +18,7 @@ export function applyContentSecurityPolicy(): void {
   csp()
     .strict()
     .scriptSrc(CspSource.SELF)
-    .styleSrc(CspSource.SELF, CspSource.UNSAFE_INLINE) // the @font-face block in main.html; Preact styles go through CSSOM, ungoverned
+    .styleSrc(CspSource.SELF)
     .imgSrc(CspSource.SELF, CspSource.DATA)
     .fontSrc(CspSource.SELF)
     .connectSrc(CspSource.SELF)
