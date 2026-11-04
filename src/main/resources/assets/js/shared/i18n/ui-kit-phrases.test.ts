@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { themeSwitcherPhrases } from '@enonic/ui-kit';
+import { notificationListPhrases, themeSwitcherPhrases } from '@enonic/ui-kit';
 import { comparePhrases, type Phrases } from '@enonic/ui-utils';
 import { describe, expect, it } from 'vitest';
 
@@ -23,7 +23,9 @@ function readBundle(): Phrases {
 
 describe('phrases.properties against the kit', () => {
   it('carries every label the kit renders on its own, placeholders and all', () => {
-    expect(comparePhrases(themeSwitcherPhrases, readBundle())).toEqual({
+    const rendered: Phrases = { ...themeSwitcherPhrases, ...notificationListPhrases };
+
+    expect(comparePhrases(rendered, readBundle())).toEqual({
       missing: [],
       placeholderMismatch: [],
     });

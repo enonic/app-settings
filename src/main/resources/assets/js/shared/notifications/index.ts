@@ -1,20 +1,4 @@
-export { isUrgent, LONG_LIFETIME_MS, SHORT_LIFETIME_MS, VISIBLE_LIMIT } from './notifications';
-export type {
-  Notification,
-  NotificationAction,
-  NotificationOptions,
-  NotificationTone,
-} from './notifications';
-export {
-  $notifications,
-  clearNotifications,
-  dismissNotification,
-  dismissNotifications,
-  notify,
-  notifyError,
-  notifyInfo,
-  notifySuccess,
-  notifyWarning,
-  pauseNotification,
-  resumeNotification,
-} from './notifications.store';
+import { createNotifications } from '@enonic/ui-utils';
+
+/** The shell's one toast stack: `AppShell` renders it, every section host raises on it. */
+export const notifications = createNotifications();

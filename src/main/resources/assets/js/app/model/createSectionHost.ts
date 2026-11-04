@@ -2,7 +2,7 @@ import { readResolvedTheme, subscribeResolvedTheme } from '@enonic/ui-utils';
 
 import { sectionExtensionByKey, type SectionExtension } from '../../entities/extension';
 import { $config } from '../../shared/config';
-import { dismissNotification, dismissNotifications, notify } from '../../shared/notifications';
+import { notifications } from '../../shared/notifications';
 import type { NotifyOptions, RoutedHost, ToastTone } from '../../shared/sections';
 import { router } from './router';
 import {
@@ -95,15 +95,11 @@ export function createSectionHost(section: SectionExtension): MountedHost {
         return () => {};
       }
 
-      const id = notify({
-        tone,
-        text: message,
-        autoHide: options?.autoHide ?? true,
+      return notifications.notify(tone, message, {
+        autoHide: options?.autoHide,
         lifetimeMs: options?.lifetimeMs,
         owner: section.key,
       });
-
-      return () => dismissNotification(id);
     },
   };
 
@@ -115,7 +111,7 @@ export function createSectionHost(section: SectionExtension): MountedHost {
       subscriptions.clear();
       path.dispose();
       visible.dispose();
-      dismissNotifications(section.key);
+      notifications.dismissOwned(section.key);
     },
   };
 }

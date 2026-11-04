@@ -17,8 +17,8 @@ copies of this rule and in the toolkit's `docs/browse-framework.md`.
   everything else lands in the content column, so `Toast.Close` composed by hand renders in the
   wrong place and `withClose` is the only way to the close button — along with its hardcoded English
   `aria-label`. `Toast.Icon` renders `null` and reaches the root through context, so it has to be a
-  child rather than a prop, and it is what decides the root's `role`. `widgets/notifications/`
-  is the worked example.
+  child rather than a prop, and it is what decides the root's `role`. `NotificationList` in
+  `@enonic/ui-kit` is the worked example.
 - **`Tooltip`** portals into the `PortalProvider` layer; in the shell that is `document.body`, and
   inside a section's shadow root it is the section's `AppRoot`. Nothing here renders inside a
   section.

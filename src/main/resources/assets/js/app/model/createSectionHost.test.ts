@@ -38,11 +38,13 @@ vi.mock('@enonic/ui-utils', () => ({
   readResolvedTheme: theme.read,
   subscribeResolvedTheme: theme.subscribe,
 }));
-const notify = vi.hoisted(() => vi.fn(() => 'id'));
+const stack = vi.hoisted(() => ({
+  dismiss: vi.fn(),
+  notify: vi.fn(),
+  dismissOwned: vi.fn(),
+}));
 vi.mock('../../shared/notifications', () => ({
-  notify,
-  dismissNotification: vi.fn(),
-  dismissNotifications: vi.fn(),
+  notifications: { notify: stack.notify, dismissOwned: stack.dismissOwned },
 }));
 
 import type { SectionExtension } from '../../entities/extension';
@@ -53,7 +55,8 @@ const section = { key: 'com.enonic.app.users:users', slug: 'users', url: '/x' } 
 afterEach(() => {
   theme.set('light');
   router.history.location.pathname = '/users';
-  notify.mockClear();
+  stack.notify.mockReset();
+  stack.dismissOwned.mockClear();
 });
 
 describe('host.extension', () => {
@@ -65,18 +68,18 @@ describe('host.extension', () => {
 });
 
 describe('host.notify', () => {
-  it('raises the toast on the shell stack under this section, auto-hiding by default', () => {
+  it('raises the toast on the shell stack under this section and hands back its dismiss', () => {
+    stack.notify.mockReturnValue(stack.dismiss);
     const { host } = createSectionHost(section);
 
-    host.notify('error', 'It broke');
+    const dismiss = host.notify('error', 'It broke');
 
-    expect(notify).toHaveBeenCalledWith({
-      tone: 'error',
-      text: 'It broke',
-      autoHide: true,
+    expect(stack.notify).toHaveBeenCalledWith('error', 'It broke', {
+      autoHide: undefined,
       lifetimeMs: undefined,
       owner: 'com.enonic.app.users:users',
     });
+    expect(dismiss).toBe(stack.dismiss);
   });
 
   it('passes on the lifetime and the choice to stay', () => {
@@ -84,9 +87,19 @@ describe('host.notify', () => {
 
     host.notify('warning', 'Still here', { autoHide: false, lifetimeMs: 9000 });
 
-    expect(notify).toHaveBeenCalledWith(
+    expect(stack.notify).toHaveBeenCalledWith(
+      'warning',
+      'Still here',
       expect.objectContaining({ autoHide: false, lifetimeMs: 9000 }),
     );
+  });
+
+  it('takes down what this section raised at revoke', () => {
+    const { revoke } = createSectionHost(section);
+
+    revoke();
+
+    expect(stack.dismissOwned).toHaveBeenCalledWith('com.enonic.app.users:users');
   });
 
   it('does nothing once revoked', () => {
@@ -95,7 +108,7 @@ describe('host.notify', () => {
 
     const dismiss = host.notify('info', 'Too late');
 
-    expect(notify).not.toHaveBeenCalled();
+    expect(stack.notify).not.toHaveBeenCalled();
     expect(dismiss).toBeTypeOf('function');
   });
 });
