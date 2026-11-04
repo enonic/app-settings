@@ -12,6 +12,7 @@ import { useTheme } from '../../shared/app-state';
 import type { ToolConfig } from '../../shared/config';
 import { translate } from '../../shared/i18n';
 import { useMenuPanel } from '../../shared/menu';
+import { startConnectionNotices } from '../model/connection-notices';
 import { router } from '../model/router';
 
 export type AppProps = {
@@ -22,10 +23,12 @@ export function App({ config }: AppProps) {
   useTheme();
   useMenuPanel(config);
 
-  const adminEventsUrl = config.apis.adminEvents;
   useEffect(() => {
-    connectAdminEvents(adminEventsUrl);
-  }, [adminEventsUrl]);
+    const stopConnectionNotices = startConnectionNotices();
+    connectAdminEvents();
+
+    return stopConnectionNotices;
+  }, []);
 
   useEffect(() => {
     void loadSectionExtensions();

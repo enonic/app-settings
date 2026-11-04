@@ -95,7 +95,7 @@ sections moved and are now the canonical copies of that code; nothing here mirro
 - Every user-visible string goes through `shared/i18n`: a component names its strings at the top with
   the `useI18n(key)` hook and renders them by name, and `i18n(key)` is the plain function for where a
   hook cannot go. Phrases live in `i18n/phrases.properties`, sentence-case. The shell's keys are
-  `app.*`, `nav.*`, `sections.*`, `sectionMount.*` and `admin.tool.*`, which XP
+  `app.*`, `nav.*`, `sections.*`, `sectionMount.*`, `connection.*` and `admin.tool.*`, which XP
   resolves from `main.yaml`. A section's phrases are the provider's own and never enter this bundle.
   The `enonic.uiKit.*` block holds `@enonic/ui-kit`'s own labels, which reach the kit through the
   `translate` handed to `I18nProvider`; `ui-kit-phrases.test.ts` keeps it complete.
