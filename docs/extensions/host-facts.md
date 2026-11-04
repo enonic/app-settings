@@ -62,6 +62,9 @@ design; this is what stands. `provider-facts.md` is the other side of the bounda
 - Rediscovery on `application` events `INSTALLED | UNINSTALLED | STARTED | STOPPED | UPDATED`,
   debounced 300 ms, and on every socket reconnect. It never shows "loading"; a failure sets
   `items: []`, and every mount goes with it.
+- A hub connection lost for over a second raises `connection.lost`, taken down when the socket is
+  back; an ended session raises `connection.sessionEnded` for good, with a reload
+  (`app/model/connection-notices.ts`). Both are the shell's own toasts, owned by no section.
 - With nothing to mount the content area carries the state itself (`emptyReason` in `AppShell`,
   `widgets/sections-empty/`): `sections.empty` where discovery answered with no section — plus
   `sections.empty.hint` for a visitor who is not `system.admin` — and `sections.failed` where it could
