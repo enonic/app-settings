@@ -1,6 +1,8 @@
+import { NotificationList } from '@enonic/ui-kit';
+
 import { useSectionExtensions, type SectionExtensionsState } from '../../entities/extension';
 import { isSystemAdmin } from '../../shared/config';
-import { NotificationList } from '../../widgets/notifications/NotificationList';
+import { notifications } from '../../shared/notifications';
 import { SectionRail, type SectionRailItem } from '../../widgets/section-rail/SectionRail';
 import { SectionsEmpty } from '../../widgets/sections-empty/SectionsEmpty';
 import { sectionPath } from '../model/section-path';
@@ -11,6 +13,13 @@ import { AppBar } from './AppBar';
 import { SectionMounts } from './SectionMounts';
 
 const APP_SHELL_NAME = 'AppShell';
+
+// The selector, combobox and tooltip are `z-50` and portal to the body, so they win at an equal
+// z-index. Hence 60 rather than the 50 that would clear dialogs and menus.
+const NOTIFICATIONS_POSITION =
+  'pointer-events-none fixed right-0 bottom-0 z-60 w-full px-2 pb-2 ' +
+  'sm:right-9 sm:bottom-6 sm:max-w-115 sm:p-0 ' +
+  'md:right-11.5 md:bottom-7.5 lg:right-15 lg:bottom-10 2xl:right-23 2xl:bottom-15';
 
 export function AppShell() {
   useSectionRedirect();
@@ -51,7 +60,7 @@ export function AppShell() {
         </main>
       </div>
 
-      <NotificationList />
+      <NotificationList notifications={notifications} className={NOTIFICATIONS_POSITION} />
     </div>
   );
 }

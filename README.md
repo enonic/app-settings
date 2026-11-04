@@ -105,7 +105,7 @@ The frontend under `src/main/resources/assets/js`:
 
 ```
 app/                 shell, router, the host object handed to each section, section mounting
-widgets/             the rail, the mount slot, the empty state, the toast list
+widgets/             the rail, the mount slot, the empty state
 entities/extension/  discovery of the sections and their live rediscovery
 shared/              api client, config, i18n, admin events, notifications, the mount contract
 ```

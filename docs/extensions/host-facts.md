@@ -110,16 +110,16 @@ design; this is what stands. `provider-facts.md` is the other side of the bounda
 No `Readable` calls back on `listen`: a guest reads `get()` first. `createSectionHost.test.ts`
 pins it for `theme`, `section-path.test.ts` for `path`.
 
-| Member                     | Host-side behaviour                                                                                                                                                                   |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `baseUrl`                  | the extension prefix                                                                                                                                                                  |
-| `extension`                | the descriptor key `<app>:<name>` — how a multi-section module knows which section it is                                                                                              |
-| `locale`                   | the tool config's locale                                                                                                                                                              |
-| `theme`                    | a `listen` wrapper over `subscribeResolvedTheme` from `@enonic/ui-utils`; listeners dropped at revoke                                                                                 |
-| `visible`                  | whether the section is the one the url shows, emitted once per switch; disposed at revoke                                                                                             |
-| `path`                     | frozen while hidden; on return emits only if the sub-path moved; disposed at revoke                                                                                                   |
-| `navigate(sub, {replace})` | `router.history.push/replace` of `/<slug><sub>`, search verbatim; no-op with a console warning while hidden or after revoke                                                           |
-| `notify`                   | `(tone, message, {autoHide, lifetimeMs})` onto the shell's stack with `owner = key`; dedup on tone + text + owner; returns dismiss; a mount's toasts come down at revoke; no-op after |
+| Member                     | Host-side behaviour                                                                                                                                                                      |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `baseUrl`                  | the extension prefix                                                                                                                                                                     |
+| `extension`                | the descriptor key `<app>:<name>` — how a multi-section module knows which section it is                                                                                                 |
+| `locale`                   | the tool config's locale                                                                                                                                                                 |
+| `theme`                    | a `listen` wrapper over `subscribeResolvedTheme` from `@enonic/ui-utils`; listeners dropped at revoke                                                                                    |
+| `visible`                  | whether the section is the one the url shows, emitted once per switch; disposed at revoke                                                                                                |
+| `path`                     | frozen while hidden; on return emits only if the sub-path moved; disposed at revoke                                                                                                      |
+| `navigate(sub, {replace})` | `router.history.push/replace` of `/<slug><sub>`, search verbatim; no-op with a console warning while hidden or after revoke                                                              |
+| `notify`                   | `(tone, message, {autoHide, lifetimeMs})` onto the shell's stack with `owner = key`; dedup on tone + message + owner; returns dismiss; a mount's toasts come down at revoke; no-op after |
 
 `NotifyOptions` and the dismiss return are implemented and used by no provider yet. `url` and a toast
 `action` were in v1 and went unused; #134 removed them before the contract is published.

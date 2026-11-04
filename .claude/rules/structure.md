@@ -105,7 +105,7 @@ before the phrases are set, and would freeze `#x#` for the session. A module con
 never resolved strings.
 
 The shell's keys: `app.*`, `nav.*`, `sections.*` and `sectionMount.*` for the frame's states,
-`notifications.*` and `admin.tool.*`, which XP resolves from `main.yaml` rather than the UI. A
+and `admin.tool.*`, which XP resolves from `main.yaml` rather than the UI. A
 section's phrases are the provider's own: they arrive through its schema and never enter this bundle,
 and nothing here builds a key from a section id. The `enonic.uiKit.*` block holds `@enonic/ui-kit`'s
 own labels, which reach the kit through the `translate` handed to `I18nProvider`;
