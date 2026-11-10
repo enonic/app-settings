@@ -104,7 +104,7 @@ Never at module scope: a `const LABEL = i18n('x')` there runs while the module i
 before the phrases are set, and would freeze `#x#` for the session. A module constant holds **keys**,
 never resolved strings.
 
-The shell's keys: `app.*`, `nav.*`, `sections.*` and `sectionMount.*` for the frame's states,
+The shell's keys: `app.*`, `nav.*`, `sections.*`, `sectionMount.*` and `connection.*` for the frame's states,
 and `admin.tool.*`, which XP resolves from `main.yaml` rather than the UI. A
 section's phrases are the provider's own: they arrive through its schema and never enter this bundle,
 and nothing here builds a key from a section id. The `enonic.uiKit.*` block holds `@enonic/ui-kit`'s
