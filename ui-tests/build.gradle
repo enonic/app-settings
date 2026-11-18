@@ -145,6 +145,9 @@ tasks.register( 'startServer' ) {
         process = pb.start()
         sleep( 10000 )
     }
+    // Whatever fails once the server is up - the readiness check, an install, the specs - it is
+    // stopped: a finalizer runs even when the task it was waiting behind never did.
+    finalizedBy 'stopServer'
 }
 tasks.register( 'waitForServer') {
     description = 'Waits for the XP server'
@@ -158,6 +161,13 @@ tasks.register( 'waitForServer') {
         boolean ready = false
         while (!ready && System.nanoTime() < deadline) {
             logger.lifecycle("Waiting for server server...")
+
+            // The server this build started is gone - a port already taken, most likely. Without
+            // this the check below would take the answer of whatever else listens on 2609 and the
+            // specs would run against a server that does not hold the jar under test.
+            if ( process != null && !process.isAlive() ) {
+                throw new GradleException( 'The XP server exited before it was ready - see build/reports/logs/xp.log' )
+            }
 
             try {
                 HttpURLConnection conn = (HttpURLConnection) uri("http://localhost:2609/ready").toURL().openConnection()
@@ -188,6 +198,9 @@ tasks.register( 'waitForServer') {
 tasks.register( 'stopServer' ) {
     description = 'Stops the XP server'
     group = 'Test Execution'
+    // It finalizes startServer, and would otherwise run right after it: held back until everything
+    // that needs the server has run - or failed.
+    mustRunAfter 'downloadApps', 'pnpmInstall', 'waitForServer', 'testSettingsApp', 'generateReportAndStopServer', 'cleanup'
     doLast {
         if ( process == null ) {
             logger.warn( 'Server process not found - it might already be stopped' )
