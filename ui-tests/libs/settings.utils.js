@@ -260,6 +260,25 @@ module.exports = {
     return body.data;
   },
 
+  // Waits until a role with the given display name exists. A test application is copied into
+  // home/deploy while the server is starting and creates its roles when it starts, which may be a
+  // moment after the server reports itself ready.
+  async waitForRoleExists(displayName, ms = 30000) {
+    const deadline = Date.now() + ms;
+    for (;;) {
+      const data = await this.sendGraphQlRequest('{ roles { displayName } }', {});
+      if (data.roles.some((role) => role.displayName === displayName)) {
+        return;
+      }
+      if (Date.now() >= deadline) {
+        throw new Error(
+          `The role '${displayName}' does not exist after ${ms} ms - is its application deployed?`,
+        );
+      }
+      await this.getBrowser().pause(1000);
+    }
+  },
+
   // The keys of roles from their display names ('Users App') - a principal key ('role:...') is
   // taken as is. Read once for the whole list.
   async resolveRoleKeys(roles) {

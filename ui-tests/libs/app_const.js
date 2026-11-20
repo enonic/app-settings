@@ -43,6 +43,39 @@ module.exports = Object.freeze({
     ROLES: 'Roles',
     ID_PROVIDERS: 'ID Providers',
   },
+  // The sections of the test application 'Test ADFS ID Provider' (com.enonic.uitest:adfs-idprovider),
+  // in the order the rail lists them: each with its title, the 'data-section' of its mount, its url
+  // segment and the line its page shows to a visitor holding the 'Admin Test Provider App' role
+  // ('Viewer ...' to one holding 'Test Provider App').
+  TEST_PROVIDER: {
+    ROLE: {
+      ADMIN: 'Admin Test Provider App',
+      APP: 'Test Provider App',
+    },
+    SECTIONS: [
+      {
+        title: 'Test User Extension',
+        id: 'com.enonic.uitest.adfs_idprovider:test-users',
+        path: 'test-provider-users',
+        administratorText: 'Administrator User Extension',
+        viewerText: 'Viewer User Extension',
+      },
+      {
+        title: 'Test Group Extension',
+        id: 'com.enonic.uitest.adfs_idprovider:test-groups',
+        path: 'test-provider-groups',
+        administratorText: 'Administrator Group Extension',
+        viewerText: 'Viewer Group Extension',
+      },
+      {
+        title: 'Test Role Extension',
+        id: 'com.enonic.uitest.adfs_idprovider:test-roles',
+        path: 'test-provider-roles',
+        administratorText: 'Administrator Role Extension',
+        viewerText: 'Viewer Role Extension',
+      },
+    ],
+  },
   // 'data-section' of the SectionMount that hosts the extension's shadow root
   SECTION_ID: {
     APPLICATIONS: 'com.enonic.xp.app.applications:applications',
@@ -62,14 +95,6 @@ module.exports = Object.freeze({
     ROLES: 'roles',
     ID_PROVIDERS: 'id-providers',
   },
-  // 'data-component' of a section's browse screen, the root of what BrowsePage locates.
-  PAGE_COMPONENT: {
-    SERVICE_ACCOUNTS: 'ServiceAccountsPage',
-    USERS: 'UsersPage',
-    GROUPS: 'GroupsPage',
-    ROLES: 'RolesPage',
-    ID_PROVIDERS: 'IdProvidersPage',
-  },
   // The browser tab over a section (phrase: app.tabTitle, then the section's title).
   documentTitle: (section) => `XP Settings / ${section}`,
   // The Settings admin tool, relative to 'base.url'.
@@ -78,22 +103,6 @@ module.exports = Object.freeze({
   SECTIONS_EMPTY: {
     MESSAGE: 'No administration applications',
     HINT: 'Install one, or check that its access rules include you',
-  },
-  // The shell's own toasts about the events connection (phrases: connection.*).
-  CONNECTION: {
-    LOST: 'Lost connection to the server. Changes will show once it is back',
-    SESSION_ENDED: 'Your session has ended. Reload the page to sign in again',
-    RELOAD: 'Reload',
-  },
-  // The banner a section shows in place of its toolbar to a visitor who may read but not write
-  // (app-users phrases: readOnly.*).
-  READ_ONLY: {
-    TITLE: 'Read-only mode',
-    HELP: 'Contact your administrator to make changes',
-  },
-  // What the details panel shows in place of an item (phrases: browse.details.*): nothing selected.
-  DETAILS_MESSAGE: {
-    SELECT_AN_ITEM: 'Select an item to see its details',
   },
   // The GraphQL endpoint of a section, relative to the admin origin. One schema serves every section
   // of app-users, so any of them takes any query; the gate differs per section.
