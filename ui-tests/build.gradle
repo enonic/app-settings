@@ -1,0 +1,268 @@
+// UI tests for the Settings shell: unpack an XP distro, put the jar under test in place of the one the
+// distro bundles, start the server and run the wdio suite against it. Mirrors
+// app-applications/ui-tests/build.gradle.
+//
+// Plugin versions come from the root build (plugins DSL puts them on the whole build's classpath),
+// so none are repeated here.
+plugins {
+    id 'java'
+    id 'com.enonic.defaults'
+    id 'com.enonic.xp.base'
+    id 'com.github.node-gradle.node'
+}
+group = 'com.enonic.xp.app.settings.js_testing'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    xp.enonicRepo( 'dev' )
+}
+
+// Same Node + pnpm as the root build; share its download dirs so a checkout fetches Node once.
+node {
+    download = true
+    version = '24.18.0'
+    pnpmVersion = '10.33.4'
+    workDir = rootProject.file( '.gradle/nodejs' )
+    pnpmWorkDir = rootProject.file( '.gradle/pnpm' )
+}
+
+configurations {
+    distro
+    apps {
+        transitive false
+        // The test applications are SNAPSHOTs that change under one version, and Gradle would keep
+        // a downloaded one for a day: looked up anew on every run instead.
+        resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+    }
+}
+
+def unpackDir = layout.buildDirectory.dir( 'install' ).get()
+// The distro and the app it bundles are of xpVersion, not of this build's version.
+def distroDir = unpackDir.dir( "enonic-xp-generic-$xpVersion" )
+def xpHome = distroDir.dir('home')
+def testConfDir = "$projectDir/test-config"
+def deployDir = distroDir.dir( 'home/deploy' )
+def configDir = "$xpHome/config"
+
+
+dependencies {
+    distro "com.enonic.xp:enonic-xp-generic:$xpVersion@tgz"
+    // Test ADFS ID Provider (enonic/uitest-adfs-provider): three `settings.section` extensions of its
+    // own and the two roles they are open to. downloadApps checks that the jar it got has them.
+    apps 'com.enonic.uitest:adfs-idprovider:2.0.0-SNAPSHOT'
+}
+
+// What the specs need of the adfs-idprovider jar. A snapshot built before the extensions were added
+// carries the same version, and with it most of the suite fails on a role that never appears.
+def requiredExtensions = ['test-users', 'test-groups', 'test-roles'].collect {
+    "admin/extensions/${it}/${it}.yaml".toString()
+}
+
+tasks.register( 'unpackDistro', Copy ) {
+    description = 'Unpacks the XP distribution for testing'
+    group = 'Test Setup'
+    from {
+        configurations.distro.collect { tarTree( it ) }
+    }
+    into unpackDir
+}
+
+tasks.register( 'copyConfig', Copy ) {
+    description = 'Copies configuration files to the test environment'
+    group = 'Test Setup'
+    doLast {
+        logger.info( 'Configuration files copied from: {}', "$testConfDir${File.separator}common-config" )
+    }
+    from "$testConfDir${File.separator}common-config"
+    include '**.*.cfg'
+    include '*.properties'
+    into configDir
+    mustRunAfter tasks.named( 'unpackDistro' )
+}
+
+tasks.register( 'downloadApps', Copy ) {
+    description = 'Downloads the test applications and deploys them into home/deploy'
+    group = 'Test Setup'
+
+    from {
+        configurations.apps
+    }
+    into deployDir
+    mustRunAfter tasks.named( 'startServer' )
+    doFirst {
+        configurations.apps.files.findAll { it.name.startsWith( 'adfs-idprovider' ) }.each { jar ->
+            def entries = new java.util.zip.ZipFile( jar ).withCloseable { zip -> zip.entries().collect { it.name } }
+            def missing = requiredExtensions - entries
+            if ( !missing.isEmpty() ) {
+                throw new GradleException( "${jar.name} has no ${missing.join( ', ' )}: it is a snapshot of " +
+                    'enonic/uitest-adfs-provider from before its settings.section extensions were added. ' +
+                    'Publish the current one, or run with --refresh-dependencies.' )
+            }
+        }
+    }
+    doLast {
+        println 'Task downloadApps completed successfully.'
+        println 'Downloaded artifacts:'
+        configurations.apps.files.each { file -> println "- ${file.name}" }
+    }
+}
+
+tasks.register( 'deployApp', DefaultTask ) {
+    description = 'Deploy the main application'
+    group = 'Test Setup'
+
+    def appName = rootProject.tasks.named("jar", Jar).get().archiveBaseName.get()
+    def appFile = distroDir.file("system/40/${appName}-${xpVersion}.jar").asFile
+
+    outputs.files( appFile )
+    outputs.upToDateWhen { false }
+    doLast {
+        // The default is the jar the root build makes. Built as a File, not a string: on Windows
+        // $rootDir carries backslashes and 'file:///C:...' is not a URI Gradle can turn into a file.
+        def defaultJar = rootProject.layout.buildDirectory.file( "libs/${appName}.jar" ).get().asFile
+        def appUrl = findProperty( 'appUrl' ) != null ? uri( findProperty( 'appUrl' ) as String ) : defaultJar.toURI()
+
+        if ( findProperty( 'appUrl' ) == null && !defaultJar.exists() )
+        {
+            throw new GradleException( "${defaultJar} does not exist - build the app first (gradlew build) or pass -PappUrl=<url>" )
+        }
+
+        println "Deleting ${appFile}. Exists ${appFile.exists()}"
+        appFile.delete()
+
+        println "Copying from ${appUrl} to ${appFile}"
+        appUrl.toURL().withInputStream { i -> appFile.withOutputStream { it << i } }
+    }
+    mustRunAfter tasks.named( 'unpackDistro' )
+}
+
+
+def process
+tasks.register( 'startServer' ) {
+    description = 'Starts the XP server for testing'
+    group = 'Test Execution'
+    dependsOn( tasks.named( 'unpackDistro' ) )
+    // The config and the app under test are read at startup: both must be in place before it.
+    mustRunAfter tasks.named( 'copyConfig' ), tasks.named( 'deployApp' )
+    doLast {
+        sleep( 5000 )
+        logger.lifecycle( 'Starting XP Server at: {}', xpHome )
+        logger.lifecycle( 'Server logs will be written to: build/reports/logs/xp.log' )
+        def pb
+        if ( System.getProperty( 'os.name' ).toLowerCase().contains( 'windows' ) ) {
+            pb = new ProcessBuilder( 'cmd', '/c', new File( "${distroDir}/bin/server.bat" ).path )
+        }
+        else {
+            pb = new ProcessBuilder( "${distroDir}/bin/server.sh" )
+        }
+        Map<String, String> env = pb.environment()
+        env.put( 'XP_HOME', "${xpHome}".toString() )
+
+        def logsPath = layout.buildDirectory.dir( 'reports/logs' ).get()
+        mkdir logsPath.asFile
+        pb.redirectOutput( logsPath.file( 'xp.log' ).asFile )
+        pb.redirectErrorStream( true )
+        process = pb.start()
+        sleep( 10000 )
+    }
+    // Whatever fails once the server is up - the readiness check, an install, the specs - it is
+    // stopped: a finalizer runs even when the task it was waiting behind never did.
+    finalizedBy 'stopServer'
+}
+tasks.register( 'waitForServer') {
+    description = 'Waits for the XP server'
+    group = 'Test Setup'
+    mustRunAfter tasks.named( 'startServer' ), tasks.named( 'downloadApps' )
+
+    doLast {
+        long maxWaitMs = 60000
+        long deadline = System.nanoTime() + maxWaitMs * 1_000_000L
+
+        boolean ready = false
+        while (!ready && System.nanoTime() < deadline) {
+            logger.lifecycle("Waiting for server server...")
+
+            // The server this build started is gone - a port already taken, most likely. Without
+            // this the check below would take the answer of whatever else listens on 2609 and the
+            // specs would run against a server that does not hold the jar under test.
+            if ( process != null && !process.isAlive() ) {
+                throw new GradleException( 'The XP server exited before it was ready - see build/reports/logs/xp.log' )
+            }
+
+            try {
+                HttpURLConnection conn = (HttpURLConnection) uri("http://localhost:2609/ready").toURL().openConnection()
+                conn.setConnectTimeout(1000)
+                conn.setReadTimeout(1000)
+                conn.connect()
+                int code = conn.getResponseCode()
+                if (code == 200) {
+                    ready = true
+                    break
+                }
+            } catch (IOException ignored) {
+                // Not up yet; retry
+            }
+            sleep(1000)
+
+        }
+        if (ready) {
+            logger.lifecycle('Server is ready.')
+        } else {
+            throw new GradleException("Server not ready after ${maxWaitMs} ms.")
+        }
+
+        sleep(1000)
+    }
+}
+
+tasks.register( 'stopServer' ) {
+    description = 'Stops the XP server'
+    group = 'Test Execution'
+    // It finalizes startServer, and would otherwise run right after it: held back until everything
+    // that needs the server has run - or failed.
+    mustRunAfter 'downloadApps', 'pnpmInstall', 'waitForServer', 'testSettingsApp', 'generateReportAndStopServer', 'cleanup'
+    doLast {
+        if ( process == null ) {
+            logger.warn( 'Server process not found - it might already be stopped' )
+            return
+        }
+
+        // server.bat / server.sh spawn the JVM as a child, so kill the whole tree.
+        logger.lifecycle( "Stopping server process (PID: ${process.pid()})..." )
+        process.descendants().forEach { it.destroyForcibly() }
+        process.destroyForcibly()
+        process = null
+    }
+}
+
+tasks.register( 'cleanup', Delete ) {
+    description = 'Cleans up test reports'
+    group = 'Test Cleanup'
+    delete './build/reports/allure'
+}
+
+// Test execution tasks
+tasks.register( 'testSettingsApp', PnpmTask ) {
+    description = 'Runs the Settings shell UI tests in Chrome'
+    group = 'verification'
+
+    dependsOn tasks.named( 'pnpmInstall' )
+    dependsOn tasks.named( 'unpackDistro' )
+    dependsOn tasks.named( 'copyConfig' )
+    dependsOn tasks.named( 'downloadApps' )
+    dependsOn tasks.named( 'deployApp' )
+    dependsOn tasks.named( 'startServer' )
+    dependsOn tasks.named( 'waitForServer' )
+    mustRunAfter tasks.named( 'waitForServer' )
+    args = ['--color', 'run', 'test_settings:wdio_chrome']
+    finalizedBy tasks.named( 'generateReportAndStopServer' )
+    finalizedBy tasks.named( 'stopServer' )
+}
+tasks.register( 'generateReportAndStopServer', PnpmTask ) {
+    description = 'Generates test report and stops server'
+    group = 'Test Reporting'
+    args = ['--color', 'run', 'allure-report']
+    finalizedBy tasks.named( 'cleanup' )
+    finalizedBy tasks.named( 'stopServer' )
+}
