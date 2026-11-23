@@ -1,6 +1,6 @@
 // UI tests for the Settings shell: unpack an XP distro, put the jar under test in place of the one the
 // distro bundles, start the server and run the wdio suite against it. Mirrors
-// app-applications/ui-tests/build.gradle.
+// the ui-tests of the applications that add sections to it.
 //
 // Plugin versions come from the root build (plugins DSL puts them on the whole build's classpath),
 // so none are repeated here.
@@ -53,11 +53,13 @@ dependencies {
     apps 'com.enonic.uitest:adfs-idprovider:2.0.0-SNAPSHOT'
 }
 
-// What the specs need of the adfs-idprovider jar. A snapshot built before the extensions were added
-// carries the same version, and with it most of the suite fails on a role that never appears.
+// What the specs need of the adfs-idprovider jar: its three sections and, in main.js, the two fixed
+// accounts they log in as. A snapshot built before those were added carries the same version, and
+// with it the suite fails on a section or a login that is not there.
 def requiredExtensions = ['test-users', 'test-groups', 'test-roles'].collect {
     "admin/extensions/${it}/${it}.yaml".toString()
 }
+def requiredAccounts = ['test-provider-no-sections', 'test-provider-viewer']
 
 tasks.register( 'unpackDistro', Copy ) {
     description = 'Unpacks the XP distribution for testing'
@@ -92,11 +94,15 @@ tasks.register( 'downloadApps', Copy ) {
     mustRunAfter tasks.named( 'startServer' )
     doFirst {
         configurations.apps.files.findAll { it.name.startsWith( 'adfs-idprovider' ) }.each { jar ->
-            def entries = new java.util.zip.ZipFile( jar ).withCloseable { zip -> zip.entries().collect { it.name } }
-            def missing = requiredExtensions - entries
+            def missing = new java.util.zip.ZipFile( jar ).withCloseable { zip ->
+                def main = zip.getEntry( 'main.js' )
+                def mainJs = main == null ? '' : zip.getInputStream( main ).getText( 'UTF-8' )
+                requiredExtensions.findAll { zip.getEntry( it ) == null } +
+                    requiredAccounts.findAll { !mainJs.contains( it ) }.collect { "the account '${it}'".toString() }
+            }
             if ( !missing.isEmpty() ) {
-                throw new GradleException( "${jar.name} has no ${missing.join( ', ' )}: it is a snapshot of " +
-                    'enonic/uitest-adfs-provider from before its settings.section extensions were added. ' +
+                throw new GradleException( "${jar.name} is missing ${missing.join( ', ' )}: it is a snapshot of " +
+                    'enonic/uitest-adfs-provider from before its test sections and accounts were added. ' +
                     'Publish the current one, or run with --refresh-dependencies.' )
             }
         }
@@ -128,7 +134,12 @@ tasks.register( 'deployApp', DefaultTask ) {
             throw new GradleException( "${defaultJar} does not exist - build the app first (gradlew build) or pass -PappUrl=<url>" )
         }
 
-        println "Deleting ${appFile}. Exists ${appFile.exists()}"
+        // The jar is put in place of the one the distro bundles. Without that one the name is not the
+        // one XP loads, and the specs would run against whatever the distro has instead.
+        if ( !appFile.exists() )
+        {
+            throw new GradleException( "${appFile} is not in the distro - the jar under test has nothing to replace" )
+        }
         appFile.delete()
 
         println "Copying from ${appUrl} to ${appFile}"

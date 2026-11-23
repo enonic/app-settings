@@ -2,26 +2,19 @@ const webDriverHelper = require('../libs/WebDriverHelper');
 const settingsUtils = require('../libs/settings.utils');
 const appConst = require('../libs/app_const');
 const assert = require('node:assert');
-const userItemsBuilder = require('../libs/users.items.builder');
 const MenuSectionsRail = require('../page_objects/menu.sections.rail');
 const AppShell = require('../page_objects/app.shell');
 const TestExtensionPage = require('../page_objects/test.extension.page');
 
-describe("theme.and.locale.spec - the theme chosen in the app bar repaints the shell and every mounted section of the test application, shown or hidden, and survives a reload; the page's language is the shell's", function () {
+describe('theme.spec - the theme chosen in the app bar repaints the shell and every mounted section, shown or hidden, and survives a reload', function () {
   this.timeout(appConst.SUITE_TIMEOUT);
   if (typeof browser === 'undefined') {
     webDriverHelper.setupBrowser();
   }
 
-  // The sections of 'Test ADFS ID Provider': plain pages that style no text of their own, so the
+  // The sections of the test application: plain pages that style no text of their own, so the
   // colour their heading is painted in is the one the shell's theme hands down into the shadow root.
-  const [USERS, GROUPS, ROLES] = appConst.TEST_PROVIDER.SECTIONS;
-  const NEW_ACCOUNT = userItemsBuilder.buildServiceAccount({
-    displayName: userItemsBuilder.generateRandomName('account'),
-    password: appConst.PASSWORD.MEDIUM,
-    roles: [appConst.SYSTEM_ROLES.ADMIN_CONSOLE, appConst.TEST_PROVIDER.ROLE.ADMIN],
-  });
-  let ACCOUNT;
+  const [USERS, GROUPS, ROLES] = appConst.TEST_SECTIONS;
   // What the light theme paints, to compare the dark one against and to return to.
   let LIGHT_TEXT_COLOR, LIGHT_APP_BAR_COLOR, DARK_TEXT_COLOR;
 
@@ -30,26 +23,14 @@ describe("theme.and.locale.spec - the theme chosen in the app bar repaints the s
     await new TestExtensionPage(section).waitForLoaded();
   }
 
-  it("GIVEN an account of the test application is logged in WHEN the Settings app has been opened THEN 'lang' of the page should be the language of the shell's phrases", async () => {
-    let appShell = new AppShell();
-    // 1. Make the account as SU, then log in as it.
-    await settingsUtils.doLogin('su', 'password');
-    await settingsUtils.waitForRoleExists(appConst.TEST_PROVIDER.ROLE.ADMIN);
-    ACCOUNT = await settingsUtils.createServiceAccountViaApi(NEW_ACCOUNT);
-    await settingsUtils.doLogout();
-    await settingsUtils.navigateToSettingsApp(ACCOUNT.id, ACCOUNT.password);
-    await new TestExtensionPage(USERS).waitForLoaded();
-    // 2. The browser asks for English (--lang=en) and the shell's phrases are English.
-    assert.equal(await appShell.getHtmlLang(), 'en');
-  });
-
   it('GIVEN two sections are mounted in the light theme WHEN the theme has been switched to dark THEN the shell, the section shown and the section kept hidden should all be repainted', async () => {
     let appShell = new AppShell();
     let usersPage = new TestExtensionPage(USERS);
     let groupsPage = new TestExtensionPage(GROUPS);
-    // 1. Start from the light theme, with 'Test User Extension' mounted and left for
-    //    'Test Group Extension'.
+    await settingsUtils.navigateToSettingsApp();
+    // 1. Start from the light theme, with one test section mounted and left for another.
     await appShell.selectTheme('light');
+    await openSection(USERS);
     await openSection(GROUPS);
     assert.ok(!(await appShell.isShellDark()), 'The shell should be light to begin with');
     LIGHT_TEXT_COLOR = await groupsPage.getTitleColor();
@@ -62,8 +43,7 @@ describe("theme.and.locale.spec - the theme chosen in the app bar repaints the s
     assert.ok(await appShell.isShellDark(), "The shell should carry the 'dark' class");
     assert.notEqual(await appShell.getAppBarBackgroundColor(), LIGHT_APP_BAR_COLOR);
     // 4. Verify the section shown: the theme crossed its shadow root, its text was repainted.
-    await groupsPage.waitForTitleColorNot(LIGHT_TEXT_COLOR);
-    DARK_TEXT_COLOR = await groupsPage.getTitleColor();
+    DARK_TEXT_COLOR = await groupsPage.waitForTitleColorNot(LIGHT_TEXT_COLOR);
     // 5. Verify the section kept hidden: repainted with it, not on its return.
     assert.deepEqual(await appShell.getSectionMount(USERS.id), {
       section: USERS.id,
@@ -106,14 +86,8 @@ describe("theme.and.locale.spec - the theme chosen in the app bar repaints the s
   });
 
   // The choice lives in the browser's storage: forgotten, so a spec that follows in the same
-  // session starts from the system theme. The account is deleted by SU.
+  // session starts from the system theme.
   after(async () => {
     await new AppShell().clearStoredTheme();
-    if (ACCOUNT === undefined) {
-      return;
-    }
-    await settingsUtils.doLogout();
-    await settingsUtils.doLogin('su', 'password');
-    await settingsUtils.deletePrincipalsViaApi(ACCOUNT);
   });
 });

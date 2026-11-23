@@ -74,7 +74,6 @@ WebDriverHelper.prototype.setupBrowser = function setupBrowser(w, h) {
       await browser.deleteSession();
     });
     await _this.browser.url(baseUrl);
-    console.log('BiDi ##################### ' + _this.browser.isBidi);
     return _this.browser;
   });
 };

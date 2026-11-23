@@ -25,10 +25,6 @@ class SectionsEmpty extends Page {
     }
   }
 
-  isDisplayed() {
-    return this.isElementDisplayed(XPATH.container);
-  }
-
   // 'No administration applications'
   getMessage() {
     return this.getText(XPATH.message);

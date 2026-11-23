@@ -1,50 +1,52 @@
 const Page = require('./page');
 const appConst = require('../libs/app_const');
-const assert = require('node:assert');
 
 // What the shell renders around the sections, all light DOM: the app bar with the active section's
-// title, and one SectionMount per section visited - the visible one carries data-status='active',
-// the others stay mounted in a wrapper with display: none.
+// title and the theme switcher, and one SectionMount per section visited - the visible one carries
+// data-status='active', the others stay mounted in a wrapper with display: none.
 const XPATH = {
   appBarTitle: "//header[@data-component='AppBar']//h2",
   themeSwitcher: "//header[@data-component='AppBar']//button[@data-component='ThemeSwitcher']",
 };
 
 class AppShell extends Page {
+  // Waits until `read()` returns `expected`; the failure names what was read last.
+  async waitForValue(what, read, expected, ms = appConst.TIMEOUT.MEDIUM) {
+    let actual;
+    try {
+      await this.getBrowser().waitUntil(
+        async () => {
+          actual = await read();
+          return actual === expected;
+        },
+        { timeout: ms },
+      );
+    } catch (err) {
+      throw new Error(`${what} should be '${expected}', it is '${actual}'`, { cause: err });
+    }
+  }
+
   // The title in the app bar: the active section's.
   async getAppBarTitle() {
     const title = await this.findElement(XPATH.appBarTitle);
     return (await title.getText()).trim();
   }
 
-  async waitForAppBarTitle(expected, ms = appConst.TIMEOUT.MEDIUM) {
-    await this.getBrowser().waitUntil(async () => (await this.getAppBarTitle()) === expected, {
-      timeout: ms,
-      timeoutMsg: `The app bar should be titled '${expected}'`,
-    });
+  waitForAppBarTitle(expected, ms) {
+    return this.waitForValue('The app bar title', () => this.getAppBarTitle(), expected, ms);
   }
 
   // The browser tab: 'XP Settings / <section>'.
-  async waitForDocumentTitle(expected, ms = appConst.TIMEOUT.MEDIUM) {
-    await this.getBrowser().waitUntil(async () => (await this.getTitle()) === expected, {
-      timeout: ms,
-      timeoutMsg: `The browser tab should be titled '${expected}'`,
-    });
+  waitForDocumentTitle(expected, ms) {
+    return this.waitForValue('The browser tab title', () => this.getTitle(), expected, ms);
   }
 
-  async waitForUrl(expected, ms = appConst.TIMEOUT.MEDIUM) {
-    let actual;
-    await this.getBrowser().waitUntil(
-      async () => {
-        actual = await this.getBrowser().getUrl();
-        return actual === expected;
-      },
-      { timeout: ms, timeoutMsg: `The url should be '${expected}'` },
-    );
+  waitForUrl(expected, ms) {
+    return this.waitForValue('The url', () => this.getBrowser().getUrl(), expected, ms);
   }
 
   // The sections mounted, in DOM order, as [{ section, active, displayed }]: `section` is the
-  // mount's data-section (appConst.SECTION_ID.*), `displayed` is false for one kept hidden.
+  // mount's data-section ('<app>:<name>'), `displayed` is false for one kept hidden.
   getSectionMounts() {
     return this.getBrowser().execute(() =>
       [...document.querySelectorAll("[data-component='SectionMount']")].map((mount) => ({
@@ -59,9 +61,9 @@ class AppShell extends Page {
     return (await this.getSectionMounts()).find((mount) => mount.section === sectionId);
   }
 
-  // `lang` of the page's <html>: the language the shell's phrases resolved to.
-  getHtmlLang() {
-    return this.getBrowser().execute(() => document.documentElement.lang);
+  // The mounts on show - one, the active section's.
+  async getDisplayedSectionMounts() {
+    return (await this.getSectionMounts()).filter((mount) => mount.displayed);
   }
 
   // Theme. The switcher in the app bar steps through system → light → dark; its label names the
@@ -92,13 +94,13 @@ class AppShell extends Page {
 
   // Clicks the switcher until the stored choice is `theme` ('system', 'light' or 'dark').
   async selectTheme(theme) {
-    for (let step = 0; step < 3; step++) {
-      if ((await this.getStoredTheme()) === theme) {
-        return;
-      }
+    for (let step = 0; step < 3 && (await this.getStoredTheme()) !== theme; step++) {
       await this.clickOnThemeSwitcher();
     }
-    assert.equal(await this.getStoredTheme(), theme, 'The theme the switcher was stepped to');
+    const stored = await this.getStoredTheme();
+    if (stored !== theme) {
+      throw new Error(`The theme switcher was stepped to '${stored}', not to '${theme}'`);
+    }
   }
 
   // Forgets the visitor's choice, so the next load starts from the system theme.

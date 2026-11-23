@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 const { propertiesReader } = require('properties-reader');
 const file = path.join(__dirname, './browser.properties');
@@ -70,5 +71,24 @@ exports.config = {
   // Hook that gets executed before the suite starts
   beforeSuite: async function () {
     await browser.url(baseURL);
+  },
+
+  // A failed test leaves a screenshot of the page it failed on - an `assert` takes none by itself.
+  // Named after the test, cut short: the titles are sentences.
+  afterTest: async function (test, context, { passed }) {
+    if (passed) {
+      return;
+    }
+    const name = test.title
+      .replace(/[^a-zA-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 80);
+    const dir = path.join(__dirname, './build/reports/screenshots');
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      await browser.saveScreenshot(path.join(dir, `failed_${name}_${Date.now()}.png`));
+    } catch (err) {
+      console.log('The screenshot of the failed test was not saved: ' + err);
+    }
   },
 };

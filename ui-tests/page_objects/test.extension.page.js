@@ -1,11 +1,11 @@
 /**
  * A section of the test application 'Test ADFS ID Provider' (enonic/uitest-adfs-provider,
- * assets/_static/main.js): a heading with the section's title and, once the page has read the
- * visitor's roles, a line per role - 'Administrator <kind> Extension' for 'Admin Test Provider App',
- * 'Viewer <kind> Extension' for 'Test Provider App'. Rendered inside the section's shadow root, so
- * every locator is CSS resolved through SectionPage.
+ * assets/_static/main.js): a heading with the section's title and, once the page has asked its own
+ * endpoint for the visitor's roles, a line per test role the visitor holds - 'Viewer <kind>
+ * Extension' for 'Test Provider App'. Rendered inside the section's shadow root, so every locator
+ * is CSS resolved through SectionPage.
  *
- * `section` is an entry of appConst.TEST_PROVIDER.SECTIONS: { title, id, path, ... }.
+ * `section` is an entry of appConst.TEST_SECTIONS: { title, id, path, viewerText, ... }.
  */
 const SectionPage = require('./section.page');
 const appConst = require('../libs/app_const');
@@ -13,7 +13,6 @@ const appConst = require('../libs/app_const');
 const CSS = {
   container: 'div.test-extension',
   title: 'div.test-extension h1.test-extension-title',
-  administratorText: 'div.test-extension p#administrator-text',
   viewerText: 'div.test-extension p#viewer-text',
 };
 
@@ -23,6 +22,7 @@ class TestExtensionPage extends SectionPage {
     this.section = section;
   }
 
+  // The mount is the active one and the page's module has rendered into it.
   async waitForLoaded(ms = appConst.TIMEOUT.MEDIUM) {
     try {
       await this.waitForElementDisplayed(CSS.container, ms);
@@ -42,25 +42,21 @@ class TestExtensionPage extends SectionPage {
     return (await title.getText()).trim();
   }
 
-  // Waits for the line shown to an administrator of the test application and returns its text. It
-  // is added once the page has asked the server for the visitor's roles, hence the wait.
-  async waitForAdministratorText(ms = appConst.TIMEOUT.MEDIUM) {
+  // Waits for the line shown to a visitor with the viewer role and returns its text. The page adds
+  // it once the section's own endpoint has answered, so it also shows that the section was handed
+  // its own base url.
+  async waitForViewerText(ms = appConst.TIMEOUT.MEDIUM) {
     try {
-      await this.waitForElementDisplayed(CSS.administratorText, ms);
-      const line = await this.findElement(CSS.administratorText);
+      await this.waitForElementDisplayed(CSS.viewerText, ms);
+      const line = await this.findElement(CSS.viewerText);
       return (await line.getText()).trim();
     } catch (err) {
       await this.handleError(
-        `'${this.section.title}' page - the administrator's text was not shown`,
-        'err_test_extension_admin_text',
+        `'${this.section.title}' page - the viewer's text was not shown`,
+        'err_test_extension_viewer_text',
         err,
       );
     }
-  }
-
-  async isViewerTextDisplayed() {
-    const lines = await this.findElements(CSS.viewerText);
-    return lines.length > 0 && (await lines[0].isDisplayed());
   }
 
   // The colour the heading is painted in, as the browser computed it - read off the mount by its
@@ -73,30 +69,40 @@ class TestExtensionPage extends SectionPage {
     }, this.section.id);
   }
 
-  async waitForTitleColor(expected, ms = appConst.TIMEOUT.MEDIUM) {
+  // `matches` is told the colour and says whether it is the one waited for; `expectation` words it
+  // for the failure, which also names the colour last read.
+  async waitForTitleColorThat(matches, expectation, ms = appConst.TIMEOUT.MEDIUM) {
     let actual;
-    await this.getBrowser().waitUntil(
-      async () => {
-        actual = await this.getTitleColor();
-        return actual === expected;
-      },
-      {
-        timeout: ms,
-        timeoutMsg: `'${this.section.title}' - the heading should be painted in ${expected}`,
-      },
+    try {
+      await this.getBrowser().waitUntil(
+        async () => {
+          actual = await this.getTitleColor();
+          return actual !== undefined && matches(actual);
+        },
+        { timeout: ms },
+      );
+    } catch (err) {
+      throw new Error(
+        `'${this.section.title}' - the heading should ${expectation}, it is painted in ${actual}`,
+        { cause: err },
+      );
+    }
+    return actual;
+  }
+
+  waitForTitleColor(expected, ms) {
+    return this.waitForTitleColorThat(
+      (color) => color === expected,
+      `be painted in ${expected}`,
+      ms,
     );
   }
 
-  async waitForTitleColorNot(unexpected, ms = appConst.TIMEOUT.MEDIUM) {
-    await this.getBrowser().waitUntil(
-      async () => {
-        const actual = await this.getTitleColor();
-        return actual !== undefined && actual !== unexpected;
-      },
-      {
-        timeout: ms,
-        timeoutMsg: `'${this.section.title}' - the heading should not stay painted in ${unexpected}`,
-      },
+  waitForTitleColorNot(unexpected, ms) {
+    return this.waitForTitleColorThat(
+      (color) => color !== unexpected,
+      `not stay painted in ${unexpected}`,
+      ms,
     );
   }
 }

@@ -1,165 +1,66 @@
-/**
- * Created on 24.09.2026
- */
 const Page = require('./page');
 const appConst = require('../libs/app_const');
 
-// Vertical rail on the left side of the Settings app: one link per section.
-// Links are `<a href="#/<section>" aria-label="<Section>" data-section="<app>:<section>">`,
-// the current one carries `data-status="active"` and `aria-current="page"`.
-const SECTION = Object.freeze({
-  APPLICATIONS: 'Applications',
-  SERVICE_ACCOUNTS: 'Service Accounts',
-  USERS: 'Users',
-  GROUPS: 'Groups',
-  ROLES: 'Roles',
-  ID_PROVIDERS: 'ID Providers',
-});
-
+// The rail on the left of the Settings app: its heading and one link per section the visitor may
+// open, in the order the shell sorted them. A link is
+// `<a href="#/<path>" aria-label="<title>" data-section="<app>:<name>">`; the one of the section
+// shown carries `data-status="active"` and `aria-current="page"`. Light DOM, so XPath serves it.
+//
+// Which sections there are is not the shell's to say, so nothing here names one: a section is
+// addressed by its title.
+const RAIL = "//nav[@data-component='SectionRail']";
 const XPATH = {
-  container: "//nav[@data-component='SectionRail']",
-  title: "//nav[@data-component='SectionRail']//h1",
-  sectionButtons: "//nav[@data-component='SectionRail']//ul//a[@data-section]",
-  activeSectionButton: "//nav[@data-component='SectionRail']//ul//a[@data-status='active']",
-  sectionButtonByLabel: (label) =>
-    `//nav[@data-component='SectionRail']//ul//a[@aria-label='${label}']`,
+  container: RAIL,
+  title: `${RAIL}//h1`,
+  sectionButtons: `${RAIL}//ul//a[@data-section]`,
+  sectionButtonByLabel: (label) => `${RAIL}//ul//a[@aria-label='${label}']`,
 };
 
 class MenuSectionsRail extends Page {
-  static get SECTION() {
-    return SECTION;
-  }
-
-  get applicationsButton() {
-    return XPATH.sectionButtonByLabel(SECTION.APPLICATIONS);
-  }
-
-  get serviceAccountsButton() {
-    return XPATH.sectionButtonByLabel(SECTION.SERVICE_ACCOUNTS);
-  }
-
-  get usersButton() {
-    return XPATH.sectionButtonByLabel(SECTION.USERS);
-  }
-
-  get groupsButton() {
-    return XPATH.sectionButtonByLabel(SECTION.GROUPS);
-  }
-
-  get rolesButton() {
-    return XPATH.sectionButtonByLabel(SECTION.ROLES);
-  }
-
-  get idProvidersButton() {
-    return XPATH.sectionButtonByLabel(SECTION.ID_PROVIDERS);
-  }
-
   async waitForLoaded(ms = appConst.TIMEOUT.MEDIUM) {
     try {
       await this.waitForElementDisplayed(XPATH.container, ms);
     } catch (err) {
-      await this.handleError('Sections rail was not loaded', 'err_sections_rail', err);
+      await this.handleError('Sections rail was not loaded', 'err_rail', err);
     }
   }
 
-  // Clicks on the section link and waits until that section becomes active.
-  async clickOnSectionButton(label) {
-    try {
-      const selector = XPATH.sectionButtonByLabel(label);
-      await this.waitForElementDisplayed(selector);
-      await this.clickOnElement(selector);
-      await this.waitForSectionActive(label);
-    } catch (err) {
-      await this.handleError(
-        `Sections rail - failed to open the '${label}' section`,
-        'err_rail_click_section',
-        err,
-      );
+  // The heading of the rail: 'Settings'.
+  getRailTitle() {
+    return this.getText(XPATH.title);
+  }
+
+  // The values of `attribute` of the section links, in display order.
+  async getSectionAttributes(attribute) {
+    const links = await this.findElements(XPATH.sectionButtons);
+    const values = [];
+    for (const link of links) {
+      values.push({
+        name: await link.getAttribute('aria-label'),
+        value: await link.getAttribute(attribute),
+      });
     }
+    return values;
   }
 
-  clickOnApplicationsButton() {
-    return this.clickOnSectionButton(SECTION.APPLICATIONS);
-  }
-
-  clickOnServiceAccountsButton() {
-    return this.clickOnSectionButton(SECTION.SERVICE_ACCOUNTS);
-  }
-
-  clickOnUsersButton() {
-    return this.clickOnSectionButton(SECTION.USERS);
-  }
-
-  clickOnGroupsButton() {
-    return this.clickOnSectionButton(SECTION.GROUPS);
-  }
-
-  clickOnRolesButton() {
-    return this.clickOnSectionButton(SECTION.ROLES);
-  }
-
-  clickOnIdProvidersButton() {
-    return this.clickOnSectionButton(SECTION.ID_PROVIDERS);
-  }
-
-  // Waits until the link with the given label gets `data-status="active"`.
-  async waitForSectionActive(label, ms = appConst.TIMEOUT.MEDIUM) {
-    const selector = XPATH.sectionButtonByLabel(label);
-    await this.getBrowser().waitUntil(
-      async () => {
-        const status = await this.getAttribute(selector, 'data-status');
-        return status === 'active';
-      },
-      { timeout: ms, timeoutMsg: `Section '${label}' did not become active in ${ms} ms` },
-    );
-  }
-
-  // Returns the aria-label of the currently active section, e.g. 'Users'.
-  async getActiveSectionName() {
-    await this.waitForElementDisplayed(XPATH.activeSectionButton);
-    return await this.getAttribute(XPATH.activeSectionButton, 'aria-label');
-  }
-
-  async isSectionActive(label) {
-    const status = await this.getAttribute(XPATH.sectionButtonByLabel(label), 'data-status');
-    return status === 'active';
-  }
-
-  // The aria-labels of the links marked aria-current='page' - the active one and no other.
-  async getCurrentPageSectionNames() {
-    const elements = await this.findElements(XPATH.sectionButtons);
-    const names = [];
-    for (const el of elements) {
-      if ((await el.getAttribute('aria-current')) === 'page') {
-        names.push(await el.getAttribute('aria-label'));
-      }
-    }
-    return names;
-  }
-
-  // The aria-labels of the links carrying data-status='active'.
-  async getActiveSectionNames() {
-    const elements = await this.findElements(XPATH.sectionButtons);
-    const names = [];
-    for (const el of elements) {
-      if ((await el.getAttribute('data-status')) === 'active') {
-        names.push(await el.getAttribute('aria-label'));
-      }
-    }
-    return names;
-  }
-
-  // Returns aria-labels of all section links in the rail, in display order.
+  // The titles of all the sections in the rail, in display order.
   async getSectionNames() {
-    const elements = await this.findElements(XPATH.sectionButtons);
-    const names = [];
-    for (const el of elements) {
-      names.push(await el.getAttribute('aria-label'));
-    }
-    return names;
+    return (await this.getSectionAttributes('aria-label')).map(({ name }) => name);
   }
 
-  // Returns the `href` of the section link, e.g. '#/users'.
+  // The titles of the links carrying data-status='active' - one, the section shown.
+  async getActiveSectionNames() {
+    const links = await this.getSectionAttributes('data-status');
+    return links.filter(({ value }) => value === 'active').map(({ name }) => name);
+  }
+
+  // The titles of the links marked aria-current='page' - the active one and no other.
+  async getCurrentPageSectionNames() {
+    const links = await this.getSectionAttributes('aria-current');
+    return links.filter(({ value }) => value === 'page').map(({ name }) => name);
+  }
+
+  // The `href` of the section's link as written, e.g. '#/test-provider-users'.
   getSectionHref(label) {
     return this.getAttribute(XPATH.sectionButtonByLabel(label), 'href');
   }
@@ -168,35 +69,34 @@ class MenuSectionsRail extends Page {
     return this.isElementDisplayed(XPATH.sectionButtonByLabel(label));
   }
 
-  async waitForSectionButtonDisplayed(label, ms = appConst.TIMEOUT.MEDIUM) {
+  async waitForSectionActive(label, ms = appConst.TIMEOUT.MEDIUM) {
+    let active;
     try {
-      await this.waitForElementDisplayed(XPATH.sectionButtonByLabel(label), ms);
+      await this.getBrowser().waitUntil(
+        async () => {
+          active = await this.getActiveSectionNames();
+          return active.length === 1 && active[0] === label;
+        },
+        { timeout: ms },
+      );
     } catch (err) {
       await this.handleError(
-        `Sections rail - '${label}' button is not displayed`,
-        'err_rail_section_button',
+        `Sections rail - '${label}' should be the active section, active: [${active}]`,
+        'err_rail_active_section',
         err,
       );
     }
   }
 
-  async waitForSectionButtonNotDisplayed(label, ms = appConst.TIMEOUT.MEDIUM) {
+  // Clicks on the section's link and waits until that section is the active one.
+  async clickOnSectionButton(label) {
     try {
-      await this.waitForElementNotDisplayed(XPATH.sectionButtonByLabel(label), ms);
+      await this.clickOnElement(XPATH.sectionButtonByLabel(label));
     } catch (err) {
-      await this.handleError(
-        `Sections rail - '${label}' button should not be displayed`,
-        'err_rail_section_button_hidden',
-        err,
-      );
+      await this.handleError(`Sections rail - '${label}' link`, 'err_rail_click_section', err);
     }
-  }
-
-  // Text of the vertical heading in the rail ("Settings").
-  getRailTitle() {
-    return this.getText(XPATH.title);
+    await this.waitForSectionActive(label);
   }
 }
 
 module.exports = MenuSectionsRail;
-module.exports.SECTION = SECTION;

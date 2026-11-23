@@ -2,16 +2,30 @@ const webDriverHelper = require('../libs/WebDriverHelper');
 const settingsUtils = require('../libs/settings.utils');
 const appConst = require('../libs/app_const');
 const assert = require('node:assert');
+const TestExtensionPage = require('../page_objects/test.extension.page');
 
-describe('content.security.policy.spec - the Settings page is served with a Content-Security-Policy, and the shell does not violate it', function () {
+describe('content.security.policy.spec - the Settings page is served with a Content-Security-Policy, and neither the shell nor a section it mounts violates it', function () {
   this.timeout(appConst.SUITE_TIMEOUT);
   if (typeof browser === 'undefined') {
     webDriverHelper.setupBrowser();
   }
 
+  const SECTION = appConst.TEST_SECTIONS[0];
   // How Chrome words a violation in its log: "Refused to load the image '...' because it violates
   // the following Content Security Policy directive: ...".
   const VIOLATION = /Content Security Policy/i;
+  // The sources the shell's baseline declares, per directive. A section may add sources of its own
+  // to a directive, so each is looked for among the directive's sources, not compared with it.
+  const BASELINE = {
+    'default-src': "'none'",
+    'base-uri': "'none'",
+    'frame-ancestors': "'none'",
+    'form-action': "'none'",
+    'script-src': "'self'",
+    'style-src': "'self'",
+    'connect-src': "'self'",
+    'font-src': "'self'",
+  };
 
   // The violations logged since the last read, as their messages.
   async function readViolations() {
@@ -20,40 +34,38 @@ describe('content.security.policy.spec - the Settings page is served with a Cont
   }
 
   it('GIVEN SU is logged in WHEN the Settings page has been requested THEN the response should carry the Content-Security-Policy baseline', async () => {
-    await settingsUtils.navigateToSettingsApp('su', 'password');
+    await settingsUtils.navigateToSettingsApp();
     // 1. Read the header off the page's own url.
     const header = await settingsUtils.getBrowser().execute(async () => {
       const response = await fetch(location.href.split('#')[0], { credentials: 'same-origin' });
       return response.headers.get('content-security-policy');
     });
     assert.ok(header, 'The page should be served with a Content-Security-Policy header');
-    // 2. Verify the directives the shell's baseline declares; a section may widen one of its own.
-    const directives = header.split(';').map((directive) => directive.trim());
-    for (const expected of [
-      "default-src 'none'",
-      "base-uri 'none'",
-      "frame-ancestors 'none'",
-      "form-action 'none'",
-      "script-src 'self'",
-      "style-src 'self'",
-      "connect-src 'self'",
-      "font-src 'self'",
-    ]) {
-      assert.ok(directives.includes(expected), `'${expected}' should be in the policy: ${header}`);
+    // 2. Verify that every directive of the baseline is declared and names its source.
+    const policy = new Map(
+      header.split(';').map((directive) => {
+        const [name, ...sources] = directive.trim().split(/\s+/);
+        return [name, sources];
+      }),
+    );
+    for (const [name, source] of Object.entries(BASELINE)) {
+      assert.ok(policy.has(name), `'${name}' should be declared in the policy: ${header}`);
+      assert.ok(
+        policy.get(name).includes(source),
+        `'${name}' should name ${source} in the policy: ${header}`,
+      );
     }
     // 3. Nothing in the policy allows inline or evaluated code.
     assert.ok(!/unsafe-inline|unsafe-eval/.test(header), `No 'unsafe-*' source: ${header}`);
   });
 
-  // The sections are walked in the suites of the apps that add them (app-applications/ui-tests,
-  // app-users/ui-tests, the specs of the same name); here the shell's own assets are under test.
-  it('GIVEN SU is logged in WHEN the Settings page has been loaded anew THEN no Content-Security-Policy violation should be logged', async () => {
+  it('GIVEN SU is logged in WHEN the Settings page has been loaded anew at a section THEN no Content-Security-Policy violation should be logged', async () => {
     // 1. Start from an empty log.
     await settingsUtils.getBrowserLogs();
-    // 2. Load the page at the tool's own url, cold: the shell's assets and whichever section it
-    //    opens on.
-    const menuSectionsRail = await settingsUtils.openSettingsByHash('');
-    await settingsUtils.waitForSectionScreenLoaded(await menuSectionsRail.getActiveSectionName());
+    // 2. Load the page cold at a test section: the shell's own assets, the import of the section's
+    //    module and the request the section makes to its endpoint.
+    await settingsUtils.openSettingsByHash(`#/${SECTION.path}`);
+    await new TestExtensionPage(SECTION).waitForLoaded();
     assert.deepEqual(await readViolations(), [], 'Content-Security-Policy violations were logged');
   });
 
