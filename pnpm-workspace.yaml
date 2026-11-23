@@ -1,8 +1,10 @@
 # ! No catalog: Dependabot writes a lockfile that a `catalog:` specifier cannot satisfy —
 # dependabot-core#12244 — so the three versions live in package.json, where it updates them
 # correctly, and `$name` keeps the overrides on whatever is pinned there. The one it does not
-# update is the `vite` alias, which has to be bumped by hand to match `vite-plus` — pnpm cannot
-# derive it: `$name` does not interpolate into an alias spec, and a range floats off the CLI.
+# update is the `vite` alias, which has to be bumped by hand to the core build `vite-plus` depends
+# on — its version encodes the bundled Vite (`8.3.8000` for Vite 8.3.8), not the `vite-plus`
+# version; `npm view vite-plus@<version> dependencies.vite` prints it. pnpm cannot derive it:
+# `$name` does not interpolate into an alias spec, and a range floats off the CLI.
 overrides:
   vite: '$vite'
   vitest: '$vitest'
