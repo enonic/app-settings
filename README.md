@@ -99,6 +99,13 @@ pnpm test         # tests only
 pnpm test:watch
 ```
 
+Browser tests of the shell with its sections, against an XP distro Gradle unpacks and starts — see
+[`ui-tests/`](ui-tests/README.md):
+
+```
+./gradlew :ui-tests:testSettingsApp
+```
+
 ## Source layout
 
 The frontend under `src/main/resources/assets/js`:

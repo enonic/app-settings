@@ -16,15 +16,16 @@ something**, and re-verify against `../xp` rather than re-deriving.
 
 ## Scripts
 
-| Intent                            | Command                         |
-| --------------------------------- | ------------------------------- |
-| Verify changes                    | `pnpm check`                    |
-| Verify, fixing format and lint    | `pnpm check:fix`                |
-| Tests                             | `pnpm test` / `pnpm test:watch` |
-| Frontend watch build              | `pnpm dev`                      |
-| Server-side TS → CommonJS         | `pnpm pack:server`              |
-| Build + deploy to local XP        | `./gradlew deploy -Penv=dev`    |
-| Full watch loop (server + assets) | `./gradlew dev`                 |
+| Intent                            | Command                               |
+| --------------------------------- | ------------------------------------- |
+| Verify changes                    | `pnpm check`                          |
+| Verify, fixing format and lint    | `pnpm check:fix`                      |
+| Tests                             | `pnpm test` / `pnpm test:watch`       |
+| Frontend watch build              | `pnpm dev`                            |
+| Server-side TS → CommonJS         | `pnpm pack:server`                    |
+| Build + deploy to local XP        | `./gradlew deploy -Penv=dev`          |
+| Full watch loop (server + assets) | `./gradlew dev`                       |
+| Browser tests against a real XP   | `./gradlew :ui-tests:testSettingsApp` |
 
 `pnpm check` is what CI runs: format, lint, client typecheck, server typecheck, tests. Reach for
 Gradle when descriptors, `build.gradle` or the jar matter; for most changes `pnpm check` is enough.
@@ -68,6 +69,12 @@ src/main/resources/
     shared/             api client, config, i18n, admin events, notifications, app state, sections
                         (the mount contract and `mountSection`), menu
 ```
+
+`ui-tests/` is a Gradle subproject and a pnpm project of its own: a WebdriverIO suite that unpacks an
+XP distro, puts this build's jar in it and drives the shell in Chrome on the sections of a test
+application it deploys. No spec may open, name or call a section of another application. Plain
+CommonJS, outside the root workspace and the root tsconfig; `ui-tests/README.md` says how it runs and
+what it covers.
 
 Import direction is one-way: `app → widgets/features → entities → shared`. Details and the
 reasoning are in `.claude/rules/structure.md`. The mount contract comes from `@enonic/ui-types`; the
