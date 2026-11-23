@@ -27,7 +27,7 @@ jobs:
           echo "previous_release_tag=$PREVIOUS_RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Generate release notes
-        uses: enonic/release-tools/generate-changelog@6b86542c83b7d59b193441663c7381f4c5e2f2ff # master @ 2026-07-01
+        uses: enonic/release-tools/generate-changelog@8360f0905b5c4fbf417c452a277ffdbb561e885e # master @ 2026-07-01
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PREVIOS_RELEASE_TAG: ${{ steps.get_previous_release_tag.outputs.previous_release_tag }}
