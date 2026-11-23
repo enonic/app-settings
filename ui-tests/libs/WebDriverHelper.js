@@ -24,10 +24,10 @@ const makeChromeOptions = (headless, width, height) => ({
  * the `after` that terminates it.
  *
  * The session is deleted by an `after` hook added to the suite from inside `before`, at run time.
- * Mocha runs a suite's `after` hooks in the order they were added, and the spec's own `after` -
- * the one that cleans up via the API, through the browser - is added at collection time, after
- * this function was called: an `after` registered here would run before it and leave it with a
- * dead session (ECONNREFUSED on every request). A hook added at run time comes last.
+ * Mocha runs a suite's `after` hooks in the order they were added, and a spec's own `after` that
+ * still needs the browser - theme.spec clears the stored theme in one - is added at collection
+ * time, after this function was called: an `after` registered here would run before it and leave
+ * it with a dead session (ECONNREFUSED on every request). A hook added at run time comes last.
  */
 WebDriverHelper.prototype.setupBrowser = function setupBrowser(w, h) {
   let _this = this;

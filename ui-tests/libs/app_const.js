@@ -2,8 +2,6 @@ module.exports = Object.freeze({
   SUITE_TIMEOUT: 180000,
   TIMEOUT: {
     MEDIUM: 3000,
-    LONG: 5000,
-    SHORT: 2000,
   },
   // The accounts the specs log in as. SU is the instance's own (test-config/system.properties); it
   // passes the access rules of every section. The other two are made by the test application when

@@ -71,9 +71,10 @@ src/main/resources/
 ```
 
 `ui-tests/` is a Gradle subproject and a pnpm project of its own: a WebdriverIO suite that unpacks an
-XP distro, puts this build's jar in it and drives the shell with the providers' sections in Chrome.
-Plain CommonJS, outside the root workspace and the root tsconfig; `ui-tests/README.md` says how it
-runs and what it covers.
+XP distro, puts this build's jar in it and drives the shell in Chrome on the sections of a test
+application it deploys. No spec may open, name or call a section of another application. Plain
+CommonJS, outside the root workspace and the root tsconfig; `ui-tests/README.md` says how it runs and
+what it covers.
 
 Import direction is one-way: `app → widgets/features → entities → shared`. Details and the
 reasoning are in `.claude/rules/structure.md`. The mount contract comes from `@enonic/ui-types`; the

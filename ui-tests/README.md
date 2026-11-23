@@ -48,9 +48,9 @@ empty rail or a closed section, and those two specs log in as accounts of the te
   `test-provider-no-sections`, which holds `Administration Console Login` and nothing else, and
   `test-provider-viewer`, which holds the viewer role too.
 
-`:ui-tests:downloadApps` copies the application into `home/deploy`, after checking that the jar it
-resolved has the sections and the accounts: the application is a SNAPSHOT, and one built before
-they were added carries the same version.
+`:ui-tests:downloadApps` copies the application into `home/deploy` before the server starts, so it
+is installed with it, after checking that the jar it resolved has the sections and the accounts: the
+application is a SNAPSHOT, and one built before they were added carries the same version.
 
 ## Layout
 

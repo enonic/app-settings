@@ -9,7 +9,6 @@ const XPATH = {
   message: "//div[@data-component='SectionsEmpty']/p[1]",
   hint: "//div[@data-component='SectionsEmpty']/p[2]",
   sectionMounts: "//div[@data-component='SectionMount']",
-  appBarTitle: "//header[@data-component='AppBar']//h2",
 };
 
 class SectionsEmpty extends Page {
@@ -44,12 +43,6 @@ class SectionsEmpty extends Page {
   async getSectionMountsCount() {
     const mounts = await this.findElements(XPATH.sectionMounts);
     return mounts.length;
-  }
-
-  // The title in the app bar: the active section's, so empty here.
-  async getAppBarTitle() {
-    const title = await this.findElement(XPATH.appBarTitle);
-    return (await title.getText()).trim();
   }
 }
 

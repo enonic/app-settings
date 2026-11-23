@@ -91,7 +91,7 @@ tasks.register( 'downloadApps', Copy ) {
         configurations.apps
     }
     into deployDir
-    mustRunAfter tasks.named( 'startServer' )
+    mustRunAfter tasks.named( 'unpackDistro' )
     doFirst {
         configurations.apps.files.findAll { it.name.startsWith( 'adfs-idprovider' ) }.each { jar ->
             def missing = new java.util.zip.ZipFile( jar ).withCloseable { zip ->
@@ -154,8 +154,10 @@ tasks.register( 'startServer' ) {
     description = 'Starts the XP server for testing'
     group = 'Test Execution'
     dependsOn( tasks.named( 'unpackDistro' ) )
-    // The config and the app under test are read at startup: both must be in place before it.
-    mustRunAfter tasks.named( 'copyConfig' ), tasks.named( 'deployApp' )
+    // The config and the app under test are read at startup: both must be in place before it. So
+    // must the test application: the first spec opens its sections and logs in as its accounts, and
+    // nothing waits for an application deployed after the start.
+    mustRunAfter tasks.named( 'copyConfig' ), tasks.named( 'deployApp' ), tasks.named( 'downloadApps' )
     doLast {
         sleep( 5000 )
         logger.lifecycle( 'Starting XP Server at: {}', xpHome )

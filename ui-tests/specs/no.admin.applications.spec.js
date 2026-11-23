@@ -4,6 +4,7 @@ const appConst = require('../libs/app_const');
 const assert = require('node:assert');
 const MenuSectionsRail = require('../page_objects/menu.sections.rail');
 const SectionsEmpty = require('../page_objects/sections.empty');
+const AppShell = require('../page_objects/app.shell');
 
 describe("no.admin.applications.spec - an account no section's access rules include may open the Settings app but none of its sections: the rail is empty and 'No administration applications' is shown", function () {
   this.timeout(appConst.SUITE_TIMEOUT);
@@ -28,7 +29,7 @@ describe("no.admin.applications.spec - an account no section's access rules incl
     assert.deepEqual(await menuSectionsRail.getSectionNames(), []);
     // 3. Nothing is mounted, and the app bar has no section to title.
     assert.equal(await sectionsEmpty.getSectionMountsCount(), 0, 'No section should be mounted');
-    assert.equal(await sectionsEmpty.getAppBarTitle(), '');
+    assert.equal(await new AppShell().getAppBarTitle(), '');
   }
 
   it("GIVEN the account with no section is logged in WHEN the Settings app has been opened THEN 'No administration applications' should be shown with its hint AND the rail should have no items", async () => {

@@ -25,7 +25,10 @@ async function assertShellShows(title, hash) {
   // 3. One mount is on show, and it is the active one.
   const displayed = await appShell.getDisplayedSectionMounts();
   assert.equal(displayed.length, 1, `One mount should be on show: ${JSON.stringify(displayed)}`);
-  assert.ok(displayed[0].active, `The mount on show should be the active one: ${displayed[0]}`);
+  assert.ok(
+    displayed[0].active,
+    `The mount on show should be the active one: ${JSON.stringify(displayed[0])}`,
+  );
   return displayed[0];
 }
 
